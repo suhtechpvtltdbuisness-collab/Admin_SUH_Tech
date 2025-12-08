@@ -1,17 +1,24 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import Dashboard from './pages/Dashboard'
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Dashboard from "./pages/Dashboard";
+import EmployeePage from "./pages/EmployeePage";
+import EmployeeViewPage from "./pages/EmployeeViewPage";
+import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
 
-function App() {
-  const [count, setCount] = useState(0)
-
+export default function App() {
   return (
-    <>
-     <Dashboard />
-    </>
-  )
-}
+    <Router>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/employees" element={<EmployeePage />} />
 
-export default App
+        {/* EMPLOYEE VIEW PAGE */}
+        <Route path="/employee/:id" element={<EmployeeViewPage />} />
+        
+        {/* login  */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+      </Routes>
+    </Router>
+  );
+}

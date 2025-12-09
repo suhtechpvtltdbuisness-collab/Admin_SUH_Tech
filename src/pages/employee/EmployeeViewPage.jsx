@@ -19,7 +19,7 @@ const MOCK_DB = {
         avatar: "https://ui-avatars.com/api/?name=Rahul+Sharma&background=0D8ABC&color=fff",
         details: {
             gender: "Male",
-            dob: "25 Aug 1995",
+            dob: "1995-08-25",
             bloodGroup: "B+",
             nationality: "Indian",
             currentAddress: "A-123, Rosewood App, Andheri West, Mumbai",
@@ -52,7 +52,7 @@ const MOCK_DB = {
         avatar: "https://ui-avatars.com/api/?name=Priya+Singh&background=D946EF&color=fff",
         details: {
             gender: "Female",
-            dob: "12 Dec 1996",
+            dob: "1996-12-12",
             bloodGroup: "O+",
             nationality: "Indian",
             currentAddress: "B-402, Sunshine Towers, Pune",
@@ -72,7 +72,7 @@ const MOCK_DB = {
         avatar: "https://ui-avatars.com/api/?name=Amit+Patel&background=F59E0B&color=fff",
         details: {
             gender: "Male",
-            dob: "10 Mar 1990",
+            dob: "1990-03-10",
             bloodGroup: "A+",
             nationality: "Indian",
             currentAddress: "C-101, Green Valley, Bangalore",
@@ -92,7 +92,7 @@ const MOCK_DB = {
         avatar: "https://ui-avatars.com/api/?name=Sneha+Gupta&background=10B981&color=fff",
         details: {
             gender: "Female",
-            dob: "20 Aug 1992",
+            dob: "1992-08-20",
             bloodGroup: "AB+",
             nationality: "Indian",
             currentAddress: "D-505, Blue Heights, Delhi",
@@ -112,7 +112,7 @@ const MOCK_DB = {
         avatar: "https://ui-avatars.com/api/?name=Vikram+Malhotra&background=3B82F6&color=fff",
         details: {
             gender: "Male",
-            dob: "15 Jan 1994",
+            dob: "1994-01-15",
             bloodGroup: "B+",
             nationality: "Indian",
             currentAddress: "E-202, Tech City, Hyderabad",
@@ -153,6 +153,21 @@ export default function EmployeeViewPage() {
     }, [id]);
 
     const toggleEdit = () => setIsEditing(!isEditing);
+
+    const handleInputChange = (field, value, section = 'details') => {
+        setEmployee(prev => {
+            if (section === 'root') {
+                return { ...prev, [field]: value };
+            }
+            return {
+                ...prev,
+                details: {
+                    ...prev.details,
+                    [field]: value
+                }
+            };
+        });
+    };
 
     if (!employee) return <div>Loading...</div>;
 
@@ -226,6 +241,7 @@ export default function EmployeeViewPage() {
                                         type="text"
                                         value={employee.contact}
                                         readOnly={!isEditing}
+                                        onChange={(e) => handleInputChange('contact', e.target.value, 'root')}
                                         className={`w-full py-2 px-3 rounded-lg text-sm font-medium transition-all outline-none
                                             ${isEditing ? "bg-white border border-blue-200 focus:ring-4 focus:ring-blue-50" : "bg-transparent border-none text-gray-800 p-0"}`}
                                     />
@@ -238,6 +254,7 @@ export default function EmployeeViewPage() {
                                         type="text"
                                         value={employee.details?.emergencyPhone || "+91 98765 00000"}
                                         readOnly={!isEditing}
+                                        onChange={(e) => handleInputChange('emergencyPhone', e.target.value)}
                                         className={`w-full py-2 px-3 rounded-lg text-sm font-medium transition-all outline-none
                                             ${isEditing ? "bg-white border border-blue-200 focus:ring-4 focus:ring-blue-50" : "bg-transparent border-none text-gray-800 p-0"}`}
                                     />
@@ -256,11 +273,12 @@ export default function EmployeeViewPage() {
                                 <div>
                                     <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">Joining Date</p>
                                     <input
-                                        type="text"
+                                        type="date"
                                         value={employee.joinDate}
                                         readOnly={!isEditing}
+                                        onChange={(e) => handleInputChange('joinDate', e.target.value, 'root')}
                                         className={`w-full py-2 px-3 rounded-lg text-sm font-medium transition-all outline-none
-                                            ${isEditing ? "bg-white border border-blue-200 focus:ring-4 focus:ring-blue-50" : "bg-transparent border-none text-gray-800 p-0"}`}
+                                            ${isEditing ? "bg-white border border-blue-200 focus:ring-4 focus:ring-blue-50 text-gray-900" : "bg-transparent border-none text-gray-800 p-0"}`}
                                     />
                                 </div>
                             </div>
@@ -293,8 +311,8 @@ export default function EmployeeViewPage() {
                             </div>
 
                             <div className="p-4">
-                                {activeTab === 'personal' && <PersonalInformation isEditing={isEditing} data={employee.details} />}
-                                {activeTab === 'job' && <JobInformation isEditing={isEditing} data={employee.details} />}
+                                {activeTab === 'personal' && <PersonalInformation isEditing={isEditing} data={employee.details} onChange={handleInputChange} />}
+                                {activeTab === 'job' && <JobInformation isEditing={isEditing} data={employee.details} onChange={handleInputChange} />}
                                 {activeTab === 'documents' && <Documents isEditing={isEditing} />}
                             </div>
                         </div>

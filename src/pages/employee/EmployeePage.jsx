@@ -285,8 +285,7 @@ export default function EmployeePage() {
                   <th className="p-4">ID</th>
                   <th className="p-4">Department</th>
                   <th className="p-4">Designation</th>
-                  <th className="p-4">Joining Date</th>
-                  <th className="p-4">Contact</th>
+                  <th className="p-4">Email</th>
                   <th className="p-4 text-center">Status</th>
                   <th className="p-4 text-center">Action</th>
                 </tr>
@@ -307,7 +306,7 @@ export default function EmployeePage() {
                       <td className="p-4 text-gray-500 font-mono text-xs font-medium px-2 py-1 rounded w-fit">{emp.id}</td>
                       <td className="p-4 text-gray-700">{emp.dept}</td>
                       <td className="p-4 text-gray-700">{emp.designation}</td>
-                      <td className="p-4 text-gray-500">{emp.joinDate}</td>
+
                       <td className="p-4 text-gray-500 text-xs">{emp.contact}</td>
                       <td className="p-4 text-center">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide border
@@ -336,7 +335,7 @@ export default function EmployeePage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="9" className="p-8 text-center text-gray-500">
+                    <td colSpan="8" className="p-8 text-center text-gray-500">
                       No employees found matching your criteria.
                     </td>
                   </tr>

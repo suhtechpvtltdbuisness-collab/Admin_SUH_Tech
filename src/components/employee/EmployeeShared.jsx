@@ -23,7 +23,7 @@ export const SectionCard = ({ title, children, defaultOpen = true }) => {
     );
 };
 
-export const Field = ({ label, value, isEditing, multiline, type = "text", className = "", onChange, placeholder }) => {
+export const Field = ({ label, value, isEditing, multiline, type = "text", className = "", onChange, placeholder, options = [] }) => {
     const [currentValue, setCurrentValue] = useState(value);
 
     // Update local state when prop changes, or handle it via parent if needed.
@@ -55,6 +55,24 @@ export const Field = ({ label, value, isEditing, multiline, type = "text", class
                             : "bg-gray-50 border-gray-200 text-gray-700"
                         }`}
                 />
+            ) : type === "select" ? (
+                <div className="relative">
+                    <select
+                        value={value !== undefined ? value : currentValue}
+                        disabled={!isEditing}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all outline-none border appearance-none
+                        ${isEditing
+                                ? "bg-white border-blue-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 text-gray-900 cursor-pointer"
+                                : "bg-gray-50 border-gray-200 text-gray-700"
+                            }`}
+                    >
+                        {options.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                    </select>
+                    <ChevronDown size={16} className={`absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none ${isEditing ? "text-gray-500" : "text-gray-400"}`} />
+                </div>
             ) : (
                 <input
                     type={type}

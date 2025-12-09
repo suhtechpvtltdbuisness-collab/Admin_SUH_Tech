@@ -8,10 +8,10 @@ import CompanyExpenses from "./pages/expenses/CompanyExpenses";
 import Invoices from "./pages/expenses/Invoices";
 
 import Dashboard from "./pages/Dashboard";
-import EmployeePage from "./pages/EmployeePage";
-import EmployeeViewPage from "./pages/EmployeeViewPage";
-import Login from "./pages/Login";
-import ForgotPassword from "./pages/ForgotPassword";
+import EmployeePage from "./pages/employee/EmployeePage";
+import EmployeeViewPage from "./pages/employee/EmployeeViewPage";
+import Login from "./pages/auth/Login";
+import ForgotPassword from "./pages/auth/ForgotPassword";
 
 import "./App.css";
 

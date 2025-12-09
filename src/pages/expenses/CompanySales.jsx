@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Search, Plus, Filter, MoreVertical, ExternalLink, Phone, Mail, User, Briefcase, Calendar, CheckCircle, TrendingUp, DollarSign, BarChart2 } from 'lucide-react';
+import { Search, Plus, Filter, MoreVertical, ExternalLink, Phone, Mail, User, Briefcase, Calendar, CheckCircle, TrendingUp, DollarSign, BarChart2, X } from 'lucide-react';
 
 const CompanySales = () => {
-    const [sales] = useState([
+    const [sales, setSales] = useState([
         {
             id: 1,
             clientName: "Acme Corp",
@@ -67,6 +67,20 @@ const CompanySales = () => {
         },
     ]);
 
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newSale, setNewSale] = useState({
+        clientName: '',
+        contactPerson: '',
+        email: '',
+        phone: '',
+        projectTitle: '',
+        amount: '',
+        date: '',
+        status: 'Pending',
+        link: '',
+        paymentMethod: 'Bank Transfer'
+    });
+
     const getStatusColor = (status) => {
         switch (status) {
             case 'Completed': return 'bg-green-100 text-green-700 border-green-200';
@@ -76,6 +90,37 @@ const CompanySales = () => {
         }
     };
 
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewSale(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleAddSale = (e) => {
+        e.preventDefault();
+        const saleToAdd = {
+            id: sales.length + 1,
+            ...newSale,
+            amount: `₹${parseFloat(newSale.amount || 0).toLocaleString('en-IN')}`
+        };
+        setSales([...sales, saleToAdd]);
+        setIsAddModalOpen(false);
+        setNewSale({
+            clientName: '',
+            contactPerson: '',
+            email: '',
+            phone: '',
+            projectTitle: '',
+            amount: '',
+            date: '',
+            status: 'Pending',
+            link: '',
+            paymentMethod: 'Bank Transfer'
+        });
+    };
+
     return (
         <div className="p-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -83,7 +128,10 @@ const CompanySales = () => {
                     <h1 className="text-2xl font-bold text-gray-800">Company Sales</h1>
                     <p className="text-gray-500 text-sm">Track income, project billing, and revenue status</p>
                 </div>
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm w-full md:w-auto">
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm w-full md:w-auto cursor-pointer"
+                >
                     <Plus size={20} />
                     <span>New Sale Entry</span>
                 </button>
@@ -131,11 +179,11 @@ const CompanySales = () => {
                     />
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
-                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer">
                         <Filter size={18} />
                         Filter
                     </button>
-                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer">
                         Export
                     </button>
                 </div>
@@ -194,7 +242,7 @@ const CompanySales = () => {
                                         </span>
                                     </td>
                                     <td className="p-4 text-right">
-                                        <button className="p-2 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors">
+                                        <button className="p-2 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors cursor-pointer">
                                             <MoreVertical size={18} />
                                         </button>
                                     </td>
@@ -204,6 +252,72 @@ const CompanySales = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Add Sale Modal */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white w-full max-w-2xl mx-4 rounded-xl shadow-lg overflow-y-auto max-h-[90vh]">
+                        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                            <h2 className="text-xl font-semibold">New Sale Entry</h2>
+                            <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full cursor-pointer">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleAddSale} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Client Name</label>
+                                <input type="text" name="clientName" value={newSale.clientName} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
+                                <input type="text" name="contactPerson" value={newSale.contactPerson} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input type="email" name="email" value={newSale.email} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                <input type="text" name="phone" value={newSale.phone} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Project Title</label>
+                                <input type="text" name="projectTitle" value={newSale.projectTitle} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                                <input type="number" name="amount" value={newSale.amount} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                                <input type="text" name="paymentMethod" value={newSale.paymentMethod} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                <input type="text" name="date" value={newSale.date} onChange={handleInputChange} required placeholder="e.g. Oct 24, 2023" className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select name="status" value={newSale.status} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg">
+                                    <option value="Pending">Pending</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Completed">Completed</option>
+                                </select>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Project Link (Optional)</label>
+                                <input type="url" name="link" value={newSale.link} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+
+                            <div className="md:col-span-2 mt-4 pt-4 border-t">
+                                <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
+                                    Create Sale Entry
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

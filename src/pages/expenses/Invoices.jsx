@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Search, Plus, Filter, MoreVertical, Upload, FileText, CheckCircle, Clock, MapPin, Phone } from 'lucide-react';
+import { Search, Plus, Filter, MoreVertical, Upload, FileText, CheckCircle, Clock, MapPin, Phone, X } from 'lucide-react';
 
 const Invoices = () => {
-    const [invoices] = useState([
+    const [invoices, setInvoices] = useState([
         {
             id: "INV-2023-001",
             clientName: "Tech Solutions Ltd",
@@ -44,6 +44,19 @@ const Invoices = () => {
         }
     ]);
 
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newInvoice, setNewInvoice] = useState({
+        clientName: '',
+        contact: '',
+        address: '',
+        product: '',
+        quantity: 1,
+        price: '',
+        tax: '',
+        status: 'Pending',
+        date: ''
+    });
+
     const getStatusColor = (status) => {
         switch (status) {
             case 'Paid': return 'bg-green-100 text-green-700 border-green-200';
@@ -51,6 +64,45 @@ const Invoices = () => {
             case 'Overdue': return 'bg-red-100 text-red-700 border-red-200';
             default: return 'bg-gray-100 text-gray-700';
         }
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewInvoice(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleAddInvoice = (e) => {
+        e.preventDefault();
+        const price = parseFloat(newInvoice.price) || 0;
+        const quantity = parseFloat(newInvoice.quantity) || 1;
+        const tax = parseFloat(newInvoice.tax) || 0;
+        const total = (price * quantity) + tax;
+
+        const invoiceToAdd = {
+            id: `INV-2023-00${invoices.length + 1}`,
+            ...newInvoice,
+            quantity: quantity,
+            price: price,
+            tax: tax,
+            total: total
+        };
+
+        setInvoices([...invoices, invoiceToAdd]);
+        setIsAddModalOpen(false);
+        setNewInvoice({
+            clientName: '',
+            contact: '',
+            address: '',
+            product: '',
+            quantity: 1,
+            price: '',
+            tax: '',
+            status: 'Pending',
+            date: ''
+        });
     };
 
     return (
@@ -61,11 +113,14 @@ const Invoices = () => {
                     <p className="text-gray-500 text-sm">Manage pending and past invoices</p>
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
-                    <button className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors shadow-sm flex-1 md:flex-none">
+                    <button className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors shadow-sm flex-1 md:flex-none cursor-pointer">
                         <Upload size={20} />
                         <span>Upload Invoice</span>
                     </button>
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm flex-1 md:flex-none">
+                    <button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm flex-1 md:flex-none cursor-pointer"
+                    >
                         <Plus size={20} />
                         <span>Manual Create</span>
                     </button>
@@ -83,11 +138,11 @@ const Invoices = () => {
                     />
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
-                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer">
                         <Filter size={18} />
                         Filter
                     </button>
-                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer">
                         Export
                     </button>
                 </div>
@@ -142,7 +197,7 @@ const Invoices = () => {
                                         </span>
                                     </td>
                                     <td className="p-4 text-right">
-                                        <button className="p-2 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors">
+                                        <button className="p-2 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors cursor-pointer">
                                             <MoreVertical size={18} />
                                         </button>
                                     </td>
@@ -152,6 +207,68 @@ const Invoices = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Add Invoice Modal */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white w-full max-w-2xl mx-4 rounded-xl shadow-lg overflow-y-auto max-h-[90vh]">
+                        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                            <h2 className="text-xl font-semibold">Manual Invoice Creation</h2>
+                            <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full cursor-pointer">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleAddInvoice} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Client Name</label>
+                                <input type="text" name="clientName" value={newInvoice.clientName} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Contact (Phone)</label>
+                                <input type="text" name="contact" value={newInvoice.contact} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                                <input type="text" name="address" value={newInvoice.address} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Product/Service</label>
+                                <input type="text" name="product" value={newInvoice.product} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                                <input type="number" name="quantity" value={newInvoice.quantity} onChange={handleInputChange} required min="1" className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Unit Price</label>
+                                <input type="number" name="price" value={newInvoice.price} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Total Tax</label>
+                                <input type="number" name="tax" value={newInvoice.tax} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                <input type="text" name="date" value={newInvoice.date} onChange={handleInputChange} required placeholder="e.g. Oct 25, 2023" className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select name="status" value={newInvoice.status} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg">
+                                    <option value="Pending">Pending</option>
+                                    <option value="Paid">Paid</option>
+                                    <option value="Overdue">Overdue</option>
+                                </select>
+                            </div>
+
+                            <div className="md:col-span-2 mt-4 pt-4 border-t">
+                                <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
+                                    Create Invoice
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

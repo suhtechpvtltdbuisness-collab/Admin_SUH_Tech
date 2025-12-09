@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Plus, Filter, MoreVertical, FileText, Download, Phone, Mail, Award, AlertCircle, Eye, X } from 'lucide-react';
+import { Search, Plus, Filter, MoreVertical, FileText, Download, Phone, Mail, Award, AlertCircle, Eye, X, Calendar } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -60,6 +60,10 @@ const EmployeeSalary = () => {
 
     const [activeMenuId, setActiveMenuId] = useState(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    // Preview Modal State
+    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+    const [previewData, setPreviewData] = useState(null); // { url: string, employee: object, doc: jsPDF }
+
     const [newSalary, setNewSalary] = useState({
         name: '',
         role: '',
@@ -67,6 +71,7 @@ const EmployeeSalary = () => {
         phone: '',
         status: 'Pending',
         paymentMode: 'Bank Transfer',
+        paymentDate: '',
         basic: 0,
         hra: 0,
         special: 0,
@@ -92,13 +97,13 @@ const EmployeeSalary = () => {
         const net = basic + hra + special - pf - tax;
 
         const newEntry = {
-            id: `EMP-${Math.floor(Math.random() * 1000)}`,
+            id: `EMP - ${Math.floor(Math.random() * 1000)} `,
             name: newSalary.name,
             role: newSalary.role,
             department: newSalary.department,
             phone: newSalary.phone,
-            email: "", // Removed as per request but kept structure
-            paymentDate: "", // Removed as per request
+            email: "",
+            paymentDate: newSalary.paymentDate,
             paymentMode: newSalary.paymentMode,
             status: newSalary.status,
             breakdown: {
@@ -118,6 +123,7 @@ const EmployeeSalary = () => {
             phone: '',
             status: 'Pending',
             paymentMode: 'Bank Transfer',
+            paymentDate: '',
             basic: 0,
             hra: 0,
             special: 0,
@@ -126,7 +132,7 @@ const EmployeeSalary = () => {
         });
     };
 
-    const generatePayslip = (emp) => {
+    const createPDFDoc = (emp) => {
         try {
             const doc = new jsPDF();
             // ... (keeping existing PDF generation logic mostly same, just ensuring it handles missing dates gracefully if needed)
@@ -167,12 +173,12 @@ const EmployeeSalary = () => {
             doc.setFontSize(10);
             doc.setTextColor(...secondaryColor);
             doc.text("Slip Number:", 15, startY);
-            // doc.text("Pay Period:", 15, startY + 6); // Removed as salaryMonth is gone
-            // doc.text("Payment Date:", 15, startY + 12); // Removed from PDF too if needed, but keeping for now as it might be generated at download time
+            doc.text("Payment Date:", 15, startY + 6);
 
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(0, 0, 0);
-            doc.text(`SLIP-${emp.id}`, 50, startY);
+            doc.text(`SLIP - ${emp.id} `, 50, startY);
+            doc.text(emp.paymentDate || "N/A", 50, startY + 6);
 
             // Employee Details (Boxed)
             doc.setFillColor(...lightGray);
@@ -190,17 +196,17 @@ const EmployeeSalary = () => {
             doc.setTextColor(...secondaryColor);
             doc.setFont('helvetica', 'normal');
             doc.text(emp.role, 110, 69);
-            doc.text(`ID: ${emp.id}`, 110, 74);
-            doc.text(`Dept: ${emp.department}`, 150, 74);
+            doc.text(`ID: ${emp.id} `, 110, 74);
+            doc.text(`Dept: ${emp.department} `, 150, 74);
 
             // Tables
             const earningsData = [
-                ["Basic Salary", `INR ${emp.breakdown.basic.toLocaleString('en-IN')}`],
-                ...Object.entries(emp.breakdown.allowances).map(([k, v]) => [`${k} Allowance`, `INR ${v.toLocaleString('en-IN')}`])
+                ["Basic Salary", `INR ${emp.breakdown.basic.toLocaleString('en-IN')} `],
+                ...Object.entries(emp.breakdown.allowances).map(([k, v]) => [`${k} Allowance`, `INR ${v.toLocaleString('en-IN')} `])
             ];
 
             const deductionsData = [
-                ...Object.entries(emp.breakdown.deductions).map(([k, v]) => [`${k}`, `INR ${v.toLocaleString('en-IN')}`])
+                ...Object.entries(emp.breakdown.deductions).map(([k, v]) => [`${k} `, `INR ${v.toLocaleString('en-IN')} `])
             ];
 
             // Earnings Table
@@ -243,12 +249,12 @@ const EmployeeSalary = () => {
 
             doc.setFontSize(16);
             doc.setTextColor(...primaryColor);
-            doc.text(`INR ${emp.breakdown.net.toLocaleString('en-IN')}`, 195, finalY + 10, { align: 'right' });
+            doc.text(`INR ${emp.breakdown.net.toLocaleString('en-IN')} `, 195, finalY + 10, { align: 'right' });
 
             doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(...secondaryColor);
-            doc.text(`Payment Mode: ${emp.paymentMode}`, 195, finalY + 18, { align: 'right' });
+            doc.text(`Payment Mode: ${emp.paymentMode} `, 195, finalY + 18, { align: 'right' });
 
             // Footer
             doc.setFontSize(8);
@@ -256,10 +262,30 @@ const EmployeeSalary = () => {
             doc.text("This is detailed salary invoice generated by Admin SUH Tech System.", 105, 280, { align: 'center' });
             doc.text("For any queries, please contact HR.", 105, 285, { align: 'center' });
 
-            doc.save(`Invoice_${emp.id}.pdf`);
+            return doc;
         } catch (error) {
-            console.error("Error generating payslip:", error);
-            alert("Failed to generate PDF. Check console for details.");
+            console.error("Error creating payslip doc:", error);
+            return null;
+        }
+    };
+
+    const handlePreviewClick = (emp) => {
+        const doc = createPDFDoc(emp);
+        if (doc) {
+            const pdfBlob = doc.output('blob');
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            setPreviewData({
+                url: pdfUrl,
+                employee: emp,
+                doc: doc
+            });
+            setIsPreviewModalOpen(true);
+        }
+    };
+
+    const handleDownload = () => {
+        if (previewData && previewData.doc) {
+            previewData.doc.save(`Invoice_${previewData.employee.id}.pdf`);
         }
     };
 
@@ -313,7 +339,8 @@ const EmployeeSalary = () => {
                                 <th className="p-4 font-semibold text-gray-600 text-sm">Employee</th>
                                 <th className="p-4 font-semibold text-gray-600 text-sm">Designation</th>
                                 <th className="p-4 font-semibold text-gray-600 text-sm">Details</th>
-                                <th className="p-4 font-semibold text-gray-600 text-sm">Payment Info</th>
+                                <th className="p-4 font-semibold text-gray-600 text-sm">Payment Mode</th>
+                                <th className="p-4 font-semibold text-gray-600 text-sm">Payment Date</th>
                                 <th className="p-4 font-semibold text-gray-600 text-sm">Net Salary</th>
                                 <th className="p-4 font-semibold text-gray-600 text-sm">Status</th>
                                 <th className="p-4 font-semibold text-gray-600 text-sm text-right">Actions</th>
@@ -352,6 +379,12 @@ const EmployeeSalary = () => {
 
                                     </td>
                                     <td className="p-4">
+                                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                                            <Calendar size={14} />
+                                            {emp.paymentDate}
+                                        </div>
+                                    </td>
+                                    <td className="p-4">
                                         <span className="font-bold text-gray-900">₹{emp.breakdown.net.toLocaleString('en-IN')}</span>
                                     </td>
                                     <td className="p-4">
@@ -363,12 +396,12 @@ const EmployeeSalary = () => {
                                     <td className="p-4 text-right">
                                         <div className="flex items-center justify-end gap-2 relative">
                                             <button
-                                                onClick={() => generatePayslip(emp)}
+                                                onClick={() => handlePreviewClick(emp)}
                                                 className="p-2 border border-blue-200 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-2 group cursor-pointer"
-                                                title="Generate Payslip"
+                                                title="Preview Invoice"
                                             >
-                                                <Download size={16} />
-                                                <span className="text-xs font-medium">Invoice</span>
+                                                <Eye size={16} />
+                                                <span className="text-xs font-medium">Preview</span>
                                             </button>
                                             <div className="relative">
                                                 <button
@@ -428,7 +461,10 @@ const EmployeeSalary = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                                 <input type="text" name="phone" value={newSalary.phone} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
                             </div>
-                            {/* Salary Month input removed */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Date</label>
+                                <input type="text" name="paymentDate" value={newSalary.paymentDate} onChange={handleInputChange} required placeholder="e.g. 31 Oct 2023" className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                                 <select name="status" value={newSalary.status} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg">
@@ -463,6 +499,47 @@ const EmployeeSalary = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Preview Modal */}
+            {isPreviewModalOpen && previewData && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+                    <div className="bg-white w-full max-w-4xl h-[90vh] mx-4 rounded-xl shadow-2xl flex flex-col">
+                        <div className="flex justify-between items-center p-4 border-b border-gray-200">
+                            <h2 className="text-xl font-semibold flex items-center gap-2">
+                                <FileText className="text-blue-600" />
+                                Invoice Preview - {previewData.employee.name}
+                            </h2>
+                            <button onClick={() => setIsPreviewModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full cursor-pointer transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 bg-gray-100 p-4 overflow-hidden">
+                            <iframe
+                                src={previewData.url}
+                                className="w-full h-full rounded-lg border border-gray-300 shadow-sm bg-white"
+                                title="PDF Preview"
+                            ></iframe>
+                        </div>
+
+                        <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
+                            <button
+                                onClick={() => setIsPreviewModalOpen(false)}
+                                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors text-gray-700 font-medium"
+                            >
+                                Close
+                            </button>
+                            <button
+                                onClick={handleDownload}
+                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium shadow-sm"
+                            >
+                                <Download size={18} />
+                                Download Invoice
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

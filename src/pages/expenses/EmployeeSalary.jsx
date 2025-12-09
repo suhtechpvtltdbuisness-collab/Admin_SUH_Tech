@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Plus, Filter, MoreVertical, FileText, Download, Phone, Mail, Award, AlertCircle, Eye } from 'lucide-react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const EmployeeSalary = () => {
     const [employees] = useState([

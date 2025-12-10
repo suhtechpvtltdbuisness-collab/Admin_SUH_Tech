@@ -28,14 +28,14 @@ export default function App() {
           <Route path="expenses/sales" element={<CompanySales />} />
           <Route path="expenses/company-expenses" element={<CompanyExpenses />} />
           <Route path="expenses/invoices" element={<Invoices />} />
+
+          {/* EMPLOYEE ROUTES */}
+          <Route path="/employees" element={<EmployeePage />} />
+          <Route path="/employee/:id" element={<EmployeeViewPage />} />
         </Route>
 
         {/* DIRECT PAGES (current file) */}
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/employees" element={<EmployeePage />} />
-
-        {/* EMPLOYEE VIEW PAGE */}
-        <Route path="/employee/:id" element={<EmployeeViewPage />} />
 
         {/* AUTH ROUTES */}
         <Route path="/login" element={<Login />} />

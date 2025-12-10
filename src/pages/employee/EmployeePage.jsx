@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Search, Plus, Filter, ChevronDown, Eye, Edit2, MoreVertical, Trash2, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../../components/Sidebar";
+
 import AddEmployeeModal from "../../components/employee/AddEmployeeModal";
 
 export default function EmployeePage() {
@@ -182,9 +182,8 @@ export default function EmployeePage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
 
-      <main className="flex-1 p-6 md:p-8 overflow-y-auto w-full font-sans">
+      <div className="flex-1 p-6 md:p-8 w-full font-sans">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
           <div>
@@ -365,8 +364,7 @@ export default function EmployeePage() {
             </div>
           </div>
         </div>
-      </main>
-
+      </div>
       {/* Add Employee Modal */}
       {showAddModal && <AddEmployeeModal onClose={() => setShowAddModal(false)} onSave={handleAddEmployee} />}
     </div>

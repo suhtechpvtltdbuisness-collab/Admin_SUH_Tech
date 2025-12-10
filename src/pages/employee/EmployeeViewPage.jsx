@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Edit3, Camera, Check, X, Trash2, Ban } from "lucide-react";
-import Sidebar from "../../components/Sidebar";
+
 import PersonalInformation from "../../components/employee/PersonalInformation";
 import JobInformation from "../../components/employee/JobInformation";
 import Documents from "../../components/employee/Documents";
@@ -173,9 +173,8 @@ export default function EmployeeViewPage() {
 
     return (
         <div className="flex h-screen bg-gray-50">
-            <Sidebar />
 
-            <main className="flex-1 p-8 md:p-10 overflow-y-auto w-full font-sans text-gray-800">
+            <div className="flex-1 p-8 md:p-10 w-full font-sans text-gray-800">
                 {/* Top Nav */}
                 <div className="flex justify-between items-center mb-6">
                     <Link to="/employees" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">
@@ -335,7 +334,7 @@ export default function EmployeeViewPage() {
 
                     </div>
                 </div>
-            </main>
+            </div>
         </div>
     );
 }

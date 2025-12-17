@@ -1,17 +1,18 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
-import EmployeeSalary from "./pages/expenses/EmployeeSalary";
-import CompanySales from "./pages/expenses/CompanySales";
 import CompanyExpenses from "./pages/expenses/CompanyExpenses";
+import CompanySales from "./pages/expenses/CompanySales";
+import EmployeeSalary from "./pages/expenses/EmployeeSalary";
 import Invoices from "./pages/expenses/Invoices";
 
 import Dashboard from "./pages/Dashboard";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import Login from "./pages/auth/Login";
+import ResetPassword from "./pages/auth/ResetPassword";
 import EmployeePage from "./pages/employee/EmployeePage";
 import EmployeeViewPage from "./pages/employee/EmployeeViewPage";
-import Login from "./pages/auth/Login";
-import ForgotPassword from "./pages/auth/ForgotPassword";
 
 import "./App.css";
 
@@ -40,6 +41,7 @@ export default function App() {
         {/* AUTH ROUTES */}
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
       </Routes>
     </Router>

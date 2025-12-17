@@ -1,6 +1,6 @@
 // API Configuration for Admin Panel
 // Replace this with your deployed backend URL
-const API_BASE_URL ='https://www.suhtech.top/api';
+const API_BASE_URL = 'https://www.suhtech.top/api';
 
 // Get auth token from localStorage
 const getAuthToken = () => {
@@ -51,6 +51,24 @@ export const api = {
     }),
 
   getMe: () => apiRequest('/auth/me'),
+
+  forgotPassword: (email) =>
+    apiRequest('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (token, password) =>
+    apiRequest('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    }),
+
+  changePassword: (currentPassword, newPassword) =>
+    apiRequest('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
 
   // Dashboard
   getStats: () => apiRequest('/dashboard/stats'),
@@ -227,6 +245,17 @@ export const api = {
   // Coupons
   getCoupons: () => apiRequest('/coupons'),
   createCoupon: (data) => apiRequest('/coupons', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  // Newsletter
+  getNewsletterSubscribers: () => apiRequest('/newsletter'),
+  subscribeNewsletter: (email) => apiRequest('/newsletter', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  }),
+  submitUserInfo: (data) => apiRequest('/newsletter/submit-user-info', {
     method: 'POST',
     body: JSON.stringify(data),
   }),

@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, Mail } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import api from "../../config/api";
 
 export default function ForgotPassword() {
     const [email, setEmail] = useState("");
@@ -8,7 +9,7 @@ export default function ForgotPassword() {
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!email) {
             setError("Email is required");
@@ -21,11 +22,14 @@ export default function ForgotPassword() {
         setError("");
         setIsLoading(true);
 
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            await api.forgotPassword(email);
             setIsLoading(false);
             setIsSubmitted(true);
-        }, 1500);
+        } catch (err) {
+            setIsLoading(false);
+            setError(err.message || "Failed to send reset email. Please try again.");
+        }
     };
 
     return (

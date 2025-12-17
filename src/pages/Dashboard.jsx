@@ -1,14 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import StatCard from "../components/StatCard";
 import ActionButton from "../components/ActionButton";
 import RecentList from "../components/RecentList";
 import MessageList from "../components/MessageList";
-import JobOpeningModal from "../components/JobOpeningModal";   
+import JobOpeningModal from "../components/JobOpeningModal";
 import { Bell } from "lucide-react";
+import api from "../config/api";
 
 export default function Dashboard() {
   const [openJobModal, setOpenJobModal] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const response = await api.getStats();
+        setStats(response.stats);
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadStats();
+  }, []);
+
+  const formatCurrency = (amount) => {
+    return `₹${(amount || 0).toLocaleString('en-IN')}`;
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -28,11 +49,33 @@ export default function Dashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-6 mb-10">
-          <StatCard title="Total Job Openings" value="12" />
-          <StatCard title="Total Projects Published" value="34" />
-          <StatCard title="Total Blog Posts" value="56" />
-          <StatCard title="Unread Contact Messages" value="8" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          {loading ? (
+            <>
+              <StatCard title="Loading..." value="-" />
+              <StatCard title="Loading..." value="-" />
+              <StatCard title="Loading..." value="-" />
+              <StatCard title="Loading..." value="-" />
+            </>
+          ) : stats ? (
+            <>
+              <StatCard title="Total Projects" value={stats.totalProjects || 0} />
+              <StatCard title="Active Projects" value={stats.activeProjects || 0} />
+              <StatCard title="Total Invoices" value={stats.totalInvoices || 0} />
+              <StatCard title="Pending Invoices" value={stats.pendingInvoices || 0} />
+              <StatCard title="Total Employees" value={stats.totalEmployeesCount || 0} />
+              <StatCard title="Active Employees" value={stats.activeEmployeesCount || 0} />
+              <StatCard title="Total Revenue" value={formatCurrency(stats.totalRevenue)} />
+              <StatCard title="Total Expenses" value={formatCurrency(stats.totalExpenseAmount)} />
+            </>
+          ) : (
+            <>
+              <StatCard title="Total Projects" value="0" />
+              <StatCard title="Active Projects" value="0" />
+              <StatCard title="Total Invoices" value="0" />
+              <StatCard title="Pending Invoices" value="0" />
+            </>
+          )}
         </div>
 
         {/* Quick Actions */}

@@ -14,16 +14,17 @@ import CompanySales from "./pages/expenses/CompanySales";
 import EmployeeSalary from "./pages/expenses/EmployeeSalary";
 import Invoices from "./pages/expenses/Invoices";
 
+import BlogPage from "./pages/BlogPage";
 import Dashboard from "./pages/Dashboard";
+import JobsPage from "./pages/JobsPage";
+import MessagesPage from "./pages/Messages";
+import NewsletterPage from "./pages/NewsletterPage";
+import ProjectsPage from "./pages/ProjectsPage";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import Login from "./pages/auth/Login";
 import ResetPassword from "./pages/auth/ResetPassword";
 import EmployeePage from "./pages/employee/EmployeePage";
 import EmployeeViewPage from "./pages/employee/EmployeeViewPage";
-import BlogPage from "./pages/BlogPage";
-import ProjectsPage from "./pages/ProjectsPage";
-import MessagesPage from "./pages/Messages";
-import JobsPage from "./pages/JobsPage";
 
 import "./App.css";
 
@@ -45,18 +46,17 @@ export default function App() {
           <Route path="jobs" element={<JobsPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="blog" element={<BlogPage />} />
-          <Route path="newsletter" element={<ComingSoon title="Newsletter" />} />
+          <Route path="newsletter" element={<NewsletterPage />} />
           <Route path="messages" element={<MessagesPage />} />
+
+          {/* EMPLOYEE ROUTES - Now inside Layout */}
+          <Route path="employees" element={<EmployeePage />} />
+          <Route path="employee/:id" element={<EmployeeViewPage />} />
+
           <Route path="settings" element={<ComingSoon title="Settings" />} />
         </Route>
 
-        {/* DIRECT PAGES (current file) */}
-        <Route path="/employees" element={<EmployeePage />} />
-
-        {/* EMPLOYEE VIEW PAGE */}
-        <Route path="/employee/:id" element={<EmployeeViewPage />} />
-
-        {/* AUTH ROUTES */}
+        {/* AUTH ROUTES - Outside Layout (no sidebar needed) */}
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />

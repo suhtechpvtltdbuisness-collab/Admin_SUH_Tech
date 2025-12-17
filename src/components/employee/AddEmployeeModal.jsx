@@ -1,18 +1,20 @@
-import React, { useState } from "react";
-import { X, Asterisk } from "lucide-react";
+import { X } from "lucide-react";
+import { useState } from "react";
 
 export default function AddEmployeeModal({ onClose, onSave }) {
-  // Form State
+  // Form State - matching backend Employee model
   const [form, setForm] = useState({
-    name: "",
-    role: "",
-    department: "",
-    employmentType: "",
+    employeeId: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
-    location: "",
-    joinDate: "",
-    experience: "",
+    designation: "",
+    department: "",
+    skills: "",
+    joiningDate: "",
+    employeeType: "Full-time",
+    address: ""
   });
 
   const updateField = (key, value) => {
@@ -21,10 +23,14 @@ export default function AddEmployeeModal({ onClose, onSave }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Basic HTML validation handles the 'required' checks. 
-    // We just pass data strictly if valid.
-    onSave(form);
-    onClose();
+
+    // Transform skills from comma-separated string to array
+    const dataToSave = {
+      ...form,
+      skills: form.skills.split(',').map(s => s.trim()).filter(Boolean)
+    };
+
+    onSave(dataToSave);
   };
 
   return (
@@ -32,15 +38,15 @@ export default function AddEmployeeModal({ onClose, onSave }) {
       <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-slideUp">
 
         {/* HEADER */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-100">
+        <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 via-purple-50 to-transparent">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Add New Employee</h2>
             <p className="text-gray-500 text-sm mt-0.5">
-              Creating a new account in directory.
+              Creating a new employee account in the system.
             </p>
           </div>
 
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
+          <button onClick={onClose} className="p-2 hover:bg-white rounded-xl transition-colors text-gray-500">
             <X size={20} />
           </button>
         </div>
@@ -49,57 +55,41 @@ export default function AddEmployeeModal({ onClose, onSave }) {
         <div className="overflow-y-auto p-8">
           <form id="addEmployeeForm" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
 
-            {/* Employee Name */}
+            {/* Employee ID */}
             <div>
-              <Label label="Employee Name" required />
+              <Label label="Employee ID" required />
               <input
                 type="text"
-                placeholder="e.g., John Doe"
-                onChange={(e) => updateField("name", e.target.value)}
+                placeholder="e.g., DEV-0001"
+                value={form.employeeId}
+                onChange={(e) => updateField("employeeId", e.target.value)}
+                className="input-field"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">Format: DEPT-XXXX (e.g., DEV-0001)</p>
+            </div>
+
+            {/* First Name */}
+            <div>
+              <Label label="First Name" required />
+              <input
+                type="text"
+                placeholder="e.g., John"
+                value={form.firstName}
+                onChange={(e) => updateField("firstName", e.target.value)}
                 className="input-field"
                 required
               />
             </div>
 
-            {/* Role */}
+            {/* Last Name */}
             <div>
-              <Label label="Role / Designation" required />
+              <Label label="Last Name" required />
               <input
                 type="text"
-                placeholder="e.g., Frontend Developer"
-                onChange={(e) => updateField("role", e.target.value)}
-                className="input-field"
-                required
-              />
-            </div>
-
-            {/* Department */}
-            <div>
-              <Label label="Department" required />
-              <select
-                onChange={(e) => updateField("department", e.target.value)}
-                className="input-field"
-                required
-                defaultValue=""
-              >
-                <option value="" disabled>Select Department</option>
-                <option>Engineering</option>
-                <option>Design</option>
-                <option>Product</option>
-                <option>Finance</option>
-                <option>HR</option>
-                <option>Marketing</option>
-                <option>Sales</option>
-              </select>
-            </div>
-
-            {/* Mobile Number */}
-            <div>
-              <Label label="Mobile Number" required />
-              <input
-                type="tel"
-                placeholder="e.g., +91 9876543210"
-                onChange={(e) => updateField("phone", e.target.value)}
+                placeholder="e.g., Doe"
+                value={form.lastName}
+                onChange={(e) => updateField("lastName", e.target.value)}
                 className="input-field"
                 required
               />
@@ -110,23 +100,75 @@ export default function AddEmployeeModal({ onClose, onSave }) {
               <Label label="Email Address" required />
               <input
                 type="email"
-                placeholder="e.g., john@company.com"
+                placeholder="e.g., john.doe@company.com"
+                value={form.email}
                 onChange={(e) => updateField("email", e.target.value)}
                 className="input-field"
                 required
               />
             </div>
 
-            {/* Location */}
+            {/* Mobile Number */}
             <div>
-              <Label label="Work Location" required />
+              <Label label="Phone Number" required />
               <input
-                type="text"
-                placeholder="e.g., Mumbai, India"
-                onChange={(e) => updateField("location", e.target.value)}
+                type="tel"
+                placeholder="e.g., +91 9876543210"
+                value={form.phone}
+                onChange={(e) => updateField("phone", e.target.value)}
                 className="input-field"
                 required
               />
+            </div>
+
+            {/* Designation */}
+            <div>
+              <Label label="Designation / Role" required />
+              <input
+                type="text"
+                placeholder="e.g., Senior Developer"
+                value={form.designation}
+                onChange={(e) => updateField("designation", e.target.value)}
+                className="input-field"
+                required
+              />
+            </div>
+
+            {/* Department */}
+            <div>
+              <Label label="Department" required />
+              <select
+                value={form.department}
+                onChange={(e) => updateField("department", e.target.value)}
+                className="input-field"
+                required
+              >
+                <option value="">Select Department</option>
+                <option>Development</option>
+                <option>Design</option>
+                <option>DevOps</option>
+                <option>QA</option>
+                <option>Management</option>
+                <option>Sales</option>
+                <option>Support</option>
+                <option>Other</option>
+              </select>
+            </div>
+
+            {/* Employment Type */}
+            <div>
+              <Label label="Employment Type" required />
+              <select
+                value={form.employeeType}
+                onChange={(e) => updateField("employeeType", e.target.value)}
+                className="input-field"
+                required
+              >
+                <option value="Full-time">Full-time</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Contract">Contract</option>
+                <option value="Intern">Intern</option>
+              </select>
             </div>
 
             {/* Join Date */}
@@ -134,46 +176,35 @@ export default function AddEmployeeModal({ onClose, onSave }) {
               <Label label="Joining Date" required />
               <input
                 type="date"
-                onChange={(e) => updateField("joinDate", e.target.value)}
+                value={form.joiningDate}
+                onChange={(e) => updateField("joiningDate", e.target.value)}
                 className="input-field text-gray-500"
                 required
               />
             </div>
 
-            {/* Employment Type */}
+            {/* Skills */}
             <div>
-              <Label label="Employment Type" required />
-              <select
-                onChange={(e) => updateField("employmentType", e.target.value)}
+              <Label label="Skills (comma separated)" />
+              <input
+                type="text"
+                placeholder="e.g., React, Node.js, MongoDB"
+                value={form.skills}
+                onChange={(e) => updateField("skills", e.target.value)}
                 className="input-field"
-                required
-                defaultValue=""
-              >
-                <option value="" disabled>Select Type</option>
-                <option>Full-time</option>
-                <option>Part-time</option>
-                <option>Internship</option>
-                <option>Contract</option>
-              </select>
+              />
             </div>
 
-            {/* Experience */}
-            <div>
-              <Label label="Experience" required />
-              <select
-                onChange={(e) => updateField("experience", e.target.value)}
+            {/* Address - Full Width */}
+            <div className="md:col-span-2">
+              <Label label="Address" />
+              <textarea
+                placeholder="e.g., 123 Main Street, Mumbai, Maharashtra"
+                value={form.address}
+                onChange={(e) => updateField("address", e.target.value)}
                 className="input-field"
-                required
-                defaultValue=""
-              >
-                <option value="" disabled>Select Experience</option>
-                <option>Fresher</option>
-                <option>0–1 years</option>
-                <option>1–3 years</option>
-                <option>3–5 years</option>
-                <option>5–10 years</option>
-                <option>10+ years</option>
-              </select>
+                rows={3}
+              />
             </div>
 
           </form>

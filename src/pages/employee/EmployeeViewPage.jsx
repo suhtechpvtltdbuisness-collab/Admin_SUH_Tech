@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Edit3, Camera, Check, X, Trash2, Ban } from "lucide-react";
-import Sidebar from "../../components/Sidebar";
-import PersonalInformation from "../../components/employee/PersonalInformation";
-import JobInformation from "../../components/employee/JobInformation";
+import { ArrowLeft, Ban, Camera, Check, Edit3, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import Documents from "../../components/employee/Documents";
+import JobInformation from "../../components/employee/JobInformation";
+import PersonalInformation from "../../components/employee/PersonalInformation";
 
 // MOCK DATA matching EmployeePage (5 Items)
 const MOCK_DB = {
@@ -157,14 +156,11 @@ export default function EmployeeViewPage() {
     if (!employee) return <div>Loading...</div>;
 
     return (
-        <div className="flex h-screen bg-gray-50">
-            <Sidebar />
-
-            <main className="flex-1 p-8 md:p-10 overflow-y-auto w-full font-sans text-gray-800">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 lg:p-10">
+            <div className="max-w-7xl mx-auto">
                 {/* Top Nav */}
-                <div className="flex justify-between items-center mb-6">
-                    <Link to="/employees" className="inline-flex items-center text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">
-                        <ArrowLeft size={16} className="mr-2" /> Back to Employee List
+                <div className="flex justify-between items-center mb-6">\n                    <Link to="/employees" className="inline-flex items-center text-sm text-gray-600 hover:text-blue-600 transition-colors font-semibold">
+                        <ArrowLeft size={18} className="mr-2" /> Back to Employee List
                     </Link>
 
                     {/* Top Action Buttons */}
@@ -317,7 +313,7 @@ export default function EmployeeViewPage() {
 
                     </div>
                 </div>
-            </main>
+            </div>
         </div>
     );
 }

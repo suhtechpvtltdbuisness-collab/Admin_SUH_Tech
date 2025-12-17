@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, Filter, MoreVertical, FileText, Calendar, DollarSign, Tag, Receipt, PieChart, TrendingUp, CreditCard } from 'lucide-react';
+import { Search, Plus, Filter, MoreVertical, FileText, Calendar, DollarSign, Tag, Receipt, PieChart, TrendingUp, CreditCard, X } from 'lucide-react';
 
 const CompanyExpenses = () => {
-    const [expenses] = useState([
+    const [expenses, setExpenses] = useState([
         {
             id: 1,
             title: "Office Renovation Materials",
@@ -56,6 +56,17 @@ const CompanyExpenses = () => {
         },
     ]);
 
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newExpense, setNewExpense] = useState({
+        title: '',
+        category: 'Misc',
+        amount: '',
+        date: '',
+        paymentMethod: 'Bank Transfer',
+        status: 'Pending',
+        description: ''
+    });
+
     const getCategoryColor = (category) => {
         const colors = {
             'Travel': 'bg-purple-100 text-purple-700',
@@ -76,6 +87,34 @@ const CompanyExpenses = () => {
         return colors[category] || 'bg-gray-100 text-gray-700 border-gray-200';
     };
 
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewExpense(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleAddExpense = (e) => {
+        e.preventDefault();
+        const expenseToAdd = {
+            id: expenses.length + 1,
+            ...newExpense,
+            amount: `₹${parseFloat(newExpense.amount || 0).toLocaleString('en-IN')}`
+        };
+        setExpenses([...expenses, expenseToAdd]);
+        setIsAddModalOpen(false);
+        setNewExpense({
+            title: '',
+            category: 'Misc',
+            amount: '',
+            date: '',
+            paymentMethod: 'Bank Transfer',
+            status: 'Pending',
+            description: ''
+        });
+    };
+
     return (
         <div className="p-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -83,7 +122,10 @@ const CompanyExpenses = () => {
                     <h1 className="text-2xl font-bold text-gray-800">Company Expenses</h1>
                     <p className="text-gray-500 text-sm">Track all operational expenses and overheads</p>
                 </div>
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm w-full md:w-auto">
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm w-full md:w-auto cursor-pointer"
+                >
                     <Plus size={20} />
                     <span>Add Expense</span>
                 </button>
@@ -140,11 +182,11 @@ const CompanyExpenses = () => {
                     />
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
-                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer">
                         <Filter size={18} />
                         Filter
                     </button>
-                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer">
                         Export
                     </button>
                 </div>
@@ -195,7 +237,7 @@ const CompanyExpenses = () => {
                                         </div>
                                     </td>
                                     <td className="p-4 text-right">
-                                        <button className="p-2 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors">
+                                        <button className="p-2 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors cursor-pointer">
                                             <MoreVertical size={18} />
                                         </button>
                                     </td>
@@ -205,6 +247,68 @@ const CompanyExpenses = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Add Expense Modal */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white w-full max-w-2xl mx-4 rounded-xl shadow-lg overflow-y-auto max-h-[90vh]">
+                        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                            <h2 className="text-xl font-semibold">New Expense Entry</h2>
+                            <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full cursor-pointer">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleAddExpense} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Expense Title</label>
+                                <input type="text" name="title" value={newExpense.title} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                <select name="category" value={newExpense.category} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg">
+                                    <option value="Misc">Misc</option>
+                                    <option value="Travel">Travel</option>
+                                    <option value="Software">Software</option>
+                                    <option value="Utilities">Utilities</option>
+                                    <option value="Rent">Rent</option>
+                                    <option value="Equipment">Equipment</option>
+                                    <option value="Marketing">Marketing</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                                <input type="number" name="amount" value={newExpense.amount} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                                <input type="text" name="paymentMethod" value={newExpense.paymentMethod} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                <input type="text" name="date" value={newExpense.date} onChange={handleInputChange} required placeholder="e.g. Nov 15, 2023" className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select name="status" value={newExpense.status} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg">
+                                    <option value="Pending">Pending</option>
+                                    <option value="Approved">Approved</option>
+                                    <option value="Paid">Paid</option>
+                                </select>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <textarea name="description" value={newExpense.description} onChange={handleInputChange} rows="3" className="w-full p-2 border border-gray-300 rounded-lg"></textarea>
+                            </div>
+
+                            <div className="md:col-span-2 mt-4 pt-4 border-t">
+                                <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
+                                    Add Expense
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

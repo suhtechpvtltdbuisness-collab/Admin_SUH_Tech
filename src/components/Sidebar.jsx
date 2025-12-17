@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
 import {
-  Home,
-  Briefcase,
-  Folder,
-  FileText,
-  Mail,
-  Settings,
-  LogOut,
-  Newspaper,
-  User2,
-  DollarSign,
-  ChevronDown,
-  ChevronRight,
-  X
+    Briefcase,
+    ChevronDown,
+    ChevronRight,
+    DollarSign,
+    FileText,
+    Folder,
+    Home,
+    LogOut,
+    Mail,
+    Newspaper,
+    Settings,
+    User2,
+    X
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 
 /* ----------------------------- SIDEBAR ITEM ----------------------------- */
 function Item({
@@ -37,14 +37,14 @@ function Item({
     return (
       <div
         onClick={handleClick}
-        className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition select-none 
-          ${active ? "bg-blue-50 text-blue-600" : "hover:bg-gray-100 text-gray-700"}`}
+        className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 select-none
+          ${active ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-600 shadow-sm" : "hover:bg-gray-50 text-gray-700"}`}
       >
         <div className="flex items-center gap-3">
-          <Icon size={18} />
+          <Icon size={19} strokeWidth={2.2} />
           <span className="text-sm font-medium">{label}</span>
         </div>
-        {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+        {isOpen ? <ChevronDown size={17} /> : <ChevronRight size={17} />}
       </div>
     );
   }
@@ -54,10 +54,10 @@ function Item({
     <Link
       to={path}
       onClick={handleClick}
-      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition 
-      ${active ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100 text-gray-700"}`}
+      className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200
+      ${active ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-600 shadow-sm font-semibold" : "hover:bg-gray-50 text-gray-700"}`}
     >
-      <Icon size={18} />
+      <Icon size={19} strokeWidth={active ? 2.5 : 2} />
       <span className="text-sm font-medium">{label}</span>
     </Link>
   );
@@ -79,20 +79,22 @@ export default function Sidebar({ className = "", onClose }) {
 
   return (
     <aside
-      className={`w-64 bg-white border-r border-gray-200 p-6 flex flex-col h-screen overflow-y-auto ${className}`}
+      className={`w-64 bg-white border-r border-gray-200 p-6 flex flex-col h-screen overflow-y-auto shadow-sm ${className}`}
     >
       {/* TOP HEADER */}
-      <div className="flex items-center justify-between mb-10">
-        <h1 className="text-xl font-semibold flex items-center gap-2">
-          <span className="w-3 h-5 bg-blue-600 rounded-sm"></span>
-          Admin Panel
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-xl font-bold flex items-center gap-2">
+          <div className="w-3 h-6 bg-gradient-to-b from-blue-500 to-purple-600 rounded-md"></div>
+          <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Admin Panel
+          </span>
         </h1>
 
         {/* Mobile Close */}
         {onClose && (
           <button
             onClick={onClose}
-            className="md:hidden text-gray-500 hover:text-gray-700"
+            className="md:hidden text-gray-500 hover:text-gray-700 hover:bg-gray-100 p-1.5 rounded-lg transition-all"
           >
             <X size={24} />
           </button>
@@ -100,11 +102,13 @@ export default function Sidebar({ className = "", onClose }) {
       </div>
 
       {/* USER CARD */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-12 h-12 rounded-full bg-gray-200"></div>
+      <div className="flex items-center gap-3 mb-8 p-3 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
+          <span className="text-white font-bold text-sm">AH</span>
+        </div>
         <div>
-          <p className="font-semibold">Alex Hartman</p>
-          <p className="text-xs text-gray-500">Administrator</p>
+          <p className="font-semibold text-gray-900">Alex Hartman</p>
+          <p className="text-xs text-gray-600">Administrator</p>
         </div>
       </div>
 
@@ -146,7 +150,7 @@ export default function Sidebar({ className = "", onClose }) {
               <Link
                 to="/expenses/salary"
                 onClick={onClose}
-                className={`block px-3 py-2 rounded-lg text-sm transition 
+                className={`block px-3 py-2 rounded-lg text-sm transition
                 ${
                   isActive("/expenses/salary")
                     ? "bg-blue-50 text-blue-600 font-medium"
@@ -159,7 +163,7 @@ export default function Sidebar({ className = "", onClose }) {
               <Link
                 to="/expenses/sales"
                 onClick={onClose}
-                className={`block px-3 py-2 rounded-lg text-sm transition 
+                className={`block px-3 py-2 rounded-lg text-sm transition
                 ${
                   isActive("/expenses/sales")
                     ? "bg-blue-50 text-blue-600 font-medium"
@@ -172,7 +176,7 @@ export default function Sidebar({ className = "", onClose }) {
               <Link
                 to="/expenses/company-expenses"
                 onClick={onClose}
-                className={`block px-3 py-2 rounded-lg text-sm transition 
+                className={`block px-3 py-2 rounded-lg text-sm transition
                 ${
                   isActive("/expenses/company-expenses")
                     ? "bg-blue-50 text-blue-600 font-medium"
@@ -185,7 +189,7 @@ export default function Sidebar({ className = "", onClose }) {
               <Link
                 to="/expenses/invoices"
                 onClick={onClose}
-                className={`block px-3 py-2 rounded-lg text-sm transition 
+                className={`block px-3 py-2 rounded-lg text-sm transition
                 ${
                   isActive("/expenses/invoices")
                     ? "bg-blue-50 text-blue-600 font-medium"
@@ -200,7 +204,7 @@ export default function Sidebar({ className = "", onClose }) {
       </nav>
 
       {/* FOOTER LINKS */}
-      <div className="space-y-2 pt-10 border-t mt-4">
+      <div className="space-y-2 pt-6 border-t border-gray-200 mt-4">
         <Item icon={Settings} label="Settings" path="/settings" active={isActive("/settings")} onClose={onClose} />
         <Item icon={LogOut} label="Logout" path="/login" onClose={onClose} />
       </div>

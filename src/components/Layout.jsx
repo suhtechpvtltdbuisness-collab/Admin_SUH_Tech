@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+import { Menu } from 'lucide-react';
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { Menu } from 'lucide-react';
 
 const Layout = () => {
     const [isMobileOpen, setIsMobileOpen] = useState(false);
 
     return (
-        <div className="flex h-screen bg-gray-50">
+        <div className="flex h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30">
             {/* Mobile Sidebar Overlay */}
             {isMobileOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
                     onClick={() => setIsMobileOpen(false)}
                 />
             )}
@@ -28,14 +28,21 @@ const Layout = () => {
 
             <main className="flex-1 overflow-y-auto flex flex-col h-full">
                 {/* Mobile Header */}
-                <div className="md:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between sticky top-0 z-30">
+                <div className="md:hidden bg-white/90 backdrop-blur-md border-b border-gray-200 p-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
                     <div className="flex items-center gap-3">
-                        <button onClick={() => setIsMobileOpen(true)} className="text-gray-700">
+                        <button
+                            onClick={() => setIsMobileOpen(true)}
+                            className="text-gray-700 hover:bg-gray-100 p-2 rounded-lg transition-colors"
+                        >
                             <Menu size={24} />
                         </button>
-                        <h1 className="font-bold text-lg text-gray-800">Admin Panel</h1>
+                        <h1 className="font-bold text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            Admin Panel
+                        </h1>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-blue-100 border border-blue-200" />
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-md flex items-center justify-center">
+                        <span className="text-white font-semibold text-xs">AH</span>
+                    </div>
                 </div>
 
                 <div className="flex-1">

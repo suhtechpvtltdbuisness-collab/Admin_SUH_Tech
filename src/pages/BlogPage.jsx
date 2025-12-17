@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
-import Sidebar from "../components/Sidebar";
-import { Plus, MoreVertical, Edit2, Trash2 } from "lucide-react";
+import { Edit2, MoreVertical, Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import api from "../config/api";
 
 export default function BlogPage() {
@@ -131,57 +130,68 @@ export default function BlogPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-
-      <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 lg:p-10">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent mb-2">
               Blog Posts
             </h1>
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-gray-600 text-sm">
               Manage all blog posts shown on the main website.
             </p>
           </div>
           <button
             onClick={openNewModal}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
           >
-            <Plus size={18} /> New Blog Post
+            <Plus size={20} /> New Blog Post
           </button>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
-            <h2 className="font-semibold text-gray-900 text-sm md:text-base">
+        {/* Table Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow duration-300">
+          <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-gray-50 to-transparent">
+            <h2 className="font-bold text-lg text-gray-900 flex items-center gap-2">
+              <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
               All Blog Posts
             </h2>
-            <span className="text-xs text-gray-500">Total: {blogs.length}</span>
+            <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full border border-blue-200">
+              {blogs.length} Total
+            </span>
           </div>
 
           {loading ? (
-            <p className="p-6 text-gray-500 text-sm">Loading blogs...</p>
+            <div className="p-8 flex flex-col items-center justify-center">
+              <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+              <p className="text-gray-500 text-sm">Loading blogs...</p>
+            </div>
           ) : blogs.length === 0 ? (
-            <p className="p-6 text-gray-500 text-sm">
-              No blog posts found. Create your first blog post!
-            </p>
+            <div className="p-12 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+                <Plus size={32} className="text-gray-400" />
+              </div>
+              <p className="text-gray-500 text-sm">
+                No blog posts found. Create your first blog post!
+              </p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100 text-xs text-gray-500 uppercase">
-                    <th className="p-3">Title</th>
-                    <th className="p-3">Category</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Created</th>
-                    <th className="p-3 text-right">Actions</th>
+                  <tr className="bg-gradient-to-r from-gray-50 to-transparent border-b border-gray-200 text-xs text-gray-600 uppercase tracking-wider font-semibold">
+                    <th className="p-4">Title</th>
+                    <th className="p-4">Category</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4">Created</th>
+                    <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {blogs.map((blog) => (
-                    <tr key={blog._id || blog.slug}>
-                      <td className="p-3">
+                    <tr key={blog._id || blog.slug} className="hover:bg-blue-50/30 transition-colors duration-150">
+                      <td className="p-4">
                         <div className="flex flex-col">
                           <span className="font-medium text-sm text-gray-900">
                             {blog.title}
@@ -191,24 +201,24 @@ export default function BlogPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="p-3 text-sm text-gray-700">
+                      <td className="p-4 text-sm text-gray-700 font-medium">
                         {blog.category || "-"}
                       </td>
-                      <td className="p-3">
+                      <td className="p-4">
                         <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
+                          className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold ${
                             blog.isPublished
-                              ? "bg-green-50 text-green-700 border-green-200"
-                              : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                              ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200"
+                              : "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200"
                           }`}
                         >
                           {blog.isPublished ? "Published" : "Draft"}
                         </span>
                       </td>
-                      <td className="p-3 text-xs text-gray-500">
+                      <td className="p-4 text-xs text-gray-500 font-medium">
                         {formatDate(blog.createdAt)}
                       </td>
-                      <td className="p-3 text-right">
+                      <td className="p-4 text-right">
                         <div className="relative inline-block text-left">
                           <button
                             onClick={() =>
@@ -216,9 +226,9 @@ export default function BlogPage() {
                                 activeMenuId === blog._id ? null : blog._id
                               )
                             }
-                            className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+                            className="p-2.5 rounded-xl hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-all duration-200"
                           >
-                            <MoreVertical size={16} />
+                            <MoreVertical size={18} />
                           </button>
                           {activeMenuId === blog._id && (
                             <div className="origin-top-right absolute right-0 mt-1 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
@@ -252,26 +262,29 @@ export default function BlogPage() {
 
         {/* Modal */}
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white w-full max-w-2xl mx-4 rounded-xl shadow-lg max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center p-4 border-b border-gray-100">
-                <h2 className="text-lg font-semibold">
-                  {editingBlog ? "Edit Blog Post" : "New Blog Post"}
-                </h2>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden">
+              <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 via-purple-50 to-transparent">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {editingBlog ? "Edit Blog Post" : "New Blog Post"}
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-1">Fill in the details below</p>
+                </div>
                 <button
                   onClick={() => {
                     setIsModalOpen(false);
                     setEditingBlog(null);
                   }}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="p-2 rounded-xl hover:bg-white text-gray-500 hover:text-gray-700 transition-all"
                 >
                   ✕
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-4 space-y-4">
+              <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto max-h-[calc(90vh-140px)]">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Title
                   </label>
                   <input
@@ -280,7 +293,7 @@ export default function BlogPage() {
                     value={form.title}
                     onChange={handleChange}
                     required
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    className="w-full border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
                   />
                 </div>
                 <div>
@@ -392,7 +405,7 @@ export default function BlogPage() {
             </div>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

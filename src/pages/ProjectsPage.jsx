@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
-import Sidebar from "../components/Sidebar";
-import { Plus, MoreVertical, Edit2, Trash2 } from "lucide-react";
+import { Edit2, MoreVertical, Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import api from "../config/api";
 
 export default function ProjectsPage() {
@@ -159,61 +158,70 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-
-      <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 lg:p-10">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent mb-2">
               Projects
             </h1>
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-gray-600 text-sm">
               Manage all client projects from the main website.
             </p>
           </div>
           <button
             onClick={openNewModal}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
           >
-            <Plus size={18} /> New Project
+            <Plus size={20} /> New Project
           </button>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
-            <h2 className="font-semibold text-gray-900 text-sm md:text-base">
+        {/* Table Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow duration-300">
+          <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-gray-50 to-transparent">
+            <h2 className="font-bold text-lg text-gray-900 flex items-center gap-2">
+              <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
               All Projects
             </h2>
-            <span className="text-xs text-gray-500">
-              Total: {projects.length}
+            <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full border border-blue-200">
+              {projects.length} Total
             </span>
           </div>
 
           {loading ? (
-            <p className="p-6 text-gray-500 text-sm">Loading projects...</p>
+            <div className="p-8 flex flex-col items-center justify-center">
+              <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+              <p className="text-gray-500 text-sm">Loading projects...</p>
+            </div>
           ) : projects.length === 0 ? (
-            <p className="p-6 text-gray-500 text-sm">
-              No projects found. Create your first project!
-            </p>
+            <div className="p-12 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+                <Plus size={32} className="text-gray-400" />
+              </div>
+              <p className="text-gray-500 text-sm">
+                No projects found. Create your first project!
+              </p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[900px]">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100 text-xs text-gray-500 uppercase">
-                    <th className="p-3">Project</th>
-                    <th className="p-3">Client</th>
-                    <th className="p-3">Service Type</th>
-                    <th className="p-3">Budget</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Dates</th>
-                    <th className="p-3 text-right">Actions</th>
+                  <tr className="bg-gradient-to-r from-gray-50 to-transparent border-b border-gray-200 text-xs text-gray-600 uppercase tracking-wider font-semibold">
+                    <th className="p-4">Project</th>
+                    <th className="p-4">Client</th>
+                    <th className="p-4">Service Type</th>
+                    <th className="p-4">Budget</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4">Dates</th>
+                    <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {projects.map((p) => (
-                    <tr key={p._id || p.projectCode}>
-                      <td className="p-3">
+                    <tr key={p._id || p.projectCode} className="hover:bg-blue-50/30 transition-colors duration-150">
+                      <td className="p-4">
                         <div className="flex flex-col">
                           <span className="font-medium text-sm text-gray-900">
                             {p.projectName}
@@ -237,16 +245,16 @@ export default function ProjectsPage() {
                       <td className="p-3 text-sm text-gray-900 font-semibold">
                         {formatCurrency(p.budget)}
                       </td>
-                      <td className="p-3">
+                      <td className="p-4">
                         <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
+                          className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold ${
                             p.status === "Completed"
-                              ? "bg-green-50 text-green-700 border-green-200"
+                              ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200"
                               : p.status === "In Progress"
-                              ? "bg-blue-50 text-blue-700 border-blue-200"
+                              ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200"
                               : p.status === "On Hold"
-                              ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                              : "bg-gray-50 text-gray-600 border-gray-200"
+                              ? "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200"
+                              : "bg-gradient-to-r from-gray-50 to-slate-50 text-gray-600 border border-gray-200"
                           }`}
                         >
                           {p.status}
@@ -522,7 +530,7 @@ export default function ProjectsPage() {
             </div>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

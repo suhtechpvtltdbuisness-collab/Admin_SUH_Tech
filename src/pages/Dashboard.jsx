@@ -16,7 +16,7 @@ export default function Dashboard() {
     const loadStats = async () => {
       try {
         const response = await api.getStats();
-        setStats(response.stats);
+        setStats(response.stats);       
       } catch (error) {
         console.error('Error loading stats:', error);
       } finally {

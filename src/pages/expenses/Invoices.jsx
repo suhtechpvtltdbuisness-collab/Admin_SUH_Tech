@@ -14,9 +14,10 @@ const Invoices = () => {
         clientPhone: '',
         clientAddress: '',
         serviceDescription: '',
-        quantity: 1,
-        unit: 'hours',
-        rate: '',
+        phaseWork: '',
+        startDate: '',
+        endDate: '',
+        price: '',
         taxRate: 18,
         discount: 0,
         dueDate: '',
@@ -73,24 +74,32 @@ const Invoices = () => {
     const handleAddInvoice = async (e) => {
         e.preventDefault();
         try {
-            const rate = parseFloat(newInvoice.rate) || 0;
-            const quantity = parseFloat(newInvoice.quantity) || 1;
-            const subtotal = rate * quantity;
+            // const rate = parseFloat(newInvoice.rate) || 0;
+            // const quantity = parseFloat(newInvoice.quantity) || 1;
+            // const subtotal = rate * quantity;
+            const invoiceNumber = `INV-${Date.now()}`;
+            const price = parseFloat(newInvoice.price) || 0;
+            const subtotal = price;
             const discount = parseFloat(newInvoice.discount) || 0;
             const taxRate = parseFloat(newInvoice.taxRate) || 18;
             const taxAmount = ((subtotal - discount) * taxRate) / 100;
             const total = subtotal - discount + taxAmount;
 
             const invoiceData = {
+                invoiceNumber,
                 clientName: newInvoice.clientName,
                 clientEmail: newInvoice.clientEmail,
                 clientPhone: newInvoice.clientPhone,
                 clientAddress: newInvoice.clientAddress,
+                phaseWork: newInvoice.phaseWork,
+                startDate: newInvoice.startDate,
+                endDate: newInvoice.endDate,
+
                 services: [{
                     description: newInvoice.serviceDescription,
-                    quantity: quantity,
-                    unit: newInvoice.unit,
-                    rate: rate,
+                    // quantity: quantity,
+                    // unit: newInvoice.unit,
+                    rate: price,
                     amount: subtotal
                 }],
                 subtotal: subtotal,
@@ -118,9 +127,9 @@ const Invoices = () => {
                 clientPhone: '',
                 clientAddress: '',
                 serviceDescription: '',
-                quantity: 1,
-                unit: 'hours',
-                rate: '',
+                // quantity: 1,
+                // unit: 'hours',
+                price: '',
                 taxRate: 18,
                 discount: 0,
                 dueDate: '',
@@ -142,9 +151,12 @@ const Invoices = () => {
             clientPhone: invoice.clientPhone || '',
             clientAddress: invoice.clientAddress || '',
             serviceDescription: firstService.description || '',
-            quantity: firstService.quantity || 1,
-            unit: firstService.unit || 'hours',
-            rate: firstService.rate || '',
+            // quantity: firstService.quantity || 1,
+            // unit: firstService.unit || 'hours',
+            phaseWork: invoice.phaseWork || '',
+            startDate: invoice.startDate ? new Date(invoice.startDate).toISOString().split('T')[0] : '',
+            endDate: invoice.endDate ? new Date(invoice.endDate).toISOString().split('T')[0] : '',
+            price: firstService.rate || '',
             taxRate: invoice.taxRate || 18,
             discount: invoice.discount || 0,
             dueDate: invoice.dueDate ? new Date(invoice.dueDate).toISOString().split('T')[0] : '',
@@ -261,7 +273,7 @@ const Invoices = () => {
                                             </td>
                                             <td className="p-4">
                                                 <p className="text-sm font-medium text-gray-800">{firstService.description || inv.product || 'Service'}</p>
-                                                <p className="text-xs text-gray-500">Qty: {firstService.quantity || inv.quantity || 1} {firstService.unit || 'units'}</p>
+                                                {/* <p className="text-xs text-gray-500">Qty: {firstService.quantity || inv.quantity || 1} {firstService.unit || 'units'}</p> */}
                                             </td>
                                             <td className="p-4">
                                                 <span className="font-bold text-gray-800">{formatAmount(inv.total)}</span>
@@ -321,9 +333,10 @@ const Invoices = () => {
                                     clientPhone: '',
                                     clientAddress: '',
                                     serviceDescription: '',
-                                    quantity: 1,
-                                    unit: 'hours',
-                                    rate: '',
+                                    phaseWork: '',
+                                    startDate: '',
+                                    endDate: '',
+                                    price: '',
                                     taxRate: 18,
                                     discount: 0,
                                     dueDate: '',
@@ -355,11 +368,11 @@ const Invoices = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Service Description</label>
                                 <input type="text" name="serviceDescription" value={newInvoice.serviceDescription} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
                             </div>
-                            <div>
+                            {/* <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
                                 <input type="number" name="quantity" value={newInvoice.quantity} onChange={handleInputChange} required min="1" className="w-full p-2 border border-gray-300 rounded-lg" />
-                            </div>
-                            <div>
+                            </div> */}
+                            {/* <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
                                 <select name="unit" value={newInvoice.unit} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg">
                                     <option value="hours">Hours</option>
@@ -367,11 +380,57 @@ const Invoices = () => {
                                     <option value="items">Items</option>
                                     <option value="project">Project</option>
                                 </select>
-                            </div>
+                            </div> */}
+
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Rate (per unit)</label>
-                                <input type="number" name="rate" value={newInvoice.rate} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Phase Work
+                              </label>
+                              <select
+                              name="phaseWork"
+                              value={newInvoice.phaseWork}
+                              onChange={handleInputChange}
+                              className="w-full p-2 border border-gray-300 rounded-lg"
+                            >
+                              <option value="">Select</option>
+                              <option value="Deliverable">Deliverable</option>
+                              <option value="Not Deliverable">Not Deliverable</option>
+                            </select>
                             </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
+                                <input type="text" name="price" value={newInvoice.price} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                            </div>
+
+                            {/* Start Date */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Start Date
+                              </label>
+                              <input
+                                type="date"
+                                name="startDate"
+                                value={newInvoice.startDate}
+                                onChange={handleInputChange}
+                                className="w-full p-2 border border-gray-300 rounded-lg"
+                             />
+                            </div>
+                            
+                            {/* End Date */}
+                             <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                End Date
+                              </label>
+                              <input
+                                type="date"
+                                name="endDate"
+                                value={newInvoice.endDate}
+                                onChange={handleInputChange}
+                                className="w-full p-2 border border-gray-300 rounded-lg"
+                             />
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%)</label>
                                 <input type="number" name="taxRate" value={newInvoice.taxRate} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg" />
@@ -381,7 +440,7 @@ const Invoices = () => {
                                 <input type="number" name="discount" value={newInvoice.discount} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Maintenance Due Date</label>
                                 <input type="date" name="dueDate" value={newInvoice.dueDate} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
                             </div>
                             <div>

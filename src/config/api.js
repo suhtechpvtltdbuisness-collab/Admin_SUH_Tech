@@ -1,6 +1,6 @@
 // API Configuration for Admin Panel
 // Replace this with your deployed backend URL
-const API_BASE_URL = 'https://www.suhtech.top/api';
+const API_BASE_URL ='https://www.suhtech.top/api';
 
 // Get auth token from localStorage
 const getAuthToken = () => {
@@ -10,6 +10,7 @@ const getAuthToken = () => {
 // Generic API fetch function with CORS support
 const apiRequest = async (endpoint, options = {}) => {
   const token = getAuthToken();
+  console.log(token , "token")
 
   const config = {
     ...options,
@@ -25,6 +26,14 @@ const apiRequest = async (endpoint, options = {}) => {
     const data = await response.json();
 
     if (!response.ok) {
+      // Handle expired/invalid token: clear and redirect to login
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+      }
       throw new Error(data.error || 'API request failed');
     }
 
@@ -51,24 +60,6 @@ export const api = {
     }),
 
   getMe: () => apiRequest('/auth/me'),
-
-  forgotPassword: (email) =>
-    apiRequest('/auth/forgot-password', {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    }),
-
-  resetPassword: (token, password) =>
-    apiRequest('/auth/reset-password', {
-      method: 'POST',
-      body: JSON.stringify({ token, password }),
-    }),
-
-  changePassword: (currentPassword, newPassword) =>
-    apiRequest('/auth/change-password', {
-      method: 'POST',
-      body: JSON.stringify({ currentPassword, newPassword }),
-    }),
 
   // Dashboard
   getStats: () => apiRequest('/dashboard/stats'),
@@ -242,6 +233,9 @@ export const api = {
     body: JSON.stringify(data),
   }),
 
+  // Newsletter user info (FAQ form submissions / project interest)
+  getUserInfos: () => apiRequest('/newsletter/submit-user-info'),
+
   // Coupons
   getCoupons: () => apiRequest('/coupons'),
   createCoupon: (data) => apiRequest('/coupons', {
@@ -249,15 +243,19 @@ export const api = {
     body: JSON.stringify(data),
   }),
 
-  // Newsletter
-  getNewsletterSubscribers: () => apiRequest('/newsletter'),
-  subscribeNewsletter: (email) => apiRequest('/newsletter', {
-    method: 'POST',
-    body: JSON.stringify({ email }),
-  }),
-  submitUserInfo: (data) => apiRequest('/newsletter/submit-user-info', {
+  // Jobs (Careers)
+  getJobs: () => apiRequest('/jobs'),
+  getJob: (id) => apiRequest(`/jobs/${id}`),
+  createJob: (data) => apiRequest('/jobs', {
     method: 'POST',
     body: JSON.stringify(data),
+  }),
+  updateJob: (id, data) => apiRequest(`/jobs/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  }),
+  deleteJob: (id) => apiRequest(`/jobs/${id}`, {
+    method: 'DELETE',
   }),
 };
 

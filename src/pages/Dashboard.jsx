@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from "react";
-import Sidebar from "../components/Sidebar";
 import StatCard from "../components/StatCard";
 import ActionButton from "../components/ActionButton";
 import RecentList from "../components/RecentList";
 import MessageList from "../components/MessageList";
-import JobOpeningModal from "../components/JobOpeningModal";
 import { Bell } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import api from "../config/api";
 
 export default function Dashboard() {
-  const [openJobModal, setOpenJobModal] = useState(false);
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,10 +31,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-
-      <main className="flex-1 p-10 overflow-y-auto">
+      <div className="p-10">
         {/* Top bar */}
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-bold">Dashboard</h2>
@@ -84,11 +80,11 @@ export default function Dashboard() {
           <ActionButton
             primary
             label="Add Job Opening"
-            onClick={() => setOpenJobModal(true)}  // ⬅️ OPEN MODAL
+            onClick={() => navigate("/jobs")}
           />
-          <ActionButton label="Add Project" />
-          <ActionButton label="Add Blog Post" />
-          <ActionButton label="View Messages" />
+          <ActionButton label="Add Project" onClick={() => navigate("/projects")} />
+          <ActionButton label="Add Blog Post" onClick={() => navigate("/blog")} />
+          <ActionButton label="View Messages" onClick={() => navigate("/messages")} />
         </div>
 
         {/* Bottom two columns */}
@@ -96,7 +92,12 @@ export default function Dashboard() {
           <div className="bg-white p-6 rounded-xl shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <h4 className="font-semibold text-lg">Recent Applications</h4>
-              <button className="text-blue-600 text-sm">View All</button>
+              <button
+                className="text-blue-600 text-sm"
+                onClick={() => navigate("/employees")}
+              >
+                View All
+              </button>
             </div>
 
             <RecentList />
@@ -105,18 +106,17 @@ export default function Dashboard() {
           <div className="bg-white p-6 rounded-xl shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <h4 className="font-semibold text-lg">Recent Contact Messages</h4>
-              <button className="text-blue-600 text-sm">View All</button>
+              <button
+                className="text-blue-600 text-sm"
+                onClick={() => navigate("/messages")}
+              >
+                View All
+              </button>
             </div>
 
             <MessageList />
           </div>
         </div>
-      </main>
-
-      {/* MODAL */}
-      {openJobModal && (
-        <JobOpeningModal onClose={() => setOpenJobModal(false)} />
-      )}
-    </div>
+      </div>
   );
 }

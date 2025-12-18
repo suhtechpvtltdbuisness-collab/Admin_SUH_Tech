@@ -147,7 +147,9 @@ export default function EmployeeViewPage() {
     const [isEditing, setIsEditing] = useState(false);
     const [activeTab, setActiveTab] = useState('personal');
     const [employee, setEmployee] = useState(null);
+    const [editedEmployee, setEditedEmployee] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState(null);
 
     const showToast = (message, type = 'success') => {
@@ -158,6 +160,13 @@ export default function EmployeeViewPage() {
     useEffect(() => {
         loadEmployee();
     }, [id]);
+
+    // Initialize editedEmployee when employee loads
+    useEffect(() => {
+        if (employee) {
+            setEditedEmployee({...employee});
+        }
+    }, [employee]);
 
     const loadEmployee = async () => {
         try {
@@ -176,7 +185,50 @@ export default function EmployeeViewPage() {
         }
     };
 
-    const toggleEdit = () => setIsEditing(!isEditing);
+    const handleFieldChange = (field, value) => {
+        setEditedEmployee(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    const handleNestedFieldChange = (parent, field, value) => {
+        setEditedEmployee(prev => ({
+            ...prev,
+            [parent]: {
+                ...prev[parent],
+                [field]: value
+            }
+        }));
+    };
+
+    const handleSave = async () => {
+        try {
+            setSaving(true);
+            await api.updateEmployee(id, editedEmployee);
+            setEmployee(editedEmployee);
+            setIsEditing(false);
+            showToast('Employee updated successfully!', 'success');
+        } catch (error) {
+            console.error('Error updating employee:', error);
+            showToast('Failed to update employee: ' + error.message, 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleCancel = () => {
+        setEditedEmployee({...employee}); // Reset to original
+        setIsEditing(false);
+    };
+
+    const toggleEdit = () => {
+        if (isEditing) {
+            handleCancel();
+        } else {
+            setIsEditing(true);
+        }
+    };
 
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center">
@@ -208,11 +260,11 @@ export default function EmployeeViewPage() {
                     <div className="flex gap-2">
                         {isEditing ? (
                             <>
-                                <button onClick={toggleEdit} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-semibold">
+                                <button onClick={handleCancel} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
                                     <X size={14} /> Cancel
                                 </button>
-                                <button onClick={toggleEdit} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold shadow-sm">
-                                    <Check size={14} /> Save Changes
+                                <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <Check size={14} /> {saving ? 'Saving...' : 'Save Changes'}
                                 </button>
                             </>
                         ) : (
@@ -330,8 +382,21 @@ export default function EmployeeViewPage() {
                             </div>
 
                             <div className="p-4">
-                                {activeTab === 'personal' && <PersonalInformation isEditing={isEditing} data={employee.details} />}
-                                {activeTab === 'job' && <JobInformation isEditing={isEditing} data={employee.details} />}
+                                {activeTab === 'personal' && (
+                                    <PersonalInformation
+                                        isEditing={isEditing}
+                                        data={editedEmployee}
+                                        onChange={handleFieldChange}
+                                        onNestedChange={handleNestedFieldChange}
+                                    />
+                                )}
+                                {activeTab === 'job' && (
+                                    <JobInformation
+                                        isEditing={isEditing}
+                                        data={editedEmployee}
+                                        onChange={handleFieldChange}
+                                    />
+                                )}
                                 {activeTab === 'documents' && <Documents isEditing={isEditing} />}
                             </div>
                         </div>

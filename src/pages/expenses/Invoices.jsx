@@ -11,21 +11,40 @@ const Invoices = () => {
     const [activeMenuId, setActiveMenuId] = useState(null);
     const [toast, setToast] = useState(null);
     const [newInvoice, setNewInvoice] = useState({
+        // Document Type
+        documentType: 'Invoice', // Invoice or Quotation
+
+        // Client Details
         clientName: '',
         clientEmail: '',
         clientPhone: '',
         clientAddress: '',
+
+        // Project/Service Details
+        projectName: '',
         serviceType: 'One-Time Project',
         serviceDescription: '',
         serviceCategory: 'Development',
+
+        // Pricing
         quantity: 1,
-        unit: 'hours',
+        unit: 'project',
         rate: '',
         taxRate: 18,
         discount: 0,
+
+        // Terms & Validity (for Quotations)
+        validUntil: '',
+        paymentTerms: 'Net 30',
+
+        // Dates
         dueDate: '',
         status: 'Draft',
-        invoiceDate: new Date().toISOString().split('T')[0]
+        invoiceDate: new Date().toISOString().split('T')[0],
+
+        // Additional
+        notes: '',
+        termsAndConditions: ''
     });
 
     const showToast = (message, type = 'success') => {

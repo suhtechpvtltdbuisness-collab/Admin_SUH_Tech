@@ -1,6 +1,6 @@
 // API Configuration for Admin Panel
 // Replace this with your deployed backend URL
-const API_BASE_URL ='https://www.suhtech.top/api';
+const API_BASE_URL = 'https://www.suhtech.top/api';
 
 // Get auth token from localStorage
 const getAuthToken = () => {
@@ -10,7 +10,7 @@ const getAuthToken = () => {
 // Generic API fetch function with CORS support
 const apiRequest = async (endpoint, options = {}) => {
   const token = getAuthToken();
-  console.log(token , "token")
+  console.log(token, "token")
 
   const config = {
     ...options,
@@ -235,6 +235,9 @@ export const api = {
 
   // Newsletter user info (FAQ form submissions / project interest)
   getUserInfos: () => apiRequest('/newsletter/submit-user-info'),
+
+  // Newsletter Subscribers
+  getNewsletterSubscribers: () => apiRequest('/newsletter'),
 
   // Coupons
   getCoupons: () => apiRequest('/coupons'),

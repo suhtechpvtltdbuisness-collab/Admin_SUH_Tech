@@ -128,6 +128,8 @@ export default function Sidebar({ className = "", onClose }) {
 
         <Item icon={Mail} label="Messages" path="/messages" active={isActive("/messages")} onClose={onClose} />
 
+        <Item icon={Receipt} label="Invoices" path="/expenses/invoices" active={isActive("/expenses/invoices")} onClose={onClose} />
+
         {/* ================= EXPENSES DROPDOWN ================= */}
         <div>
           <Item

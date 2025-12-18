@@ -5,9 +5,11 @@ import api from "../config/api";
 export default function JobsPage() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
   const [activeMenuId, setActiveMenuId] = useState(null);
+  const [toast, setToast] = useState(null);
   const [form, setForm] = useState({
     title: "",
     type: "Full-time",
@@ -17,6 +19,11 @@ export default function JobsPage() {
     responsibilities: "",
     isActive: true,
   });
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   useEffect(() => {
     loadJobs();
@@ -29,7 +36,7 @@ export default function JobsPage() {
       setJobs(res.jobs || []);
     } catch (error) {
       console.error("Error loading jobs:", error);
-      alert("Failed to load jobs: " + error.message);
+      showToast("Failed to load jobs: " + error.message, 'error');
     } finally {
       setLoading(false);
     }

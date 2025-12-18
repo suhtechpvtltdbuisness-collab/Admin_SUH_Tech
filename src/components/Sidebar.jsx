@@ -9,6 +9,7 @@ import {
     LogOut,
     Mail,
     Newspaper,
+    Receipt,
     Settings,
     User2,
     X

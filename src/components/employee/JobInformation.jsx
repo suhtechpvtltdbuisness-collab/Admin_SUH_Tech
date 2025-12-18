@@ -1,6 +1,4 @@
-```javascript
-import React from "react";
-import { SectionCard, Field } from "./EmployeeShared";
+import { Field, SectionCard } from "./EmployeeShared";
 
 export default function JobInformation({ isEditing, data, onChange }) {
     return (
@@ -24,4 +22,3 @@ export default function JobInformation({ isEditing, data, onChange }) {
         </div>
     );
 }
-```

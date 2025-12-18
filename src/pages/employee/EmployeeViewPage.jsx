@@ -4,6 +4,8 @@ import { Link, useParams } from "react-router-dom";
 import Documents from "../../components/employee/Documents";
 import JobInformation from "../../components/employee/JobInformation";
 import PersonalInformation from "../../components/employee/PersonalInformation";
+import Toast from "../../components/Toast";
+import api from "../../config/api";
 
 // MOCK DATA matching EmployeePage (5 Items)
 const MOCK_DB = {
@@ -145,15 +147,54 @@ export default function EmployeeViewPage() {
     const [isEditing, setIsEditing] = useState(false);
     const [activeTab, setActiveTab] = useState('personal');
     const [employee, setEmployee] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [toast, setToast] = useState(null);
+
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 4000);
+    };
 
     useEffect(() => {
-        const data = getEmployeeById(id);
-        setEmployee(data);
+        loadEmployee();
     }, [id]);
+
+    const loadEmployee = async () => {
+        try {
+            setLoading(true);
+            const response = await api.getEmployee(id);
+            if (response.employee) {
+                setEmployee(response.employee);
+            } else {
+                showToast('Employee not found', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading employee:', error);
+            showToast('Failed to load employee: ' + error.message, 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const toggleEdit = () => setIsEditing(!isEditing);
 
-    if (!employee) return <div>Loading...</div>;
+    if (loading) return (
+        <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center">
+                <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading employee details...</p>
+            </div>
+        </div>
+    );
+
+    if (!employee) return (
+        <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center">
+                <p className="text-gray-600 mb-4">Employee not found</p>
+                <Link to="/employees" className="text-blue-600 hover:underline">Back to Employees</Link>
+            </div>
+        </div>
+    );
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 lg:p-10">
@@ -314,6 +355,9 @@ export default function EmployeeViewPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Toast Notifications */}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 }

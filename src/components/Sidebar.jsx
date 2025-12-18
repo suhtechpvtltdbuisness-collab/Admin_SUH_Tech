@@ -188,19 +188,6 @@ export default function Sidebar({ className = "", onClose }) {
               >
                 Company Expenses
               </Link>
-
-              <Link
-                to="/expenses/invoices"
-                onClick={onClose}
-                className={`block px-3 py-2 rounded-lg text-sm transition
-                ${
-                  isActive("/expenses/invoices")
-                    ? "bg-blue-50 text-blue-600 font-medium"
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                Invoices
-              </Link>
             </div>
           </div>
         </div>

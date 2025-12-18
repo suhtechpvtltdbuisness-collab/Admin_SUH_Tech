@@ -2,6 +2,7 @@ import { ChevronDown, Download, Eye, Plus, Search, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AddEmployeeModal from "../../components/employee/AddEmployeeModal";
+import Toast from "../../components/Toast";
 import api from "../../config/api";
 
 export default function EmployeePage() {

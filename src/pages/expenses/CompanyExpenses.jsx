@@ -333,73 +333,85 @@ const CompanyExpenses = () => {
             {/* Add Expense Modal */}
             {isAddModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white w-full max-w-2xl mx-4 rounded-xl shadow-lg overflow-y-auto max-h-[90vh]">
-                        <div className="flex justify-between items-center p-6 border-b border-gray-200">
-                            <h2 className="text-xl font-semibold">{editingExpense ? 'Edit Expense' : 'New Expense Entry'}</h2>
-                            <button onClick={() => {
-                                setIsAddModalOpen(false);
-                                setEditingExpense(null);
-                                setNewExpense({
-                                    title: '',
-                                    category: 'Misc',
-                                    amount: '',
-                                    date: new Date().toISOString().split('T')[0],
-                                    paymentMethod: 'Bank Transfer',
-                                    status: 'Pending',
-                                    description: ''
-                                });
-                            }} className="p-2 hover:bg-gray-100 rounded-full cursor-pointer">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <form onSubmit={handleAddExpense} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Expense Title</label>
-                                <input type="text" name="title" value={newExpense.title} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                                <select name="category" value={newExpense.category} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg">
-                                    <option value="Misc">Misc</option>
-                                    <option value="Travel">Travel</option>
-                                    <option value="Software">Software</option>
-                                    <option value="Utilities">Utilities</option>
-                                    <option value="Rent">Rent</option>
-                                    <option value="Equipment">Equipment</option>
-                                    <option value="Marketing">Marketing</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-                                <input type="number" name="amount" value={newExpense.amount} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                                <input type="text" name="paymentMethod" value={newExpense.paymentMethod} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                                <input type="date" name="date" value={newExpense.date} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                <select name="status" value={newExpense.status} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg">
-                                    <option value="Pending">Pending</option>
-                                    <option value="Approved">Approved</option>
-                                    <option value="Paid">Paid</option>
-                                </select>
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                <textarea name="description" value={newExpense.description} onChange={handleInputChange} rows="3" className="w-full p-2 border border-gray-300 rounded-lg"></textarea>
-                            </div>
 
-                            <div className="md:col-span-2 mt-4 pt-4 border-t">
-                                <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
-                                    {editingExpense ? 'Update Expense' : 'Add Expense'}
+                    <div className="bg-white w-full max-w-2xl mx-4 rounded-xl shadow-lg overflow-hidden">
+
+
+                        <div className="max-h-[90vh] overflow-y-auto">
+
+                            <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                                <h2 className="text-xl font-semibold">
+                                    {editingExpense ? "Edit Expense" : "New Expense Entry"}
+                                </h2>
+                                <button
+                                    onClick={() => {
+                                        setIsAddModalOpen(false);
+                                        setEditingExpense(null);
+                                        setNewExpense({
+                                            title: "",
+                                            category: "Misc",
+                                            amount: "",
+                                            date: new Date().toISOString().split("T")[0],
+                                            paymentMethod: "Bank Transfer",
+                                            status: "Pending",
+                                            description: "",
+                                        });
+                                    }}
+                                    className="p-2 hover:bg-gray-100 rounded-full cursor-pointer"
+                                >
+                                    <X size={20} />
                                 </button>
                             </div>
-                        </form>
+
+                            <form onSubmit={handleAddExpense} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Expense Title</label>
+                                    <input type="text" name="title" value={newExpense.title} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                    <select name="category" value={newExpense.category} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg">
+                                        <option value="Misc">Misc</option>
+                                        <option value="Travel">Travel</option>
+                                        <option value="Software">Software</option>
+                                        <option value="Utilities">Utilities</option>
+                                        <option value="Rent">Rent</option>
+                                        <option value="Equipment">Equipment</option>
+                                        <option value="Marketing">Marketing</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                                    <input type="number" name="amount" value={newExpense.amount} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                                    <input type="text" name="paymentMethod" value={newExpense.paymentMethod} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                    <input type="date" name="date" value={newExpense.date} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                    <select name="status" value={newExpense.status} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg">
+                                        <option value="Pending">Pending</option>
+                                        <option value="Approved">Approved</option>
+                                        <option value="Paid">Paid</option>
+                                    </select>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                    <textarea name="description" value={newExpense.description} onChange={handleInputChange} rows="3" className="w-full p-2 border border-gray-300 rounded-lg"></textarea>
+                                </div>
+
+                                <div className="md:col-span-2 mt-4 pt-4 border-t">
+                                    <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
+                                        {editingExpense ? 'Update Expense' : 'Add Expense'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             )}

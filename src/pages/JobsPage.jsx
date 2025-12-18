@@ -143,7 +143,7 @@ export default function JobsPage() {
           </div>
           <button
             onClick={openNewModal}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
           >
             <Plus size={20} /> New Job
           </button>
@@ -199,11 +199,10 @@ export default function JobsPage() {
                       </td>
                       <td className="p-4">
                         <span
-                          className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold ${
-                            job.isActive
+                          className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold ${job.isActive
                               ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200"
                               : "bg-gradient-to-r from-gray-50 to-slate-50 text-gray-600 border border-gray-200"
-                          }`}
+                            }`}
                         >
                           {job.isActive ? "Active" : "Closed"}
                         </span>
@@ -219,7 +218,7 @@ export default function JobsPage() {
                                 activeMenuId === job._id ? null : job._id
                               )
                             }
-                            className="p-2.5 rounded-xl hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-all duration-200"
+                            className="p-2.5 rounded-xl hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-all duration-200 cursor-pointer"
                           >
                             <MoreVertical size={18} />
                           </button>
@@ -228,13 +227,13 @@ export default function JobsPage() {
                               <div className="py-1 text-sm">
                                 <button
                                   onClick={() => openEditModal(job)}
-                                  className="w-full px-3 py-2 flex items-center gap-2 text-gray-700 hover:bg-gray-50"
+                                  className="w-full px-3 py-2 flex items-center gap-2 text-gray-700 hover:bg-gray-50 cursor-pointer"
                                 >
                                   <Edit2 size={14} /> Edit
                                 </button>
                                 <button
                                   onClick={() => handleDelete(job._id)}
-                                  className="w-full px-3 py-2 flex items-center gap-2 text-red-600 hover:bg-red-50"
+                                  className="w-full px-3 py-2 flex items-center gap-2 text-red-600 hover:bg-red-50 cursor-pointer"
                                 >
                                   <Trash2 size={14} /> Delete
                                 </button>
@@ -254,144 +253,150 @@ export default function JobsPage() {
         {/* Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white w-full max-w-2xl mx-4 rounded-xl shadow-lg max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center p-4 border-b border-gray-100">
-                <h2 className="text-lg font-semibold">
-                  {editingJob ? "Edit Job" : "New Job"}
-                </h2>
-                <button
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setEditingJob(null);
-                  }}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  ✕
-                </button>
-              </div>
+            {/* Outer container → handles rounded corners */}
+            <div className="bg-white w-full max-w-2xl mx-4 rounded-xl shadow-lg overflow-hidden">
 
-              <form onSubmit={handleSubmit} className="p-4 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Inner container → handles scrolling */}
+              <div className="max-h-[90vh] overflow-y-auto">
+
+                <div className="flex justify-between items-center p-4 border-b border-gray-100">
+                  <h2 className="text-lg font-semibold">
+                    {editingJob ? "Edit Job" : "New Job"}
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      setEditingJob(null);
+                    }}
+                    className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="p-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Job Title
+                      </label>
+                      <input
+                        type="text"
+                        name="title"
+                        value={form.title}
+                        onChange={handleChange}
+                        required
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Job Type
+                      </label>
+                      <select
+                        name="type"
+                        value={form.type}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      >
+                        <option>Full-time</option>
+                        <option>Part-time</option>
+                        <option>Contract</option>
+                        <option>Internship</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Job Title
+                      Location
                     </label>
                     <input
                       type="text"
-                      name="title"
-                      value={form.title}
+                      name="location"
+                      value={form.location}
                       onChange={handleChange}
-                      required
+                      placeholder="Remote / City"
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                     />
                   </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Job Type
+                      Description
                     </label>
-                    <select
-                      name="type"
-                      value={form.type}
+                    <textarea
+                      name="description"
+                      value={form.description}
                       onChange={handleChange}
+                      rows={3}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                    >
-                      <option>Full-time</option>
-                      <option>Part-time</option>
-                      <option>Contract</option>
-                      <option>Internship</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Location
-                  </label>
-                  <input
-                    type="text"
-                    name="location"
-                    value={form.location}
-                    onChange={handleChange}
-                    placeholder="Remote / City"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    name="description"
-                    value={form.description}
-                    onChange={handleChange}
-                    rows={3}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Responsibilities (one per line)
-                  </label>
-                  <textarea
-                    name="responsibilities"
-                    value={form.responsibilities}
-                    onChange={handleChange}
-                    rows={3}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Requirements (one per line)
-                  </label>
-                  <textarea
-                    name="requirements"
-                    value={form.requirements}
-                    onChange={handleChange}
-                    rows={3}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between pt-2">
-                  <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      name="isActive"
-                      checked={form.isActive}
-                      onChange={handleChange}
                     />
-                    Active (visible on website)
-                  </label>
-                  <div className="space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsModalOpen(false);
-                        setEditingJob(null);
-                      }}
-                      className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
-                      {editingJob ? "Update" : "Create"} Job
-                    </button>
                   </div>
-                </div>
-              </form>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Responsibilities (one per line)
+                    </label>
+                    <textarea
+                      name="responsibilities"
+                      value={form.responsibilities}
+                      onChange={handleChange}
+                      rows={3}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Requirements (one per line)
+                    </label>
+                    <textarea
+                      name="requirements"
+                      value={form.requirements}
+                      onChange={handleChange}
+                      rows={3}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        name="isActive"
+                        checked={form.isActive}
+                        onChange={handleChange}
+                      />
+                      Active (visible on website)
+                    </label>
+                    <div className="space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsModalOpen(false);
+                          setEditingJob(null);
+                        }}
+                        className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
+                      >
+                        {editingJob ? "Update" : "Create"} Job
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         )}
-      </div>
+          </div>
     </div>
-  );
+      );
 }
 
 

@@ -437,12 +437,21 @@ const EmployeeSalary = () => {
             {/* Add Salary Modal */}
             {isAddModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white w-full max-w-2xl mx-4 rounded-xl shadow-lg overflow-y-auto max-h-[90vh]">
-                        <div className="flex justify-between items-center p-6 border-b border-gray-200">
-                            <h2 className="text-xl font-semibold">Add Salary Details</h2>
-                            <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full cursor-pointer">
-                                <X size={20} />
-                            </button>
+
+                    <div className="bg-white w-full max-w-2xl mx-4 rounded-xl shadow-lg overflow-hidden">
+
+
+                        <div className="max-h-[90vh] overflow-y-auto">
+
+                            <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                                <h2 className="text-xl font-semibold">Add Salary Details</h2>
+                                <button
+                                    onClick={() => setIsAddModalOpen(false)}
+                                    className="p-2 hover:bg-gray-100 rounded-full cursor-pointer"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
                         </div>
                         <form onSubmit={handleAddSalary} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>

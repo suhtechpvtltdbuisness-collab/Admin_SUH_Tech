@@ -15,7 +15,9 @@ const Invoices = () => {
         clientEmail: '',
         clientPhone: '',
         clientAddress: '',
+        serviceType: 'One-Time Project',
         serviceDescription: '',
+        serviceCategory: 'Development',
         quantity: 1,
         unit: 'hours',
         rate: '',
@@ -93,8 +95,10 @@ const Invoices = () => {
                 clientEmail: newInvoice.clientEmail,
                 clientPhone: newInvoice.clientPhone,
                 clientAddress: newInvoice.clientAddress,
+                serviceType: newInvoice.serviceType,
                 services: [{
                     description: newInvoice.serviceDescription,
+                    serviceCategory: newInvoice.serviceCategory,
                     quantity: quantity,
                     unit: newInvoice.unit,
                     rate: rate,
@@ -126,7 +130,9 @@ const Invoices = () => {
                 clientEmail: '',
                 clientPhone: '',
                 clientAddress: '',
+                serviceType: 'One-Time Project',
                 serviceDescription: '',
+                serviceCategory: 'Development',
                 quantity: 1,
                 unit: 'hours',
                 rate: '',
@@ -150,7 +156,9 @@ const Invoices = () => {
             clientEmail: invoice.clientEmail || '',
             clientPhone: invoice.clientPhone || '',
             clientAddress: invoice.clientAddress || '',
+            serviceType: invoice.serviceType || 'One-Time Project',
             serviceDescription: firstService.description || '',
+            serviceCategory: firstService.serviceCategory || 'Development',
             quantity: firstService.quantity || 1,
             unit: firstService.unit || 'hours',
             rate: firstService.rate || '',
@@ -360,6 +368,35 @@ const Invoices = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                                 <input type="text" name="clientAddress" value={newInvoice.clientAddress} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
                             </div>
+
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Service Type</label>
+                                <select name="serviceType" value={newInvoice.serviceType} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg cursor-pointer">
+                                    <option value="One-Time Project">One-Time Project</option>
+                                    <option value="AMC">AMC (Annual Maintenance Contract)</option>
+                                    <option value="Weekly Deliverables">Weekly Deliverables</option>
+                                    <option value="Monthly Deliverables">Monthly Deliverables</option>
+                                    <option value="Project Updates">Project Updates</option>
+                                    <option value="Maintenance">Maintenance</option>
+                                    <option value="Consulting">Consulting</option>
+                                    <option value="Custom">Custom</option>
+                                </select>
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Service Category</label>
+                                <select name="serviceCategory" value={newInvoice.serviceCategory} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg cursor-pointer">
+                                    <option value="Development">Development</option>
+                                    <option value="Design">Design</option>
+                                    <option value="Maintenance">Maintenance</option>
+                                    <option value="Support">Support</option>
+                                    <option value="Consulting">Consulting</option>
+                                    <option value="Infrastructure">Infrastructure</option>
+                                    <option value="Testing">Testing</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Service Description</label>
                                 <input type="text" name="serviceDescription" value={newInvoice.serviceDescription} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
@@ -370,11 +407,14 @@ const Invoices = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-                                <select name="unit" value={newInvoice.unit} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg">
+                                <select name="unit" value={newInvoice.unit} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg cursor-pointer">
                                     <option value="hours">Hours</option>
                                     <option value="days">Days</option>
+                                    <option value="weeks">Weeks</option>
+                                    <option value="months">Months</option>
                                     <option value="items">Items</option>
                                     <option value="project">Project</option>
+                                    <option value="user">User/License</option>
                                 </select>
                             </div>
                             <div>

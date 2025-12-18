@@ -1,5 +1,6 @@
 import { Edit2, MoreVertical, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import Toast from "../components/Toast";
 import api from "../config/api";
 
 export default function ProjectsPage() {
@@ -8,6 +9,7 @@ export default function ProjectsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [activeMenuId, setActiveMenuId] = useState(null);
+  const [toast, setToast] = useState(null);
   const [form, setForm] = useState({
     projectName: "",
     clientName: "",
@@ -23,6 +25,11 @@ export default function ProjectsPage() {
     technologies: "",
   });
 
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
   useEffect(() => {
     loadProjects();
   }, []);
@@ -34,7 +41,7 @@ export default function ProjectsPage() {
       setProjects(res.projects || []);
     } catch (error) {
       console.error("Error loading projects:", error);
-      alert("Failed to load projects: " + error.message);
+      showToast("Failed to load projects: " + error.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -117,8 +124,10 @@ export default function ProjectsPage() {
           editingProject._id || editingProject.projectCode,
           payload
         );
+        showToast("Project updated successfully!", 'success');
       } else {
         await api.createProject(payload);
+        showToast("Project created successfully!", 'success');
       }
 
       await loadProjects();
@@ -126,7 +135,7 @@ export default function ProjectsPage() {
       setEditingProject(null);
     } catch (error) {
       console.error("Error saving project:", error);
-      alert("Failed to save project: " + error.message);
+      showToast("Failed to save project: " + error.message, 'error');
     }
   };
 
@@ -136,10 +145,11 @@ export default function ProjectsPage() {
     }
     try {
       await api.deleteProject(idOrCode);
+      showToast("Project deleted successfully!", 'success');
       await loadProjects();
     } catch (error) {
       console.error("Error deleting project:", error);
-      alert("Failed to delete project: " + error.message);
+      showToast("Failed to delete project: " + error.message, 'error');
     }
     setActiveMenuId(null);
   };
@@ -534,9 +544,12 @@ export default function ProjectsPage() {
             </div>
           </div>
         )}
+
+        {/* Toast Notifications */}
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </div>
     </div>
-      );
+  );
 }
 
 

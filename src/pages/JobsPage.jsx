@@ -1,5 +1,6 @@
 import { Edit2, MoreVertical, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import Toast from "../components/Toast";
 import api from "../config/api";
 
 export default function JobsPage() {
@@ -100,8 +101,10 @@ export default function JobsPage() {
 
       if (editingJob) {
         await api.updateJob(editingJob._id, payload);
+        showToast("Job updated successfully!", 'success');
       } else {
         await api.createJob(payload);
+        showToast("Job created successfully!", 'success');
       }
 
       await loadJobs();
@@ -109,7 +112,7 @@ export default function JobsPage() {
       setEditingJob(null);
     } catch (error) {
       console.error("Error saving job:", error);
-      alert("Failed to save job: " + error.message);
+      showToast("Failed to save job: " + error.message, 'error');
     }
   };
 
@@ -119,10 +122,11 @@ export default function JobsPage() {
     }
     try {
       await api.deleteJob(id);
+      showToast("Job deleted successfully!", 'success');
       await loadJobs();
     } catch (error) {
       console.error("Error deleting job:", error);
-      alert("Failed to delete job: " + error.message);
+      showToast("Failed to delete job: " + error.message, 'error');
     }
     setActiveMenuId(null);
   };
@@ -401,9 +405,12 @@ export default function JobsPage() {
             </div>
           </div>
         )}
-          </div>
+
+        {/* Toast Notifications */}
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      </div>
     </div>
-      );
+  );
 }
 
 

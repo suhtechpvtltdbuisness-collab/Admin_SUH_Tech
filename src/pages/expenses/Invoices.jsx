@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Plus, Filter, MoreVertical, Upload, FileText, CheckCircle, Clock, MapPin, Phone, X } from 'lucide-react';
+import { Clock, Filter, MapPin, MoreVertical, Phone, Plus, Search, Upload, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import Toast from '../../components/Toast';
 import api from '../../config/api';
 
 const Invoices = () => {
@@ -8,6 +9,7 @@ const Invoices = () => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingInvoice, setEditingInvoice] = useState(null);
     const [activeMenuId, setActiveMenuId] = useState(null);
+    const [toast, setToast] = useState(null);
     const [newInvoice, setNewInvoice] = useState({
         clientName: '',
         clientEmail: '',
@@ -24,6 +26,11 @@ const Invoices = () => {
         invoiceDate: new Date().toISOString().split('T')[0]
     });
 
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 4000);
+    };
+
     useEffect(() => {
         loadInvoices();
     }, []);
@@ -35,7 +42,7 @@ const Invoices = () => {
             setInvoices(response.invoices || []);
         } catch (error) {
             console.error('Error loading invoices:', error);
-            alert('Failed to load invoices: ' + error.message);
+            showToast('Failed to load invoices: ' + error.message, 'error');
         } finally {
             setLoading(false);
         }
@@ -105,8 +112,10 @@ const Invoices = () => {
 
             if (editingInvoice) {
                 await api.updateInvoice(editingInvoice._id || editingInvoice.invoiceNumber, invoiceData);
+                showToast('Invoice updated successfully!', 'success');
             } else {
                 await api.createInvoice(invoiceData);
+                showToast('Invoice created successfully!', 'success');
             }
 
             await loadInvoices();
@@ -129,7 +138,7 @@ const Invoices = () => {
             });
         } catch (error) {
             console.error('Error saving invoice:', error);
-            alert('Failed to save invoice: ' + error.message);
+            showToast('Failed to save invoice: ' + error.message, 'error');
         }
     };
 
@@ -164,7 +173,7 @@ const Invoices = () => {
             await loadInvoices();
         } catch (error) {
             console.error('Error deleting invoice:', error);
-            alert('Failed to delete invoice: ' + error.message);
+            showToast('Failed to delete invoice: ' + error.message, 'error');
         }
         setActiveMenuId(null);
     };
@@ -403,6 +412,9 @@ const Invoices = () => {
                     </div>
                 </div>
             )}
+
+            {/* Toast Notifications */}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

@@ -1,5 +1,6 @@
 import { Edit2, MoreVertical, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import Toast from "../components/Toast";
 import api from "../config/api";
 
 export default function BlogPage() {
@@ -8,6 +9,7 @@ export default function BlogPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBlog, setEditingBlog] = useState(null);
   const [activeMenuId, setActiveMenuId] = useState(null);
+  const [toast, setToast] = useState(null);
   const [form, setForm] = useState({
     title: "",
     slug: "",
@@ -18,6 +20,11 @@ export default function BlogPage() {
     tags: "",
     isPublished: false,
   });
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   useEffect(() => {
     loadBlogs();
@@ -30,7 +37,7 @@ export default function BlogPage() {
       setBlogs(res.blogs || []);
     } catch (error) {
       console.error("Error loading blogs:", error);
-      alert("Failed to load blogs: " + error.message);
+      showToast("Failed to load blogs: " + error.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -94,8 +101,10 @@ export default function BlogPage() {
 
       if (editingBlog) {
         await api.updateBlog(editingBlog._id || editingBlog.slug, payload);
+        showToast("Blog post updated successfully!", 'success');
       } else {
         await api.createBlog(payload);
+        showToast("Blog post created successfully!", 'success');
       }
 
       await loadBlogs();
@@ -103,7 +112,7 @@ export default function BlogPage() {
       setEditingBlog(null);
     } catch (error) {
       console.error("Error saving blog:", error);
-      alert("Failed to save blog: " + error.message);
+      showToast("Failed to save blog: " + error.message, 'error');
     }
   };
 
@@ -113,10 +122,11 @@ export default function BlogPage() {
     }
     try {
       await api.deleteBlog(idOrSlug);
+      showToast("Blog post deleted successfully!", 'success');
       await loadBlogs();
     } catch (error) {
       console.error("Error deleting blog:", error);
-      alert("Failed to delete blog: " + error.message);
+      showToast("Failed to delete blog: " + error.message, 'error');
     }
     setActiveMenuId(null);
   };
@@ -405,6 +415,9 @@ export default function BlogPage() {
             </div>
           </div>
         )}
+
+        {/* Toast Notifications */}
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </div>
     </div>
   );

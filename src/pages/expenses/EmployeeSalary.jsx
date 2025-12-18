@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { AlertCircle, Calendar, Download, Eye, FileText, Filter, Mail, MoreVertical, Phone, Plus, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import Toast from '../../components/Toast';
 import api from '../../config/api';
 
 const EmployeeSalary = () => {
@@ -13,6 +14,12 @@ const EmployeeSalary = () => {
     // Preview Modal State
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
     const [previewData, setPreviewData] = useState(null); // { url: string, employee: object, doc: jsPDF }
+    const [toast, setToast] = useState(null);
+
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 4000);
+    };
 
     const [newSalary, setNewSalary] = useState({
         employeeName: '',
@@ -41,7 +48,7 @@ const EmployeeSalary = () => {
             setEmployees(res.salaries || res.employeeSalaries || []);
         } catch (error) {
             console.error("Error loading employee salaries:", error);
-            alert("Failed to load employee salaries: " + error.message);
+            showToast("Failed to load employee salaries: " + error.message, 'error');
         } finally {
             setLoading(false);
         }
@@ -98,6 +105,7 @@ const EmployeeSalary = () => {
             payload.breakdown.net = total - deductions;
 
             await api.createEmployeeSalary(payload);
+            showToast("Salary entry added successfully!", 'success');
             await loadEmployeeSalaries();
             setIsAddModalOpen(false);
 
@@ -119,7 +127,7 @@ const EmployeeSalary = () => {
             });
         } catch (error) {
             console.error("Error adding salary:", error);
-            alert("Failed to add salary entry: " + error.message);
+            showToast("Failed to add salary entry: " + error.message, 'error');
         }
     };
 
@@ -133,7 +141,7 @@ const EmployeeSalary = () => {
             setActiveMenuId(null);
         } catch (error) {
             console.error("Error deleting salary:", error);
-            alert("Failed to delete salary: " + error.message);
+            showToast("Failed to delete salary: " + error.message, 'error');
         }
     };
 
@@ -289,6 +297,7 @@ const EmployeeSalary = () => {
     const handleDownload = () => {
         if (previewData && previewData.doc) {
             previewData.doc.save(`Invoice_${previewData.employee._id || 'salary'}.pdf`);
+            showToast("Invoice downloaded successfully!", 'success');
         }
     };
 
@@ -579,6 +588,9 @@ const EmployeeSalary = () => {
                     </div>
                 </div>
             )}
+
+            {/* Toast Notifications */}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

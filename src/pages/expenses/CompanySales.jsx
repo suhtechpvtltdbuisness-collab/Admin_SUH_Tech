@@ -1,5 +1,6 @@
 import { BarChart2, DollarSign, Edit2, Filter, Mail, MoreVertical, Phone, Plus, Search, Trash2, TrendingUp, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import Toast from '../../components/Toast';
 import api from '../../config/api';
 
 const CompanySales = () => {
@@ -9,6 +10,12 @@ const CompanySales = () => {
     const [activeMenuId, setActiveMenuId] = useState(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingSale, setEditingSale] = useState(null);
+    const [toast, setToast] = useState(null);
+
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 4000);
+    };
 
     const [newSale, setNewSale] = useState({
         clientName: '',
@@ -34,7 +41,7 @@ const CompanySales = () => {
             setSales(res.sales || []);
         } catch (error) {
             console.error("Error loading sales:", error);
-            alert("Failed to load sales: " + error.message);
+            showToast("Failed to load sales: " + error.message, 'error');
         } finally {
             setLoading(false);
         }
@@ -126,8 +133,10 @@ const CompanySales = () => {
 
             if (editingSale) {
                 await api.updateSale(editingSale._id, payload);
+                showToast("Sale entry updated successfully!", 'success');
             } else {
                 await api.createSale(payload);
+                showToast("Sale entry created successfully!", 'success');
             }
 
             await loadSales();
@@ -149,7 +158,7 @@ const CompanySales = () => {
             });
         } catch (error) {
             console.error("Error saving sale:", error);
-            alert("Failed to save sale: " + error.message);
+            showToast("Failed to save sale: " + error.message, 'error');
         }
     };
 
@@ -159,11 +168,12 @@ const CompanySales = () => {
         }
         try {
             await api.deleteSale(id);
+            showToast("Sale entry deleted successfully!", 'success');
             await loadSales();
             setActiveMenuId(null);
         } catch (error) {
             console.error("Error deleting sale:", error);
-            alert("Failed to delete sale: " + error.message);
+            showToast("Failed to delete sale: " + error.message, 'error');
         }
     };
 
@@ -425,6 +435,9 @@ const CompanySales = () => {
                     </div>
                 </div>
             )}
+
+            {/* Toast Notifications */}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

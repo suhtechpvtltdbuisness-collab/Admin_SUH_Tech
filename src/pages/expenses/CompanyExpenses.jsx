@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { Calendar, CreditCard, DollarSign, Filter, MoreVertical, PieChart, Plus, Receipt, Search, Tag, TrendingUp, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, Filter, MoreVertical, FileText, Calendar, DollarSign, Tag, Receipt, PieChart, TrendingUp, CreditCard, X } from 'lucide-react';
+import Toast from '../../components/Toast';
 import api from '../../config/api';
 
 const CompanyExpenses = () => {
@@ -19,6 +20,12 @@ const CompanyExpenses = () => {
     const [totalExpenses, setTotalExpenses] = useState(0);
     const [editingExpense, setEditingExpense] = useState(null);
     const [activeMenuId, setActiveMenuId] = useState(null);
+    const [toast, setToast] = useState(null);
+
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 4000);
+    };
 
     useEffect(() => {
         loadExpenses();
@@ -33,7 +40,7 @@ const CompanyExpenses = () => {
             setTotalExpenses(total);
         } catch (error) {
             console.error('Error loading expenses:', error);
-            alert('Failed to load expenses: ' + error.message);
+            showToast('Failed to load expenses: ' + error.message, 'error');
         } finally {
             setLoading(false);
         }
@@ -88,8 +95,10 @@ const CompanyExpenses = () => {
 
             if (editingExpense) {
                 await api.updateExpense(editingExpense._id, expenseData);
+                showToast('Expense updated successfully!', 'success');
             } else {
                 await api.createExpense(expenseData);
+                showToast('Expense created successfully!', 'success');
             }
 
             await loadExpenses(); // Reload expenses
@@ -106,7 +115,7 @@ const CompanyExpenses = () => {
             });
         } catch (error) {
             console.error('Error saving expense:', error);
-            alert('Failed to save expense: ' + error.message);
+            showToast('Failed to save expense: ' + error.message, 'error');
         }
     };
 
@@ -134,7 +143,7 @@ const CompanyExpenses = () => {
             await loadExpenses();
         } catch (error) {
             console.error('Error deleting expense:', error);
-            alert('Failed to delete expense: ' + error.message);
+            showToast('Failed to delete expense: ' + error.message, 'error');
         }
         setActiveMenuId(null);
     };
@@ -213,7 +222,7 @@ const CompanyExpenses = () => {
                     <button
                         onClick={() => {
                             if (expenses.length === 0) {
-                                alert('No expenses to export');
+                                showToast('No expenses to export', 'warning');
                                 return;
                             }
                             const csv = [
@@ -235,6 +244,7 @@ const CompanyExpenses = () => {
                             a.download = `expenses-${new Date().toISOString().split('T')[0]}.csv`;
                             a.click();
                             URL.revokeObjectURL(url);
+                            showToast('Expenses exported successfully!', 'success');
                         }}
                         className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer"
                     >
@@ -415,6 +425,9 @@ const CompanyExpenses = () => {
                     </div>
                 </div>
             )}
+
+            {/* Toast Notifications */}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

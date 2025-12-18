@@ -19,12 +19,19 @@ import { useNavigate } from "react-router-dom";
 import MessageList from "../components/MessageList";
 import RecentList from "../components/RecentList";
 import StatCard from "../components/StatCard";
+import Toast from "../components/Toast";
 import api from "../config/api";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   useEffect(() => {
     const loadStats = async () => {
@@ -33,6 +40,7 @@ export default function Dashboard() {
         setStats(response.stats);
       } catch (error) {
         console.error('Error loading stats:', error);
+        showToast('Failed to load dashboard stats: ' + error.message, 'error');
       } finally {
         setLoading(false);
       }
@@ -264,6 +272,9 @@ export default function Dashboard() {
             <MessageList />
           </div>
         </div>
+
+        {/* Toast Notifications */}
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </div>
     </div>
   );

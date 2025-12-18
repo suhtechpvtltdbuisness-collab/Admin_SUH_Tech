@@ -1,5 +1,6 @@
 import { Mail, MessageSquare, Users } from "lucide-react";
 import { useEffect, useState } from "react";
+import Toast from "../components/Toast";
 import api from "../config/api";
 
 export default function MessagesPage() {
@@ -10,6 +11,12 @@ export default function MessagesPage() {
   const [loadingContacts, setLoadingContacts] = useState(true);
   const [loadingInfos, setLoadingInfos] = useState(true);
   const [loadingEmployees, setLoadingEmployees] = useState(true);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   useEffect(() => {
     const loadContacts = async () => {
@@ -19,6 +26,7 @@ export default function MessagesPage() {
         setContacts(res.contacts || []);
       } catch (error) {
         console.error("Error loading contacts:", error);
+        showToast("Failed to load contact messages: " + error.message, 'error');
       } finally {
         setLoadingContacts(false);
       }
@@ -31,6 +39,7 @@ export default function MessagesPage() {
         setInfos(res.infos || []);
       } catch (error) {
         console.error("Error loading user infos:", error);
+        showToast("Failed to load project leads: " + error.message, 'error');
       } finally {
         setLoadingInfos(false);
       }
@@ -43,6 +52,7 @@ export default function MessagesPage() {
         setEmployees(res.employees || []);
       } catch (error) {
         console.error("Error loading employees:", error);
+        showToast("Failed to load employees: " + error.message, 'error');
       } finally {
         setLoadingEmployees(false);
       }
@@ -290,6 +300,9 @@ export default function MessagesPage() {
             </div>
           </div>
         )}
+
+        {/* Toast Notifications */}
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </div>
     </div>
   );

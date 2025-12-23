@@ -212,7 +212,7 @@ export default function EmployeePage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gradient-to-r from-gray-50 to-transparent border-b border-gray-200 text-xs text-gray-600 uppercase tracking-wider font-semibold">
-                  <th className="p-4 w-12 text-center">#</th>
+                  <th className="p-4 w-12 text-center">Sr. No.</th>
                   <th className="p-4">Employee Name</th>
                   <th className="p-4">ID</th>
                   <th className="p-4">Department</th>

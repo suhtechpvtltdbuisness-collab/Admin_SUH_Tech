@@ -6,6 +6,9 @@ export default function PersonalInformation({ isEditing, data, onChange, onNeste
             {/* BASIC DETAILS */}
             <SectionCard title="Basic Details">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
+                    <Field label="First Name" value={data?.firstName || ""} isEditing={isEditing} onChange={(val) => onChange('firstName', val)} />
+                    <Field label="Last Name" value={data?.lastName || ""} isEditing={isEditing} onChange={(val) => onChange('lastName', val)} />
+                    <Field label="Email" value={data?.email || ""} isEditing={isEditing} type="email" onChange={(val) => onChange('email', val)} />
                     <Field label="Gender" value={data?.gender || ""} isEditing={isEditing} onChange={(val) => onChange('gender', val)} />
                     <Field label="Date of Birth" value={data?.dateOfBirth?.split('T')[0] || ""} isEditing={isEditing} type="date" onChange={(val) => onChange('dateOfBirth', val)} />
                     <Field label="Blood Group" value={data?.bloodGroup || ""} isEditing={isEditing} onChange={(val) => onChange('bloodGroup', val)} />

@@ -1,5 +1,4 @@
 import {
-    Bell,
     Briefcase,
     FileCheck,
     FileText,
@@ -45,6 +44,7 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
+    
     loadStats();
   }, []);
 
@@ -78,15 +78,6 @@ export default function Dashboard() {
               <Sparkles size={16} className="text-blue-500" />
               Welcome back! Here's what's happening today
             </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <button className="relative p-3 rounded-xl hover:bg-white transition-all duration-200 shadow-sm hover:shadow-md group">
-              <Bell size={22} className="text-gray-700 group-hover:text-blue-600 transition-colors" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-            </button>
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <span className="text-white font-semibold text-sm">AH</span>
-            </div>
           </div>
         </div>
 

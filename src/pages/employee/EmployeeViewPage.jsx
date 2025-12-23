@@ -173,7 +173,14 @@ export default function EmployeeViewPage() {
             setLoading(true);
             const response = await api.getEmployee(id);
             if (response.employee) {
-                setEmployee(response.employee);
+                const emp = response.employee;
+                // Split name into firstName and lastName if it exists
+                if (emp.name && !emp.firstName && !emp.lastName) {
+                    const nameParts = emp.name.split(' ');
+                    emp.firstName = nameParts[0] || '';
+                    emp.lastName = nameParts.slice(1).join(' ') || '';
+                }
+                setEmployee(emp);
             } else {
                 showToast('Employee not found', 'error');
             }
@@ -205,8 +212,15 @@ export default function EmployeeViewPage() {
     const handleSave = async () => {
         try {
             setSaving(true);
-            await api.updateEmployee(id, editedEmployee);
-            setEmployee(editedEmployee);
+            // Combine firstName and lastName into name field for API
+            const dataToSave = { ...editedEmployee };
+            if (dataToSave.firstName || dataToSave.lastName) {
+                dataToSave.name = `${dataToSave.firstName || ''} ${dataToSave.lastName || ''}`.trim();
+            }
+            await api.updateEmployee(id, dataToSave);
+            // Update local employee state with combined name
+            const updatedEmployee = { ...dataToSave };
+            setEmployee(updatedEmployee);
             setIsEditing(false);
             showToast('Employee updated successfully!', 'success');
         } catch (error) {
@@ -227,6 +241,51 @@ export default function EmployeeViewPage() {
             handleCancel();
         } else {
             setIsEditing(true);
+        }
+    };
+
+    const handleTerminate = async () => {
+        if (!window.confirm(`Are you sure you want to terminate ${employee.name}? This will change their status to Inactive.`)) {
+            return;
+        }
+        
+        try {
+            setSaving(true);
+            // Update employee status to Inactive/Terminated
+            await api.updateEmployee(id, { ...employee, status: 'Inactive' });
+            showToast('Employee terminated successfully', 'success');
+            // Reload employee data
+            await loadEmployee();
+        } catch (error) {
+            console.error('Error terminating employee:', error);
+            showToast('Failed to terminate employee: ' + error.message, 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!window.confirm(`Are you sure you want to DELETE ${employee.name}? This action is IRREVERSIBLE and will permanently remove all employee data.`)) {
+            return;
+        }
+        
+        // Double confirmation for delete
+        if (!window.confirm('This is your final warning. Type DELETE to confirm (just click OK to proceed).')) {
+            return;
+        }
+        
+        try {
+            setSaving(true);
+            await api.deleteEmployee(id);
+            showToast('Employee deleted successfully', 'success');
+            // Navigate back to employee list after short delay
+            setTimeout(() => {
+                window.location.href = '/employees';
+            }, 1500);
+        } catch (error) {
+            console.error('Error deleting employee:', error);
+            showToast('Failed to delete employee: ' + error.message, 'error');
+            setSaving(false);
         }
     };
 
@@ -252,7 +311,8 @@ export default function EmployeeViewPage() {
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 lg:p-10">
             <div className="max-w-7xl mx-auto">
                 {/* Top Nav */}
-                <div className="flex justify-between items-center mb-6">\n                    <Link to="/employees" className="inline-flex items-center text-sm text-gray-600 hover:text-blue-600 transition-colors font-semibold">
+                <div className="flex justify-between items-center mb-6">
+                    <Link to="/employees" className="inline-flex items-center text-sm text-gray-600 hover:text-blue-600 transition-colors font-semibold">
                         <ArrowLeft size={18} className="mr-2" /> Back to Employee List
                     </Link>
 
@@ -283,10 +343,10 @@ export default function EmployeeViewPage() {
                         {/* Avatar Section */}
                         <div className="flex flex-col items-center">
                             <div className="relative mb-4">
-                                <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-gray-50 shadow-inner">
+                                <div className="w-28 h-28 rounded-full border-4 border-gray-50 shadow-inner flex items-center justify-center bg-gray-100 text-center">
                                     <img
                                         src={employee.avatar}
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-cover rounded-full"
                                         alt="Profile"
                                     />
                                 </div>
@@ -300,7 +360,11 @@ export default function EmployeeViewPage() {
                             <span className="mb-2 px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full">
                                 Emp-{id}
                             </span>
-                            <h2 className="text-xl font-bold text-gray-900">{employee.name}</h2>
+                            <h2 className="text-xl font-bold text-gray-900">
+                                {employee.firstName || employee.lastName 
+                                    ? `${employee.firstName || ''} ${employee.lastName || ''}`.trim() 
+                                    : employee.name || 'N/A'}
+                            </h2>
                             <p className="text-gray-500 text-sm font-medium">{employee.designation}</p>
                         </div>
 
@@ -408,10 +472,18 @@ export default function EmployeeViewPage() {
                                 <p className="text-xs text-gray-500 mt-1">These actions are irreversible. Please be certain.</p>
                             </div>
                             <div className="flex gap-3 w-full md:w-auto">
-                                <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100/80 text-sm font-semibold transition-colors">
+                                <button 
+                                    onClick={handleTerminate}
+                                    disabled={saving}
+                                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100/80 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
                                     <Ban size={16} /> Terminate
                                 </button>
-                                <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-600 border border-gray-200 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-sm font-semibold transition-colors">
+                                <button 
+                                    onClick={handleDelete}
+                                    disabled={saving}
+                                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-600 border border-gray-200 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
                                     <Trash2 size={16} /> Delete
                                 </button>
                             </div>

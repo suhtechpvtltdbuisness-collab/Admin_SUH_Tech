@@ -193,6 +193,7 @@ const Invoices = () => {
     };
   }, [isExportOpen]);
 
+
   const loadInvoices = async () => {
     try {
       setLoading(true);
@@ -273,7 +274,7 @@ const Invoices = () => {
 
   console.log('Selected file:', file.name, file.type, file.size);
   
-  // Check if it's a PDF
+  // Check if it's a PDF //
   if (file.type !== 'application/pdf') {
     showToast('Please upload a PDF file only!', 'error');
     e.target.value = '';
@@ -284,10 +285,10 @@ const Invoices = () => {
   setLoading(true);
   
   try {
-    // Read PDF and extract text
+    
     const arrayBuffer = await file.arrayBuffer();
     
-    // Dynamic import of pdfjs-dist
+    // Dynamic import of pdfjs-dist //
     const pdfjsLib = await import('pdfjs-dist');
     
     // Use jsdelivr CDN for worker with matching version
@@ -297,7 +298,7 @@ const Invoices = () => {
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let fullText = '';
     
-    // Extract text from all pages
+    // Extract text from all pages //
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
@@ -307,10 +308,10 @@ const Invoices = () => {
     
     console.log('Extracted PDF text:', fullText);
     
-    // Parse invoice data from text
+    // Parse invoice data from text //
     const extractedData = parseInvoiceText(fullText);
     
-    // Automatically save the invoice
+    // Automatically save the invoice //
     const invoiceNumber = `INV-${Date.now()}`;
     const price = parseFloat(extractedData.price) || 0;
     const subtotal = price;
@@ -342,7 +343,7 @@ const Invoices = () => {
       invoiceDate: extractedData.invoiceDate ? new Date(extractedData.invoiceDate) : new Date(),
     };
 
-    // Save to backend or local state
+    // Save to backend or local state //
     try {
       await api.createInvoice(invoiceData);
       await loadInvoices();
@@ -382,7 +383,7 @@ const parseInvoiceText = (text) => {
     }
   }
   
-  // Extract email
+  // Extract email //
   const emailMatch = text.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
   if (emailMatch) data.clientEmail = emailMatch[0];
   
@@ -393,7 +394,7 @@ const parseInvoiceText = (text) => {
     data.clientPhone = phoneMatch[1].replace(/\+91/g, '').trim();
   }
   
-  // Extract address (improved pattern)
+  // Extract address (improved pattern) //
   const addressPatterns = [
     /(?:Address|Location)[:\s]+([^\n]{10,})/i,
     /(?:Address|Location)[:\s]+([^\n]+(?:\n[^\n]+)?)/i, // Multi-line address
@@ -460,7 +461,7 @@ const parseInvoiceText = (text) => {
       console.log('=== SAVE INVOICE DEBUG ===');
       console.log('Editing Invoice:', editingInvoice);
       console.log('Editing Invoice ID:', editingInvoice?._id);
-
+      
       const invoiceNumber = `INV-${Date.now()}`;
       const price = parseFloat(newInvoice.price) || 0;
       const subtotal = price;
@@ -558,6 +559,8 @@ const parseInvoiceText = (text) => {
       clientPhone: invoice.clientPhone || '',
       clientAddress: invoice.clientAddress || '',
       serviceDescription: firstService.description || '',
+      // quantity: firstService.quantity || 1,
+      // unit: firstService.unit || 'hours',
       phaseWork: invoice.phaseWork || '',
       startDate: invoice.startDate
         ? new Date(invoice.startDate).toISOString().split('T')[0]
@@ -659,16 +662,16 @@ const parseInvoiceText = (text) => {
         return;
       }
 
-      // Create separate PDF for each invoice
+      // Create separate PDF for each invoice //
       filteredData.forEach((invoice, invIndex) => {
         const doc = new jsPDF();
         let yPos = 15;
         
-        // ==================== HEADER BOX ====================
+        // HEADER BOX //
         doc.setFillColor(37, 99, 235);
         doc.rect(0, 0, 210, 45, 'F');
         
-        // Company Name
+        // Company Name //
         doc.setFontSize(26);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(255, 255, 255);
@@ -868,7 +871,7 @@ const parseInvoiceText = (text) => {
         
         yPos += 15;
         
-        // ==================== TERMS & CONDITIONS ====================
+        // TERMS & CONDITIONS //
         if (yPos > 220) {
           doc.addPage();
           yPos = 20;
@@ -899,7 +902,7 @@ const parseInvoiceText = (text) => {
           yPos += 5;
         });
         
-        // ==================== FOOTER ====================
+        // FOOTER //
         yPos = 280;
         doc.setDrawColor(200, 200, 200);
         doc.line(14, yPos, 196, yPos);
@@ -1497,8 +1500,7 @@ const parseInvoiceText = (text) => {
                           </span>
                         </td>
                         <td className='p-4'>
-                          <div className='flex items-center gap-1 text-sm text-gray-600'>
-                            <Clock size={12} />
+                          <div className='text-sm text-gray-600'>
                             {formatDate(inv.invoiceDate || inv.date)}
                           </div>
                         </td>
@@ -1520,20 +1522,6 @@ const parseInvoiceText = (text) => {
                           </div>
                         </td>
                         <td className='p-4'>
-                          {/* <p className="text-sm font-medium text-gray-800">
-                                                    {firstService.description || inv.product || 'Service'}
-                                                    </p>
-                                                    {Array.isArray(inv.phases) && inv.phases.length > 0 && (
-                                                        <button
-                                                            onClick={() => 
-                                                                setExpandedInvoiceId(expandedInvoiceId === inv._id ? null : inv._id                         
-                                                                )
-                                                            }
-                                                            className="mt-1 text-sm text-blue-600 hover:underline flex items-center gap-1"
-                                                            >
-                                                                View Phases ({inv.phases.length})
-                                                            </button>
-                                                    )} */}
 
                           <div className='flex flex-col'>
                             <span className='font-medium text-gray-800'>
@@ -1921,16 +1909,6 @@ const parseInvoiceText = (text) => {
                 <label className='block text-sm font-medium text-gray-700 mb-3'>
                   Phase Work
                 </label>
-                {/* <select
-                              name="phaseWork"
-                              value={newInvoice.phaseWork}
-                              onChange={handleInputChange}
-                              className="w-full p-2 border border-gray-300 rounded-lg"
-                            > */}
-                {/* <option value="">Select</option>
-                              <option value="Deliverable">Deliverable</option>
-                              <option value="Not Deliverable">Not Deliverable</option>
-                            </select> */}
 
                 {Array.isArray(newInvoice.phases) &&
                   newInvoice.phases.map((phase) => (

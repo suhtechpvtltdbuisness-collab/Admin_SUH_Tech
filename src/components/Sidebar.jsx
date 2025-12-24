@@ -84,12 +84,13 @@ export default function Sidebar({ className = "", onClose }) {
     >
       {/* TOP HEADER */}
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <div className="w-3 h-6 bg-gradient-to-b from-blue-500 to-purple-600 rounded-md"></div>
-          <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Admin Panel
-          </span>
-        </h1>
+        <div className="flex items-center">
+          <img 
+            src="/src/assets/SUH_TECH_WEBHeader_LOGO (12).svg" 
+            alt="SUH Tech Logo" 
+            className="h-8 w-auto max-w-[140px] object-contain"
+          />
+        </div>
 
         {/* Mobile Close */}
         {onClose && (

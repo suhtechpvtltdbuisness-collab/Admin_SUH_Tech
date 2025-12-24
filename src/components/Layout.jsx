@@ -25,16 +25,16 @@ const Layout = () => {
 
     return (
         <div className="flex h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30">
-            {/* Sidebar Overlay - All Devices */}
+            {/* Sidebar Overlay - Mobile Only */}
             {isSidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
+                    className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm md:hidden"
                     onClick={() => setIsSidebarOpen(false)}
                 />
             )}
 
-            {/* Sidebar - All Devices */}
-            <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            {/* Sidebar - Always visible on desktop, slide-in on mobile */}
+            <div className={`fixed md:static inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <Sidebar onClose={() => setIsSidebarOpen(false)} />
             </div>
 
@@ -42,15 +42,18 @@ const Layout = () => {
                 {/* Header - All Devices */}
                 <div className="bg-white/90 backdrop-blur-md border-b border-gray-200 p-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
                     <div className="flex items-center gap-3">
+                        {/* Hamburger Menu - Mobile Only */}
                         <button
                             onClick={() => setIsSidebarOpen(true)}
-                            className="text-gray-700 hover:bg-gray-100 p-2 rounded-lg transition-colors"
+                            className="md:hidden text-gray-700 hover:bg-gray-100 p-2 rounded-lg transition-colors"
                         >
                             <Menu size={24} />
                         </button>
-                        <h1 className="font-bold text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                            Admin Panel
-                        </h1>
+                        <img 
+                            src="/src/assets/SUH_TECH_WEBHeader_LOGO (12).svg" 
+                            alt="SUH Tech Logo" 
+                            className="h-8 w-auto max-w-[140px] object-contain"
+                        />
                     </div>
                     
                     <div className="flex items-center gap-3">

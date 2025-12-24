@@ -1,4 +1,4 @@
-import { Calendar, Download, Mail, Search, TrendingUp, Users } from "lucide-react";
+import { Calendar, Mail, Search, TrendingUp, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import Toast from "../components/Toast";
 import api from "../config/api";
@@ -68,24 +68,7 @@ export default function NewsletterPage() {
     });
   };
 
-  const handleExport = () => {
-    const csv = [
-      ['Email', 'Subscribed At', 'Status'],
-      ...filteredSubscribers.map(sub => [
-        sub.email,
-        formatDate(sub.subscribedAt),
-        sub.isActive ? 'Active' : 'Inactive'
-      ])
-    ].map(row => row.join(',')).join('\n');
 
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `newsletter-subscribers-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    showToast("Subscribers exported successfully!", 'success');
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 lg:p-10">
@@ -100,13 +83,6 @@ export default function NewsletterPage() {
               Manage your newsletter subscribers and track growth.
             </p>
           </div>
-          <button
-            onClick={handleExport}
-            disabled={filteredSubscribers.length === 0}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Download size={20} /> Export CSV
-          </button>
         </div>
 
         {/* Stats Cards */}

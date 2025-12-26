@@ -15,6 +15,13 @@ const EmployeeSalary = () => {
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
     const [previewData, setPreviewData] = useState(null); // { url: string, employee: object, doc: jsPDF }
     const [toast, setToast] = useState(null);
+    // Filter State
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [filters, setFilters] = useState({
+        department: '',
+        role: '',
+        status: ''
+    });
 
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
@@ -54,14 +61,26 @@ const EmployeeSalary = () => {
         }
     };
 
-    // Filter employees based on search
+    // Filter employees based on search and filters
     const filteredEmployees = useMemo(() => {
-        return employees.filter(emp =>
-            emp.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            emp.role?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            emp.department?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [employees, searchTerm]);
+        return employees.filter(emp => {
+            const matchesSearch = 
+                emp.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                emp.role?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                emp.department?.toLowerCase().includes(searchTerm.toLowerCase());
+            
+            const matchesDepartment = filters.department ? emp.department === filters.department : true;
+            const matchesRole = filters.role ? emp.role === filters.role : true;
+            const matchesStatus = filters.status ? emp.status === filters.status : true;
+            
+            return matchesSearch && matchesDepartment && matchesRole && matchesStatus;
+        });
+    }, [employees, searchTerm, filters]);
+
+    // Get unique values for filters
+    const uniqueDepartments = [...new Set(employees.map(e => e.department).filter(Boolean))];
+    const uniqueRoles = [...new Set(employees.map(e => e.role).filter(Boolean))];
+    const uniqueStatuses = ['Paid', 'Pending', 'Processing'];
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -75,6 +94,8 @@ const EmployeeSalary = () => {
         e.preventDefault();
         try {
             const payload = {
+                name: newSalary.employeeName, // Backend expects 'name'
+                employeeId: `EMP-${Date.now()}`, // Generate unique employee ID
                 employeeName: newSalary.employeeName,
                 role: newSalary.role,
                 department: newSalary.department,
@@ -340,11 +361,83 @@ const EmployeeSalary = () => {
                         className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all"
                     />
                 </div>
-                <div className="flex gap-3 w-full md:w-auto">
-                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+                <div className="flex gap-3 w-full md:w-auto relative">
+                    <button 
+                        onClick={() => setIsFilterOpen(!isFilterOpen)}
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+                    >
                         <Filter size={18} />
                         Filter
+                        {(filters.department || filters.role || filters.status) && (
+                            <span className="ml-1 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                                {[filters.department, filters.role, filters.status].filter(Boolean).length}
+                            </span>
+                        )}
                     </button>
+
+                    {/* Filter Dropdown */}
+                    {isFilterOpen && (
+                        <div className="absolute top-full right-0 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-4">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-semibold text-gray-900">Filters</h3>
+                                <button
+                                    onClick={() => {
+                                        setFilters({ department: '', role: '', status: '' });
+                                    }}
+                                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                                >
+                                    Clear All
+                                </button>
+                            </div>
+
+                            <div className="space-y-3">
+                                {/* Department Filter */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Department</label>
+                                    <select
+                                        value={filters.department}
+                                        onChange={(e) => setFilters({ ...filters, department: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    >
+                                        <option value="">All Departments</option>
+                                        {uniqueDepartments.map(dept => (
+                                            <option key={dept} value={dept}>{dept}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Role Filter */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Role</label>
+                                    <select
+                                        value={filters.role}
+                                        onChange={(e) => setFilters({ ...filters, role: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    >
+                                        <option value="">All Roles</option>
+                                        {uniqueRoles.map(role => (
+                                            <option key={role} value={role}>{role}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Status Filter */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Status</label>
+                                    <select
+                                        value={filters.status}
+                                        onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                    >
+                                        <option value="">All Statuses</option>
+                                        {uniqueStatuses.map(status => (
+                                            <option key={status} value={status}>{status}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -369,9 +462,11 @@ const EmployeeSalary = () => {
                         <table className="w-full text-left border-collapse min-w-[1000px]">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-100">
-                                    <th className="p-4 font-semibold text-gray-600 text-sm">Employee</th>
-                                    <th className="p-4 font-semibold text-gray-600 text-sm">Designation</th>
-                                    <th className="p-4 font-semibold text-gray-600 text-sm">Details</th>
+                                    <th className="p-4 font-semibold text-gray-600 text-sm">Slip No</th>
+                                    <th className="p-4 font-semibold text-gray-600 text-sm">Employee Name</th>
+                                    <th className="p-4 font-semibold text-gray-600 text-sm">Role</th>
+                                    <th className="p-4 font-semibold text-gray-600 text-sm">Department</th>
+                                    <th className="p-4 font-semibold text-gray-600 text-sm">Email</th>
                                     <th className="p-4 font-semibold text-gray-600 text-sm">Payment Mode</th>
                                     <th className="p-4 font-semibold text-gray-600 text-sm">Payment Date</th>
                                     <th className="p-4 font-semibold text-gray-600 text-sm">Net Salary</th>
@@ -383,31 +478,24 @@ const EmployeeSalary = () => {
                                 {filteredEmployees.map((emp) => (
                                     <tr key={emp._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="p-4">
+                                            <p className="text-sm text-gray-600 font-mono">{emp._id?.slice(-6) || "N/A"}</p>
+                                        </td>
+                                        <td className="p-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
-                                                    {emp.employeeName?.split(" ").map(n => n[0]).join("") || "N/A"}
+                                                    {(emp.employeeName || emp.name)?.split(" ").map(n => n[0]).join("") || "N/A"}
                                                 </div>
-                                                <div>
-                                                    <p className="font-medium text-gray-900">{emp.employeeName || "N/A"}</p>
-                                                    <p className="text-xs text-gray-500 font-mono">{emp._id?.slice(-6) || ""}</p>
-                                                </div>
+                                                <p className="font-medium text-gray-900">{emp.employeeName || emp.name || "N/A"}</p>
                                             </div>
                                         </td>
                                         <td className="p-4">
                                             <p className="text-sm text-gray-800">{emp.role || "N/A"}</p>
-                                            <p className="text-xs text-gray-500">{emp.department || "N/A"}</p>
                                         </td>
                                         <td className="p-4">
-                                            <div className="flex flex-col gap-1">
-                                                <div className="flex items-center gap-2 text-xs text-gray-600">
-                                                    <Phone size={12} /> {emp.phone || "N/A"}
-                                                </div>
-                                                {emp.email && (
-                                                    <div className="flex items-center gap-2 text-xs text-gray-600">
-                                                        <Mail size={12} /> {emp.email}
-                                                    </div>
-                                                )}
-                                            </div>
+                                            <p className="text-sm text-gray-700">{emp.department || "N/A"}</p>
+                                        </td>
+                                        <td className="p-4">
+                                            <p className="text-sm text-gray-600">{emp.email || "N/A"}</p>
                                         </td>
                                         <td className="p-4">
                                             <p className="text-xs text-gray-500">{emp.paymentMode || "N/A"}</p>

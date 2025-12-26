@@ -44,6 +44,63 @@ select,
   }
 }
 
+@keyframes gradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes colorWave1 {
+  0%, 15% {
+    background: linear-gradient(135deg, rgba(219, 234, 254, 0.8), rgba(191, 219, 254, 0.6));
+  }
+  20%, 100% {
+    background: rgb(255, 255, 255);
+  }
+}
+
+@keyframes colorWave2 {
+  0%, 20% {
+    background: rgb(255, 255, 255);
+  }
+  25%, 40% {
+    background: linear-gradient(135deg, rgba(220, 252, 231, 0.8), rgba(187, 247, 208, 0.6));
+  }
+  45%, 100% {
+    background: rgb(255, 255, 255);
+  }
+}
+
+@keyframes colorWave3 {
+  0%, 45% {
+    background: rgb(255, 255, 255);
+  }
+  50%, 65% {
+    background: linear-gradient(135deg, rgba(243, 232, 255, 0.8), rgba(233, 213, 255, 0.6));
+  }
+  70%, 100% {
+    background: rgb(255, 255, 255);
+  }
+}
+
+@keyframes colorWave4 {
+  0%, 70% {
+    background: rgb(255, 255, 255);
+  }
+  75%, 90% {
+    background: linear-gradient(135deg, rgba(255, 237, 213, 0.8), rgba(254, 215, 170, 0.6));
+  }
+  95%, 100% {
+    background: rgb(255, 255, 255);
+  }
+}
+
 .animate-slideInRight {
   animation: slideInRight 0.3s ease-out;
 }
@@ -54,4 +111,25 @@ select,
 
 .animate-slideUp {
   animation: slideUp 0.3s ease-out;
+}
+
+.animate-gradient-flow {
+  background-size: 200% 200%;
+  animation: gradientFlow 3s ease infinite;
+}
+
+.animate-color-wave-1 {
+  animation: colorWave1 8s ease-in-out infinite;
+}
+
+.animate-color-wave-2 {
+  animation: colorWave2 8s ease-in-out infinite;
+}
+
+.animate-color-wave-3 {
+  animation: colorWave3 8s ease-in-out infinite;
+}
+
+.animate-color-wave-4 {
+  animation: colorWave4 8s ease-in-out infinite;
 }

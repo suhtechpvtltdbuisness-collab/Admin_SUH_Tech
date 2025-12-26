@@ -98,7 +98,8 @@ const CompanyExpensesExample = () => {
 
     // Format amount for display
     const formatAmount = (amount) => {
-        return `₹${parseFloat(amount).toLocaleString('en-IN')}`;
+        const num = Number(amount);
+        return `₹${isNan(amount).toLocaleString('en-IN')}`;
     };
 
     if (isLoading) {

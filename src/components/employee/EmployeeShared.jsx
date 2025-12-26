@@ -73,29 +73,92 @@ export const Field = ({ label, value, isEditing, multiline, type = "text", class
     );
 };
 
-export const FileUploadField = ({ label, isEditing, className = "" }) => {
+export const FileUploadField = ({ label, isEditing, className = "", value, onChange }) => {
+    const [file, setFile] = useState(value || null);
+    const [preview, setPreview] = useState(null);
+    const fileInputRef = React.useRef(null);
+
+    const handleFileChange = (e) => {
+        const selectedFile = e.target.files[0];
+        if (selectedFile) {
+            setFile(selectedFile);
+            
+            // Create preview for images
+            if (selectedFile.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setPreview(reader.result);
+                };
+                reader.readAsDataURL(selectedFile);
+            } else {
+                setPreview(null);
+            }
+            
+            if (onChange) onChange(selectedFile);
+        }
+    };
+
+    const handleClick = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+
+    const handleViewDocument = () => {
+        if (file) {
+            if (file instanceof File) {
+                const url = URL.createObjectURL(file);
+                window.open(url, '_blank');
+            } else if (typeof file === 'string') {
+                window.open(file, '_blank');
+            }
+        }
+    };
+
     return (
         <div className={`w-full ${className}`}>
             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
                 {label}
             </label>
 
-            {isEditing ? (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer group">
-                    <div className="p-3 bg-white rounded-full shadow-sm mb-3 group-hover:scale-110 transition-transform">
-                        <Upload size={20} className="text-gray-400 group-hover:text-blue-500" />
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                onChange={handleFileChange}
+                className="hidden"
+            />
+
+            {file ? (
+                <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                        {preview ? (
+                            <img src={preview} alt="Document" className="w-full h-full object-cover" />
+                        ) : (
+                            <Upload size={18} className="text-gray-500" />
+                        )}
                     </div>
-                    <p className="text-xs font-semibold text-gray-500 group-hover:text-blue-600">Click to upload or drag & drop</p>
-                    <p className="text-[10px] text-gray-400 mt-1">SVG, PNG, JPG or PDF</p>
+                    <div className="flex-1">
+                        <p className="text-sm font-semibold text-gray-700">{file?.name || 'document_file.pdf'}</p>
+                        <p 
+                            onClick={handleViewDocument}
+                            className="text-xs text-blue-600 font-medium cursor-pointer hover:underline"
+                        >
+                            View Document
+                        </p>
+                    </div>
                 </div>
             ) : (
-                <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                    <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <Upload size={18} className="text-gray-500" />
+                <div 
+                    onClick={handleClick}
+                    className="flex items-center gap-3 p-3 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-400 transition-all group"
+                >
+                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                        <Upload size={18} className="text-gray-400 group-hover:text-blue-500" />
                     </div>
                     <div>
-                        <p className="text-sm font-semibold text-gray-700">document_file.pdf</p>
-                        <p className="text-xs text-blue-600 font-medium cursor-pointer hover:underline">View Document</p>
+                        <p className="text-sm font-semibold text-gray-600 group-hover:text-blue-600">Click to upload document</p>
+                        <p className="text-xs text-gray-400">PNG, JPG, SVG or PDF</p>
                     </div>
                 </div>
             )}

@@ -1,5 +1,4 @@
 import {
-    Bell,
     Briefcase,
     FileCheck,
     FileText,
@@ -37,7 +36,7 @@ export default function Dashboard() {
     const loadStats = async () => {
       try {
         const response = await api.getStats();
-        setStats(response.stats);
+        setStats(response.stats);       
       } catch (error) {
         console.error('Error loading stats:', error);
         showToast('Failed to load dashboard stats: ' + error.message, 'error');
@@ -45,6 +44,7 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
+    
     loadStats();
   }, []);
 
@@ -78,15 +78,6 @@ export default function Dashboard() {
               <Sparkles size={16} className="text-blue-500" />
               Welcome back! Here's what's happening today
             </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <button className="relative p-3 rounded-xl hover:bg-white transition-all duration-200 shadow-sm hover:shadow-md group">
-              <Bell size={22} className="text-gray-700 group-hover:text-blue-600 transition-colors" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-            </button>
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <span className="text-white font-semibold text-sm">AH</span>
-            </div>
           </div>
         </div>
 
@@ -201,17 +192,16 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <button
               onClick={() => navigate("/jobs")}
-              className="group bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 text-left overflow-hidden relative"
+              className="group bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 text-left border-2 border-gray-100 hover:border-blue-200 animate-color-wave-1"
             >
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
-              <Briefcase className="text-white mb-3 group-hover:scale-110 transition-transform" size={28} />
-              <h4 className="text-white font-semibold text-lg">Add Job Opening</h4>
-              <p className="text-blue-100 text-sm mt-1">Post new positions</p>
+              <Briefcase className="text-blue-600 mb-3 group-hover:scale-110 transition-transform" size={28} />
+              <h4 className="text-gray-900 font-semibold text-lg">Add Job Opening</h4>
+              <p className="text-gray-600 text-sm mt-1">Post new positions</p>
             </button>
 
             <button
               onClick={() => navigate("/projects")}
-              className="group bg-white hover:bg-gradient-to-br hover:from-green-50 hover:to-emerald-50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 text-left border-2 border-gray-100 hover:border-green-200"
+              className="group bg-white hover:bg-gradient-to-br hover:from-green-50 hover:to-emerald-50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 text-left border-2 border-gray-100 hover:border-green-200 animate-color-wave-2"
             >
               <FolderPlus className="text-green-600 mb-3 group-hover:scale-110 transition-transform" size={28} />
               <h4 className="text-gray-900 font-semibold text-lg">Add Project</h4>
@@ -220,7 +210,7 @@ export default function Dashboard() {
 
             <button
               onClick={() => navigate("/blog")}
-              className="group bg-white hover:bg-gradient-to-br hover:from-purple-50 hover:to-pink-50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 text-left border-2 border-gray-100 hover:border-purple-200"
+              className="group bg-white hover:bg-gradient-to-br hover:from-purple-50 hover:to-pink-50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 text-left border-2 border-gray-100 hover:border-purple-200 animate-color-wave-3"
             >
               <PenSquare className="text-purple-600 mb-3 group-hover:scale-110 transition-transform" size={28} />
               <h4 className="text-gray-900 font-semibold text-lg">Add Blog Post</h4>
@@ -229,7 +219,7 @@ export default function Dashboard() {
 
             <button
               onClick={() => navigate("/messages")}
-              className="group bg-white hover:bg-gradient-to-br hover:from-orange-50 hover:to-red-50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 text-left border-2 border-gray-100 hover:border-orange-200"
+              className="group bg-white hover:bg-gradient-to-br hover:from-orange-50 hover:to-red-50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 text-left border-2 border-gray-100 hover:border-orange-200 animate-color-wave-4"
             >
               <Mail className="text-orange-600 mb-3 group-hover:scale-110 transition-transform" size={28} />
               <h4 className="text-gray-900 font-semibold text-lg">View Messages</h4>

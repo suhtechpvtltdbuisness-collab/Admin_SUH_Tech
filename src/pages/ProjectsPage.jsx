@@ -216,15 +216,18 @@ export default function ProjectsPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[900px]">
+              <table className="w-full text-left border-collapse min-w-[1200px]">
                 <thead>
                   <tr className="bg-gradient-to-r from-gray-50 to-transparent border-b border-gray-200 text-xs text-gray-600 uppercase tracking-wider font-semibold">
-                    <th className="p-4">Project</th>
-                    <th className="p-4">Client</th>
+                    <th className="p-4">Project Name</th>
+                    <th className="p-4">Project ID</th>
+                    <th className="p-4">Client Name</th>
+                    <th className="p-4">Email</th>
                     <th className="p-4">Service Type</th>
                     <th className="p-4">Budget</th>
                     <th className="p-4">Status</th>
-                    <th className="p-4">Dates</th>
+                    <th className="p-4">Start Date</th>
+                    <th className="p-4">End Date</th>
                     <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -232,27 +235,25 @@ export default function ProjectsPage() {
                   {projects.map((p) => (
                     <tr key={p._id || p.projectCode} className="hover:bg-blue-50/30 transition-colors duration-150">
                       <td className="p-4">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-sm text-gray-900">
-                            {p.projectName}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {p.projectCode}
-                          </span>
-                        </div>
+                        <span className="font-medium text-sm text-gray-900">
+                          {p.projectName}
+                        </span>
                       </td>
-                      <td className="p-3 text-sm text-gray-700">
-                        <div className="flex flex-col">
-                          <span>{p.clientName}</span>
-                          <span className="text-xs text-gray-500">
-                            {p.clientEmail}
-                          </span>
-                        </div>
+                      <td className="p-4">
+                        <span className="text-xs text-gray-500">
+                          {p.projectCode}
+                        </span>
                       </td>
-                      <td className="p-3 text-sm text-gray-700">
+                      <td className="p-4 text-sm text-gray-700">
+                        {p.clientName}
+                      </td>
+                      <td className="p-4 text-sm text-blue-600">
+                        {p.clientEmail}
+                      </td>
+                      <td className="p-4 text-sm text-gray-700">
                         {p.serviceType}
                       </td>
-                      <td className="p-3 text-sm text-gray-900 font-semibold">
+                      <td className="p-4 text-sm text-gray-900 font-semibold">
                         {formatCurrency(p.budget)}
                       </td>
                       <td className="p-4">
@@ -269,13 +270,13 @@ export default function ProjectsPage() {
                           {p.status}
                         </span>
                       </td>
-                      <td className="p-3 text-xs text-gray-500">
-                        <div className="flex flex-col">
-                          <span>Start: {formatDate(p.startDate)}</span>
-                          <span>End: {formatDate(p.endDate)}</span>
-                        </div>
+                      <td className="p-4 text-sm text-gray-600">
+                        {formatDate(p.startDate)}
                       </td>
-                      <td className="p-3 text-right">
+                      <td className="p-4 text-sm text-gray-600">
+                        {formatDate(p.endDate)}
+                      </td>
+                      <td className="p-4 text-right">
                         <div className="relative inline-block text-left">
                           <button
                             onClick={() =>

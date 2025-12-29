@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import api from "../../config/api";
 
 export default function Login() {
     const navigate = useNavigate();
@@ -30,17 +31,19 @@ export default function Login() {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (validate()) {
             setIsLoading(true);
-            // Simulate API call
-            setTimeout(() => {
-                setIsLoading(false);
-                console.log("Login successful with:", formData);
-                alert("Login Successful! (Mock)");
+            try {
+                const response = await api.login(formData.email, formData.password);
+                localStorage.setItem('authToken', response.token);
+                localStorage.setItem('user', JSON.stringify(response.user));
                 navigate("/"); // Redirect to dashboard
-            }, 1500);
+            } catch (error) {
+                setErrors({ submit: error.message || 'Login failed. Please check your credentials.' });
+                setIsLoading(false);
+            }
         }
     };
 
@@ -139,6 +142,9 @@ export default function Login() {
                             </>
                         )}
                     </button>
+                    {errors.submit && (
+                        <p className="text-xs text-red-500 font-medium text-center">{errors.submit}</p>
+                    )}
                 </form>
 
                 <p className="mt-8 text-center text-xs text-gray-500">

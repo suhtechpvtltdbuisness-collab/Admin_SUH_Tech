@@ -260,6 +260,83 @@ export const api = {
   deleteJob: (id) => apiRequest(`/jobs/${id}`, {
     method: 'DELETE',
   }),
+
+  // Employee Salaries //
+  getEmployeeSalaries: async () => {
+    try {
+      const response = await apiRequest('/salaries');
+      return response;
+    } catch (error) {
+
+      console.warn('Backend unavailable, using localStorage:', error.message);
+      const salaries = JSON.parse(localStorage.getItem('employeeSalaries') || '[]');
+      return { salaries };
+    }
+  },
+  
+  
+  createEmployeeSalary: async (data) => {
+    try {
+      const response = await apiRequest('/salaries', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      return response;
+    } catch (error) {
+      // Fallback to localStorage if backend fails
+      console.warn('Backend unavailable, saving to localStorage:', error.message);
+      const salaries = JSON.parse(localStorage.getItem('employeeSalaries') || '[]');
+      const newSalary = {
+        ...data,
+        _id: `local_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+      };
+      salaries.push(newSalary);
+      localStorage.setItem('employeeSalaries', JSON.stringify(salaries));
+      return { salary: newSalary };
+    }
+  },
+  
+  updateEmployeeSalary: async (id, data) => {
+    try {
+      const response = await apiRequest(`/salaries/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+      return response;
+    } catch (error) {
+      // Fallback to localStorage if backend fails
+      console.warn('Backend unavailable, updating in localStorage:', error.message);
+      const salaries = JSON.parse(localStorage.getItem('employeeSalaries') || '[]');
+      const index = salaries.findIndex(s => s._id === id);
+      if (index !== -1) {
+        salaries[index] = {
+          ...salaries[index],
+          ...data,
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem('employeeSalaries', JSON.stringify(salaries));
+        return { salary: salaries[index] };
+      }
+      throw new Error('Salary entry not found');
+    }
+  },
+  
+  deleteEmployeeSalary: async (id) => {
+    try {
+      const response = await apiRequest(`/salaries/${id}`, {
+        method: 'DELETE',
+      });
+      return response;
+    } catch (error) {
+      // Fallback to localStorage if backend fails
+      console.warn('Backend unavailable, deleting from localStorage:', error.message);
+      const salaries = JSON.parse(localStorage.getItem('employeeSalaries') || '[]');
+      const filtered = salaries.filter(s => s._id !== id);
+      localStorage.setItem('employeeSalaries', JSON.stringify(filtered));
+      return { success: true };
+    }
+  },
 };
 
 export default api;

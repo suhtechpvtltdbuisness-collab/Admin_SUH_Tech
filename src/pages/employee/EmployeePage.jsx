@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import AddEmployeeModal from "../../components/employee/AddEmployeeModal";
 import Toast from "../../components/Toast";
 import api from "../../config/api";
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function EmployeePage() {
   const navigate = useNavigate();
@@ -15,7 +17,7 @@ export default function EmployeePage() {
   const [toast, setToast] = useState(null);
   const itemsPerPage = 10;
 
-  // Filters State
+  // Filters State //
   const [filters, setFilters] = useState({
     department: "",
     status: ""
@@ -100,6 +102,120 @@ export default function EmployeePage() {
     });
   };
 
+  const handleExportPDF = () => {
+    try {
+      const doc = new jsPDF();
+      let yPos = 15;
+
+      // Header
+      doc.setFillColor(37, 99, 235);
+      doc.rect(0, 0, 210, 45, 'F');
+
+      // Company Name
+      doc.setFontSize(26);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text('SUH TECH PRIVATE LIMITED', 105, yPos, { align: 'center' });
+
+      yPos += 8;
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
+      doc.text('D-8, 4th Floor, Habitech Crystal Mall, Knowledge Park III, Greater Noida,', 105, yPos, { align: 'center' });
+      yPos += 4;
+      doc.text('Uttar Pradesh - 201310', 105, yPos, { align: 'center' });
+      yPos += 5;
+      doc.text('Email: info@suhtech.top | Phone: +91 9211056355 (WhatsApp) | Tel: +91 1204086567', 105, yPos, { align: 'center' });
+
+      yPos = 55;
+
+      // Document Title
+      doc.setFontSize(20);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('EMPLOYEES REPORT', 105, yPos, { align: 'center' });
+
+      yPos += 10;
+
+      // Table data
+      const tableData = filteredEmployees.map((emp, index) => [
+        index + 1,
+        `${emp.firstName} ${emp.lastName}`,
+        emp.employeeId || '-',
+        emp.department || '-',
+        emp.designation || '-',
+        formatDate(emp.joiningDate),
+        emp.email || '-',
+        emp.status || '-'
+      ]);
+
+      // Generate table
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Sr. No.', 'Name', 'ID', 'Department', 'Designation', 'Joining Date', 'Email', 'Status']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: {
+          fillColor: [37, 99, 235],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8,
+          halign: 'center',
+          valign: 'middle',
+          minCellHeight: 10
+        },
+        bodyStyles: {
+          fontSize: 8,
+          textColor: [50, 50, 50]
+        },
+        columnStyles: {
+          0: { cellWidth: 12, halign: 'center' },  // Sr. No.
+          1: { cellWidth: 30 },                     // Name
+          2: { cellWidth: 20, halign: 'center' },  // ID
+          3: { cellWidth: 25 },                     // Department
+          4: { cellWidth: 28 },                     // Designation
+          5: { cellWidth: 22, halign: 'center' },  // Joining Date
+          6: { cellWidth: 40 },                     // Email
+          7: { cellWidth: 15, halign: 'center' }   // Status
+        },
+        alternateRowStyles: {
+          fillColor: [245, 247, 250]
+        },
+        margin: { top: 10, left: 14, right: 14 },
+        styles: {
+          cellPadding: 3,
+          lineColor: [220, 220, 220],
+          lineWidth: 0.1
+        }
+      });
+
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(128, 128, 128);
+        doc.text(
+          `Page ${i} of ${pageCount}`,
+          doc.internal.pageSize.getWidth() / 2,
+          doc.internal.pageSize.getHeight() - 10,
+          { align: 'center' }
+        );
+        doc.text(
+          `Generated on ${new Date().toLocaleDateString('en-IN')}`,
+          14,
+          doc.internal.pageSize.getHeight() - 10
+        );
+      }
+
+      // Save PDF
+      doc.save(`Employees_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+      showToast('Employees exported to PDF successfully!', 'success');
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      showToast('Failed to export PDF: ' + error.message, 'error');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 lg:p-10">
       <div className="max-w-7xl mx-auto">
@@ -113,7 +229,10 @@ export default function EmployeePage() {
           </div>
 
           <div className="flex gap-3 w-full md:w-auto">
-            <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all text-sm shadow-sm flex-1 md:flex-none hover:shadow-md">
+            <button 
+              onClick={handleExportPDF}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all text-sm shadow-sm flex-1 md:flex-none hover:shadow-md"
+            >
               <Download size={18} className="text-gray-500" /> Export
             </button>
             <button
@@ -218,7 +337,7 @@ export default function EmployeePage() {
                   <th className="p-4">Department</th>
                   <th className="p-4">Designation</th>
                   <th className="p-4">Joining Date</th>
-                  <th className="p-4">Contact</th>
+                  <th className="p-4">Email</th>
                   <th className="p-4 text-center">Status</th>
                   <th className="p-4 text-center">Action</th>
                 </tr>
@@ -278,14 +397,14 @@ export default function EmployeePage() {
               <button
                 onClick={goToPrevPage}
                 disabled={currentPage === 1}
-                className="px-4 py-2 border-2 border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="px-4 py-2 bg-blue-50 border-2 border-gray-200 rounded-xl hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
                 Previous
               </button>
               <button
                 onClick={goToNextPage}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className="px-4 py-2 border-2 border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="px-4 py-2 bg-blue-50 border-2 border-gray-200 rounded-xl hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
                 Next
               </button>

@@ -11,6 +11,9 @@ const CompanySales = () => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingSale, setEditingSale] = useState(null);
     const [toast, setToast] = useState(null);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [filterStatus, setFilterStatus] = useState('All');
+    const [filterPaymentMethod, setFilterPaymentMethod] = useState('All');
 
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
@@ -47,14 +50,17 @@ const CompanySales = () => {
         }
     };
 
-    // Filter sales based on search
+    // Filter sales based on search and filters
     const filteredSales = useMemo(() => {
-        return sales.filter(sale =>
-            sale.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            sale.projectTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            sale.contactPerson?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [sales, searchTerm]);
+        return sales.filter(sale => {
+            const matchesSearch = sale.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                sale.projectTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                sale.contactPerson?.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesStatus = filterStatus === 'All' || sale.status === filterStatus;
+            const matchesPaymentMethod = filterPaymentMethod === 'All' || sale.paymentMethod === filterPaymentMethod;
+            return matchesSearch && matchesStatus && matchesPaymentMethod;
+        });
+    }, [sales, searchTerm, filterStatus, filterPaymentMethod]);
 
     // Calculate stats
     const stats = useMemo(() => {
@@ -249,11 +255,54 @@ const CompanySales = () => {
                         className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all"
                     />
                 </div>
-                <div className="flex gap-3 w-full md:w-auto">
-                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+                <div className="flex gap-3 w-full md:w-auto relative">
+                    <button 
+                        onClick={() => setIsFilterOpen(!isFilterOpen)}
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer">
                         <Filter size={18} />
                         Filter
                     </button>
+                    {isFilterOpen && (
+                        <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-10 p-4">
+                            <div className="mb-3">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select 
+                                    value={filterStatus} 
+                                    onChange={(e) => setFilterStatus(e.target.value)}
+                                    className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                                >
+                                    <option value="All">All Status</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Completed">Completed</option>
+                                </select>
+                            </div>
+                            <div className="mb-3">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                                <select 
+                                    value={filterPaymentMethod} 
+                                    onChange={(e) => setFilterPaymentMethod(e.target.value)}
+                                    className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                                >
+                                    <option value="All">All Methods</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="Credit Card">Credit Card</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Cheque">Cheque</option>
+                                </select>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setFilterStatus('All');
+                                    setFilterPaymentMethod('All');
+                                    setIsFilterOpen(false);
+                                }}
+                                className="w-full px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                            >
+                                Clear Filters
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -275,66 +324,74 @@ const CompanySales = () => {
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[1000px]">
+                        <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-100">
-                                    <th className="p-4 font-semibold text-gray-600 text-sm">Client Name</th>
-                                    <th className="p-4 font-semibold text-gray-600 text-sm">Contact Info</th>
-                                    <th className="p-4 font-semibold text-gray-600 text-sm">Project Title</th>
-                                    <th className="p-4 font-semibold text-gray-600 text-sm">Revenue</th>
-                                    <th className="p-4 font-semibold text-gray-600 text-sm">Status</th>
-                                    <th className="p-4 font-semibold text-gray-600 text-sm text-right">Actions</th>
+                                    <th className="p-3 font-semibold text-gray-600 text-xs">Client Name</th>
+                                    <th className="p-3 font-semibold text-gray-600 text-xs">Email</th>
+                                    <th className="p-3 font-semibold text-gray-600 text-xs">Phone</th>
+                                    <th className="p-3 font-semibold text-gray-600 text-xs">Project Title</th>
+                                    <th className="p-3 font-semibold text-gray-600 text-xs">Amount</th>
+                                    <th className="p-3 font-semibold text-gray-600 text-xs">Payment Method</th>
+                                    <th className="p-3 font-semibold text-gray-600 text-xs">Date</th>
+                                    <th className="p-3 font-semibold text-gray-600 text-xs">Status</th>
+                                    <th className="p-3 font-semibold text-gray-600 text-xs text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {filteredSales.map((sale) => (
                                     <tr key={sale._id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="p-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
+                                        <td className="p-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
                                                     {sale.clientName?.split(" ").map(n => n[0]).join("") || "N/A"}
                                                 </div>
-                                                <div>
-                                                    <p className="font-medium text-gray-900">{sale.clientName || "N/A"}</p>
-                                                    <p className="text-xs text-gray-500">{formatDate(sale.date)}</p>
+                                                <p className="font-medium text-gray-900 text-sm truncate max-w-[120px]">{sale.clientName || "N/A"}</p>
+                                            </div>
+                                        </td>
+                                        <td className="p-3">
+                                            {sale.email ? (
+                                                <a href={`mailto:${sale.email}`} className="flex items-center gap-1 text-xs text-gray-600 hover:text-blue-600 transition-colors truncate max-w-[150px]">
+                                                    <Mail size={12} /> <span className="truncate">{sale.email}</span>
+                                                </a>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">N/A</span>
+                                            )}
+                                        </td>
+                                        <td className="p-3">
+                                            {sale.phone ? (
+                                                <div className="flex items-center gap-1 text-xs text-gray-600">
+                                                    <Phone size={12} /> {sale.phone}
                                                 </div>
-                                            </div>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">N/A</span>
+                                            )}
                                         </td>
-                                        <td className="p-4">
-                                            <div className="flex flex-col gap-1">
-                                                <p className="text-sm text-gray-800 font-medium">{sale.contactPerson || "N/A"}</p>
-                                                {sale.email && (
-                                                    <a href={`mailto:${sale.email}`} className="flex items-center gap-2 text-xs text-gray-600 hover:text-blue-600 transition-colors">
-                                                        <Mail size={12} /> {sale.email}
-                                                    </a>
-                                                )}
-                                                {sale.phone && (
-                                                    <div className="flex items-center gap-2 text-xs text-gray-600">
-                                                        <Phone size={12} /> {sale.phone}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="p-4 text-sm text-gray-600 font-medium">
+                                        <td className="p-3 text-xs text-gray-600 font-medium truncate max-w-[150px]">
                                             {sale.projectTitle || "N/A"}
                                         </td>
-                                        <td className="p-4">
-                                            <span className="font-bold text-gray-900">{formatCurrency(sale.amount)}</span>
-                                            <p className="text-xs text-gray-500">{sale.paymentMethod || "N/A"}</p>
+                                        <td className="p-3">
+                                            <span className="font-bold text-gray-900 text-sm whitespace-nowrap">{formatCurrency(sale.amount)}</span>
                                         </td>
-                                        <td className="p-4">
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(sale.status)}`}>
+                                        <td className="p-3">
+                                            <span className="text-xs text-gray-600">{sale.paymentMethod || "N/A"}</span>
+                                        </td>
+                                        <td className="p-3">
+                                            <span className="text-xs text-gray-600 whitespace-nowrap">{formatDate(sale.date)}</span>
+                                        </td>
+                                        <td className="p-3">
+                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(sale.status)}`}>
                                                 <span className={`w-1.5 h-1.5 rounded-full ${sale.status === 'Completed' ? 'bg-green-500' : sale.status === 'In Progress' ? 'bg-blue-500' : 'bg-yellow-500'}`}></span>
                                                 {sale.status || "Pending"}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-right">
+                                        <td className="p-3 text-right">
                                             <div className="relative inline-block text-left">
                                                 <button
                                                     onClick={() => setActiveMenuId(activeMenuId === sale._id ? null : sale._id)}
-                                                    className="p-2 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors"
+                                                    className="p-1.5 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors"
                                                 >
-                                                    <MoreVertical size={18} />
+                                                    <MoreVertical size={16} />
                                                 </button>
 
                                                 {activeMenuId === sale._id && (

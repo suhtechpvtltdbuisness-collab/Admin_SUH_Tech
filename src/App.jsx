@@ -25,6 +25,8 @@ import Login from "./pages/auth/Login";
 import ResetPassword from "./pages/auth/ResetPassword";
 import EmployeePage from "./pages/employee/EmployeePage";
 import EmployeeViewPage from "./pages/employee/EmployeeViewPage";
+import MyProfile from "./pages/MyProfile";
+import Settings from "./pages/Settings";
 
 import "./App.css";
 
@@ -53,7 +55,8 @@ export default function App() {
           <Route path="employees" element={<EmployeePage />} />
           <Route path="employee/:id" element={<EmployeeViewPage />} />
 
-          <Route path="settings" element={<ComingSoon title="Settings" />} />
+          <Route path="profile" element={<MyProfile />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
 
         {/* AUTH ROUTES - Outside Layout (no sidebar needed) */}

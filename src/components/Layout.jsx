@@ -1,4 +1,4 @@
-import { Bell, Menu } from 'lucide-react';
+import { Bell, Menu, Sparkles, User, Settings, LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import api from '../config/api';
@@ -7,6 +7,7 @@ import Sidebar from './Sidebar';
 const Layout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [invoices, setInvoices] = useState([]);
     const navigate = useNavigate();
 
@@ -49,11 +50,17 @@ const Layout = () => {
                         >
                             <Menu size={24} />
                         </button>
-                        <img 
-                            src="/src/assets/SUH_TECH_WEBHeader_LOGO (12).svg" 
-                            alt="SUH Tech Logo" 
-                            className="h-8 w-auto max-w-[140px] object-contain"
-                        />
+                        
+                        {/* Dashboard Title & Welcome */}
+                        <div>
+                            <h2 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent">
+                                Dashboard
+                            </h2>
+                            <p className="text-gray-600 text-sm flex items-center gap-2 font-semibold mt-1">
+                                <Sparkles size={16} className="text-blue-500" />
+                                Welcome back! Here's what's happening today
+                            </p>
+                        </div>
                     </div>
                     
                     <div className="flex items-center gap-3">
@@ -194,9 +201,70 @@ const Layout = () => {
                             )}
                         </div>
 
-                        {/* Profile Avatar */}
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-md flex items-center justify-center">
-                            <span className="text-white font-semibold text-xs">AH</span>
+                        {/* Profile Avatar with Dropdown */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                                className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-md flex items-center justify-center hover:shadow-lg transition-all duration-200"
+                            >
+                                <span className="text-white font-semibold text-xs">AH</span>
+                            </button>
+
+                            {/* Profile Dropdown */}
+                            {isProfileOpen && (
+                                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+                                    {/* User Info Header */}
+                                    <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                                <span className="text-white font-bold text-sm">AH</span>
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-gray-900 text-sm">Alex Hartman</p>
+                                                <p className="text-xs text-gray-600">Administrator</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Menu Items */}
+                                    <div className="py-2">
+                                        <button
+                                            onClick={() => {
+                                                setIsProfileOpen(false);
+                                                navigate('/settings');
+                                            }}
+                                            className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-blue-50 transition-colors text-left"
+                                        >
+                                            <User size={18} className="text-gray-600" />
+                                            <span className="text-sm text-gray-700 font-medium">My Profile</span>
+                                        </button>
+
+                                        <button
+                                            onClick={() => {
+                                                setIsProfileOpen(false);
+                                                navigate('/settings');
+                                            }}
+                                            className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-blue-50 transition-colors text-left"
+                                        >
+                                            <Settings size={18} className="text-gray-600" />
+                                            <span className="text-sm text-gray-700 font-medium">Settings</span>
+                                        </button>
+
+                                        <div className="border-t border-gray-100 my-1"></div>
+
+                                        <button
+                                            onClick={() => {
+                                                setIsProfileOpen(false);
+                                                navigate('/login');
+                                            }}
+                                            className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-red-50 transition-colors text-left"
+                                        >
+                                            <LogOut size={18} className="text-red-600" />
+                                            <span className="text-sm text-red-600 font-medium">Logout</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -86,7 +86,8 @@ export default function Sidebar({ className = "", onClose }) {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center">
           <img 
-            src="/src/assets/SUH_TECH_WEBHeader_LOGO (12).svg" 
+            // src="/src/assets/SUH_TECH_WEBHeader_LOGO (12).svg" 
+            src="/SUH_TECH_WEBHeader_LOGO (12).svg" 
             alt="SUH Tech Logo" 
             className="h-8 w-auto max-w-[140px] object-contain"
           />

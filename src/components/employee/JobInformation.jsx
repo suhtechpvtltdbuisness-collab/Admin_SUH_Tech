@@ -11,10 +11,54 @@ export default function JobInformation({ isEditing, data, onChange }) {
                     <Field label="Reporting Manager" value={data?.reportingManager || ""} isEditing={isEditing} onChange={(val) => onChange('reportingManager', val)} />
 
                     <Field label="Date of Joining" value={data?.joiningDate?.split('T')[0] || ""} isEditing={isEditing} type="date" onChange={(val) => onChange('joiningDate', val)} />
-                    <Field label="Employment Status" value={data?.status || ""} isEditing={isEditing} onChange={(val) => onChange('status', val)} />
-                    <Field label="Contract Duration" value={data?.contractDuration || ""} isEditing={isEditing} onChange={(val) => onChange('contractDuration', val)} />
+                    {/* Employment Status */}
+                    <div className="w-full">
+                        <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+                            Employment Status
+                        </label>
+                        <select
+                            value={data?.status || ""}
+                            disabled={!isEditing}
+                            onChange={(e) => onChange("status", e.target.value)}
+                            className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all outline-none border
+                            ${
+                                isEditing
+                                    ? "bg-white border-blue-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 text-gray-900"
+                                    : "bg-gray-50 border-gray-200 text-gray-700 cursor-not-allowed"
+                            }`}
+                        >
+                            <option value="">Select Status</option>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                            <option value="On Leave">On Leave</option>
+                        </select>
+                    </div>
 
-                    <Field label="Work Mode" value={data?.workMode || ""} isEditing={isEditing} onChange={(val) => onChange('workMode', val)} />
+                    <Field label="Contract Duration" value={data?.contractDuration || ""} isEditing={isEditing} onChange={(val) => onChange('contractDuration', val)} />
+                    
+                    {/* work mode */}
+                    <div className="w-full">
+                        <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+                            Work Mode
+                        </label>
+                        <select
+                            value={data?.workMode || ""}
+                            disabled={!isEditing}
+                            onChange={(e) => onChange("workMode", e.target.value)}
+                            className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all outline-none border
+                            ${
+                                isEditing
+                                    ? "bg-white border-blue-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 text-gray-900"
+                                    : "bg-gray-50 border-gray-200 text-gray-700 cursor-not-allowed"
+                            }`}
+                        >
+                            <option value="">Select Work Mode</option>
+                            <option value="On-site">On-site</option>
+                            <option value="Off-site">Off-site</option>
+                            <option value="Hybrid">Hybrid</option>
+                        </select>
+                    </div>
+
                     <Field label="Employee Type" value={data?.employeeType || ""} isEditing={isEditing} onChange={(val) => onChange('employeeType', val)} />
                     <Field label="Salary" value={data?.salary || ""} isEditing={isEditing} type="number" onChange={(val) => onChange('salary', val)} />
                 </div>

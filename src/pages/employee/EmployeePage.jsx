@@ -413,7 +413,6 @@ export default function EmployeePage() {
           )}
         </div>
       </div>
-
       {/* Add Employee Modal */}
       {showAddModal && <AddEmployeeModal onClose={() => setShowAddModal(false)} onSave={handleAddEmployee} />}
 

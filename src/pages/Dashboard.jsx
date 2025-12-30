@@ -68,19 +68,6 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30">
       <div className="p-6 lg:p-10">
-        {/* Top bar */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-          <div>
-            <h2 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent mb-2">
-              Dashboard
-            </h2>
-            <p className="text-gray-600 text-sm flex items-center gap-2">
-              <Sparkles size={16} className="text-blue-500" />
-              Welcome back! Here's what's happening today
-            </p>
-          </div>
-        </div>
-
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {loading ? (

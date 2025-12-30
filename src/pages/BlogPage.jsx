@@ -117,9 +117,6 @@ export default function BlogPage() {
   };
 
   const handleDelete = async (idOrSlug) => {
-    if (!window.confirm("Are you sure you want to delete this blog post?")) {
-      return;
-    }
     try {
       await api.deleteBlog(idOrSlug);
       showToast("Blog post deleted successfully!", 'success');
@@ -241,7 +238,7 @@ export default function BlogPage() {
                             <MoreVertical size={18} />
                           </button>
                           {activeMenuId === blog._id && (
-                            <div className="origin-top-right absolute right-0 mt-1 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                            <div className="origin-top-right absolute right-0 mt-1 w-40 rounded-md shadow-lg bg-white z-10">
                               <div className="py-1 text-sm">
                                 <button
                                   onClick={() => openEditModal(blog)}

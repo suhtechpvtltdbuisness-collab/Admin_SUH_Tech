@@ -2160,6 +2160,7 @@ const parseInvoiceText = (text) => {
                 >
                   <option value='Sent'>Sent</option>
                   <option value='Pending'>Pending</option>
+                  <option value='Overdue'>Overdue</option>
                   {/* <option value="Paid">Paid</option> */}
                 </select>
               </div>

@@ -10,7 +10,7 @@ export default function MessageList() {
   return (
     <div>
       {messages.map((m, i) => (
-        <div key={i} className="flex items-center justify-between py-3 border-b last:border-0">
+        <div key={i} className="flex items-center justify-between py-3 last:border-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-semibold text-gray-700">
               {m.initials}

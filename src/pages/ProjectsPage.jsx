@@ -289,7 +289,7 @@ export default function ProjectsPage() {
                             <MoreVertical size={16} />
                           </button>
                           {activeMenuId === p._id && (
-                            <div className="origin-top-right absolute right-0 mt-1 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                            <div className="origin-top-right absolute right-0 mt-1 w-40 rounded-md shadow-lg bg-white z-10">
                               <div className="py-1 text-sm">
                                 <button
                                   onClick={() => openEditModal(p)}

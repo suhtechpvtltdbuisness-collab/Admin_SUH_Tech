@@ -17,7 +17,7 @@ import {
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
-/* ----------------------------- SIDEBAR ITEM ----------------------------- */
+/* SIDEBAR ITEM */
 function Item({
   icon: Icon,
   label,
@@ -50,7 +50,7 @@ function Item({
     );
   }
 
-  // Normal navigation item
+  // Normal navigation item //
   return (
     <Link
       to={path}
@@ -64,16 +64,16 @@ function Item({
   );
 }
 
-/* ----------------------------- MAIN SIDEBAR ----------------------------- */
+/*  MAIN SIDEBAR  */
 export default function Sidebar({ className = "", onClose }) {
   const location = useLocation();
   const [expensesOpen, setExpensesOpen] = useState(false);
 
-  // Helper functions
+  // Helper functions //
   const isActive = (path) => location.pathname === path;
   const isExpensesActive = location.pathname.startsWith("/expenses") && !location.pathname.startsWith("/expenses/invoices");
 
-  // Auto-open expenses submenu when inside expenses section
+  // Auto-open expenses submenu when inside expenses section //
   useEffect(() => {
     if (isExpensesActive) setExpensesOpen(true);
   }, [isExpensesActive]);
@@ -101,17 +101,6 @@ export default function Sidebar({ className = "", onClose }) {
             <X size={24} />
           </button>
         )}
-      </div>
-
-      {/* USER CARD */}
-      <div className="flex items-center gap-3 mb-8 p-3 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
-          <span className="text-white font-bold text-sm">AH</span>
-        </div>
-        <div>
-          <p className="font-semibold text-gray-900">Alex Hartman</p>
-          <p className="text-xs text-gray-600">Administrator</p>
-        </div>
       </div>
 
       {/* NAVIGATION */}
@@ -149,7 +138,7 @@ export default function Sidebar({ className = "", onClose }) {
             className={`overflow-hidden transition-all duration-300 ease-in-out ${expensesOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
               }`}
           >
-            <div className="ml-9 border-l-2 border-gray-100 pl-2 space-y-1 mt-1 mb-2">
+            <div className="ml-9 pl-2 space-y-1 mt-1 mb-2">
               <Link
                 to="/expenses/salary"
                 onClick={() => {
@@ -200,9 +189,20 @@ export default function Sidebar({ className = "", onClose }) {
       </nav>
 
       {/* FOOTER LINKS */}
-      <div className="space-y-2 pt-6 border-t border-gray-200 mt-4">
+      <div className="space-y-1 pt-4">
         <Item icon={Settings} label="Settings" path="/settings" active={isActive("/settings")} onClose={onClose} />
         <Item icon={LogOut} label="Logout" path="/login" onClose={onClose} />
+      </div>
+
+      {/* USER CARD */}
+      <div className="flex items-center gap-3 mt-4 p-3 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
+          <span className="text-white font-bold text-sm">AH</span>
+        </div>
+        <div>
+          <p className="font-semibold text-gray-900">Alex Hartman</p>
+          <p className="text-xs text-gray-600">Administrator</p>
+        </div>
       </div>
     </aside>
   );

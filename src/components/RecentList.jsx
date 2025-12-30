@@ -10,7 +10,7 @@ export default function RecentList() {
   return (
     <div>
       {data.map((d, i) => (
-        <div key={i} className="flex items-center justify-between py-3 border-b border-grey-200 last:border-0">
+        <div key={i} className="flex items-center justify-between py-3 last:border-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gray-200" />
             <div>

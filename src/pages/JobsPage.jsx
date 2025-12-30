@@ -117,9 +117,6 @@ export default function JobsPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this job?")) {
-      return;
-    }
     try {
       await api.deleteJob(id);
       showToast("Job deleted successfully!", 'success');
@@ -234,7 +231,7 @@ export default function JobsPage() {
                             <MoreVertical size={18} />
                           </button>
                           {activeMenuId === job._id && (
-                            <div className="origin-top-right absolute right-0 mt-1 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                            <div className="origin-top-right absolute right-0 mt-1 w-40 rounded-md shadow-lg bg-white z-10">
                               <div className="py-1 text-sm">
                                 <button
                                   onClick={() => openEditModal(job)}

@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { AlertCircle, Calendar, Download, Eye, FileText, Filter, Mail, MoreVertical, Phone, Plus, Search, X } from 'lucide-react';
+import { AlertCircle, Calendar, Download, Edit2, Eye, FileText, Filter, Mail, MoreVertical, Phone, Plus, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import Toast from '../../components/Toast';
 import api from '../../config/api';
@@ -11,6 +11,7 @@ const EmployeeSalary = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeMenuId, setActiveMenuId] = useState(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [editingEmployee, setEditingEmployee] = useState(null);
     // Preview Modal State
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
     const [previewData, setPreviewData] = useState(null); // { url: string, employee: object, doc: jsPDF }
@@ -90,12 +91,13 @@ const EmployeeSalary = () => {
         }));
     };
 
+
     const handleAddSalary = async (e) => {
         e.preventDefault();
         try {
             const payload = {
                 name: newSalary.employeeName, // Backend expects 'name'
-                employeeId: `EMP-${Date.now()}`, // Generate unique employee ID
+                employeeId: editingEmployee?.employeeId || `EMP-${Date.now()}`, // Use existing ID or generate new
                 employeeName: newSalary.employeeName,
                 role: newSalary.role,
                 department: newSalary.department,
@@ -125,10 +127,19 @@ const EmployeeSalary = () => {
                                payload.breakdown.deductions.Tax;
             payload.breakdown.net = total - deductions;
 
-            await api.createEmployeeSalary(payload);
-            showToast("Salary entry added successfully!", 'success');
+            if (editingEmployee) {
+                // Update existing salary
+                await api.updateEmployeeSalary(editingEmployee._id, payload);
+                showToast("Salary entry updated successfully!", 'success');
+            } else {
+                // Create new salary
+                await api.createEmployeeSalary(payload);
+                showToast("Salary entry added successfully!", 'success');
+            }
+            
             await loadEmployeeSalaries();
             setIsAddModalOpen(false);
+            setEditingEmployee(null);
 
             // Reset form
             setNewSalary({
@@ -147,9 +158,30 @@ const EmployeeSalary = () => {
                 tax: 0
             });
         } catch (error) {
-            console.error("Error adding salary:", error);
-            showToast("Failed to add salary entry: " + error.message, 'error');
+            console.error("Error saving salary:", error);
+            showToast("Failed to save salary entry: " + error.message, 'error');
         }
+    };
+
+    const handleEdit = (emp) => {
+        setEditingEmployee(emp);
+        setNewSalary({
+            employeeName: emp.employeeName || emp.name || '',
+            role: emp.role || '',
+            department: emp.department || '',
+            phone: emp.phone || '',
+            email: emp.email || '',
+            status: emp.status || 'Pending',
+            paymentMode: emp.paymentMode || 'Bank Transfer',
+            paymentDate: emp.paymentDate ? new Date(emp.paymentDate).toISOString().split('T')[0] : '',
+            basic: emp.breakdown?.basic || 0,
+            hra: emp.breakdown?.allowances?.HRA || 0,
+            special: emp.breakdown?.allowances?.Special || 0,
+            pf: emp.breakdown?.deductions?.PF || 0,
+            tax: emp.breakdown?.deductions?.Tax || 0
+        });
+        setIsAddModalOpen(true);
+        setActiveMenuId(null);
     };
 
     const handleDelete = async (id) => {
@@ -340,7 +372,10 @@ const EmployeeSalary = () => {
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
                     <button
-                        onClick={() => setIsAddModalOpen(true)}
+                        onClick={() => {
+                            setEditingEmployee(null);
+                            setIsAddModalOpen(true);
+                        }}
                         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm w-full md:w-auto"
                     >
                         <Plus size={20} />
@@ -536,6 +571,13 @@ const EmployeeSalary = () => {
                                                     {activeMenuId === emp._id && (
                                                         <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-10 py-1">
                                                             <button
+                                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                                                onClick={() => handleEdit(emp)}
+                                                            >
+                                                                <Edit2 size={16} />
+                                                                Edit
+                                                            </button>
+                                                            <button
                                                                 className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                                                                 onClick={() => handleDelete(emp._id)}
                                                             >
@@ -560,8 +602,11 @@ const EmployeeSalary = () => {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <div className="bg-white w-full max-w-2xl mx-4 rounded-xl shadow-lg overflow-y-auto max-h-[90vh]">
                         <div className="flex justify-between items-center p-6 border-b border-gray-200">
-                            <h2 className="text-xl font-semibold">Add Salary Details</h2>
-                            <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                            <h2 className="text-xl font-semibold">{editingEmployee ? 'Edit Salary Details' : 'Add Salary Details'}</h2>
+                            <button onClick={() => {
+                                setIsAddModalOpen(false);
+                                setEditingEmployee(null);
+                            }} className="p-2 hover:bg-gray-100 rounded-full">
                                 <X size={20} />
                             </button>
                         </div>
@@ -595,6 +640,7 @@ const EmployeeSalary = () => {
                                 <select name="status" value={newSalary.status} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-lg">
                                     <option value="Pending">Pending</option>
                                     <option value="Paid">Paid</option>
+                                    <option value="Processing">Processing</option>
                                 </select>
                             </div>
                             <div>

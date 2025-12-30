@@ -21,6 +21,10 @@ const CompanyExpenses = () => {
     const [editingExpense, setEditingExpense] = useState(null);
     const [activeMenuId, setActiveMenuId] = useState(null);
     const [toast, setToast] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterCategory, setFilterCategory] = useState('All');
+    const [filterPaymentMethod, setFilterPaymentMethod] = useState('All');
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
@@ -75,6 +79,16 @@ const CompanyExpenses = () => {
         };
         return colors[category] || 'bg-gray-100 text-gray-700 border-gray-200';
     };
+
+    // Filter expenses based on search and filters
+    const filteredExpenses = expenses.filter(expense => {
+        const matchesSearch = expense.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            expense.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            expense.category?.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = filterCategory === 'All' || expense.category === filterCategory;
+        const matchesPaymentMethod = filterPaymentMethod === 'All' || expense.paymentMethod === filterPaymentMethod;
+        return matchesSearch && matchesCategory && matchesPaymentMethod;
+    });
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -135,12 +149,10 @@ const CompanyExpenses = () => {
     };
 
     const handleDeleteExpense = async (expenseId) => {
-        if (!window.confirm('Are you sure you want to delete this expense?')) {
-            return;
-        }
         try {
             await api.deleteExpense(expenseId);
             await loadExpenses();
+            showToast('Successfully deleted this expense', 'success');
         } catch (error) {
             console.error('Error deleting expense:', error);
             showToast('Failed to delete expense: ' + error.message, 'error');
@@ -211,23 +223,71 @@ const CompanyExpenses = () => {
                     <input
                         type="text"
                         placeholder="Search expenses..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all"
                     />
                 </div>
-                <div className="flex gap-3 w-full md:w-auto">
-                    <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer">
+                <div className="flex gap-3 w-full md:w-auto relative">
+                    <button 
+                        onClick={() => setIsFilterOpen(!isFilterOpen)}
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer">
                         <Filter size={18} />
                         Filter
                     </button>
+                    {isFilterOpen && (
+                        <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-10 p-4">
+                            <div className="mb-3">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                <select 
+                                    value={filterCategory} 
+                                    onChange={(e) => setFilterCategory(e.target.value)}
+                                    className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                                >
+                                    <option value="All">All Categories</option>
+                                    <option value="Travel">Travel</option>
+                                    <option value="Software">Software</option>
+                                    <option value="Utilities">Utilities</option>
+                                    <option value="Rent">Rent</option>
+                                    <option value="Equipment">Equipment</option>
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="Misc">Misc</option>
+                                </select>
+                            </div>
+                            <div className="mb-3">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                                <select 
+                                    value={filterPaymentMethod} 
+                                    onChange={(e) => setFilterPaymentMethod(e.target.value)}
+                                    className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                                >
+                                    <option value="All">All Methods</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Cheque">Cheque</option>
+                                </select>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setFilterCategory('All');
+                                    setFilterPaymentMethod('All');
+                                    setIsFilterOpen(false);
+                                }}
+                                className="w-full px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                            >
+                                Clear Filters
+                            </button>
+                        </div>
+                    )}
                     <button
                         onClick={() => {
-                            if (expenses.length === 0) {
+                            if (filteredExpenses.length === 0) {
                                 showToast('No expenses to export', 'warning');
                                 return;
                             }
                             const csv = [
                                 ['Title', 'Category', 'Amount', 'Payment Method', 'Status', 'Date', 'Description'],
-                                ...expenses.map(exp => [
+                                ...filteredExpenses.map(exp => [
                                     exp.title || '',
                                     exp.category || '',
                                     exp.amount || 0,
@@ -272,12 +332,12 @@ const CompanyExpenses = () => {
                                 <tr>
                                     <td colSpan="6" className="p-8 text-center text-gray-500">Loading expenses...</td>
                                 </tr>
-                            ) : expenses.length === 0 ? (
+                            ) : filteredExpenses.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="p-8 text-center text-gray-500">No expenses found. Add your first expense!</td>
+                                    <td colSpan="6" className="p-8 text-center text-gray-500">{expenses.length === 0 ? 'No expenses found. Add your first expense!' : 'No expenses match your search or filter criteria.'}</td>
                                 </tr>
                             ) : (
-                                expenses.map((expense) => (
+                                filteredExpenses.map((expense) => (
                                     <tr key={expense._id || expense.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="p-4">
                                             <div className="flex flex-col">
@@ -396,7 +456,11 @@ const CompanyExpenses = () => {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                                    <input type="text" name="paymentMethod" value={newExpense.paymentMethod} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                                    <select name="paymentMethod" value={newExpense.paymentMethod} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg">
+                                        <option value="Bank Transfer">Bank Transfer</option>
+                                        <option value="Cash">Cash</option>
+                                        <option value="Cheque">Cheque</option>
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
@@ -415,7 +479,7 @@ const CompanyExpenses = () => {
                                     <textarea name="description" value={newExpense.description} onChange={handleInputChange} rows="3" className="w-full p-2 border border-gray-300 rounded-lg"></textarea>
                                 </div>
 
-                                <div className="md:col-span-2 mt-4 pt-4 border-t">
+                                <div className="md:col-span-2 mt-4 pt-4">
                                     <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
                                         {editingExpense ? 'Update Expense' : 'Add Expense'}
                                     </button>

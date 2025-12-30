@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp, Upload } from "lucide-react";
+import { ChevronDown, ChevronUp, Upload, X, Ban } from "lucide-react";
 
 export const SectionCard = ({ title, children, defaultOpen = true }) => {
     const [open, setOpen] = useState(defaultOpen);
@@ -80,39 +80,32 @@ export const FileUploadField = ({ label, isEditing, className = "", value, onCha
 
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
-        if (selectedFile) {
-            setFile(selectedFile);
-            
-            // Create preview for images
-            if (selectedFile.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setPreview(reader.result);
-                };
-                reader.readAsDataURL(selectedFile);
-            } else {
-                setPreview(null);
-            }
-            
-            if (onChange) onChange(selectedFile);
+        if (!selectedFile) return;
+
+        setFile(selectedFile);
+
+        if (selectedFile.type.startsWith("image/")) {
+            const reader = new FileReader();
+            reader.onloadend = () => setPreview(reader.result);
+            reader.readAsDataURL(selectedFile);
+        } else {
+            setPreview(null);
         }
+
+        onChange?.(selectedFile);
     };
 
-    const handleClick = () => {
-        if (fileInputRef.current) {
-            fileInputRef.current.click();
-        }
+    const handleRemove = () => {
+        setFile(null);
+        setPreview(null);
+        onChange?.(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
     const handleViewDocument = () => {
-        if (file) {
-            if (file instanceof File) {
-                const url = URL.createObjectURL(file);
-                window.open(url, '_blank');
-            } else if (typeof file === 'string') {
-                window.open(file, '_blank');
-            }
-        }
+        if (!file) return;
+        const url = file instanceof File ? URL.createObjectURL(file) : file;
+        window.open(url, "_blank");
     };
 
     return (
@@ -121,26 +114,78 @@ export const FileUploadField = ({ label, isEditing, className = "", value, onCha
                 {label}
             </label>
 
+            {/* Hidden input */}
             <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*,.pdf"
                 onChange={handleFileChange}
                 className="hidden"
+                disabled={!isEditing}
             />
 
-            {file ? (
-                <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            {/* ================= VIEW MODE ================= */}
+            {!isEditing && !file && (
+                <div className="relative flex items-center gap-3 p-3 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg cursor-not-allowed group">
+                    <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+                        <Ban size={18} className="text-red-500" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-semibold text-gray-400">
+                            No document uploaded
+                        </p>
+                        <p className="text-xs text-gray-300">
+                            Edit profile to upload
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* ================= EDIT MODE EMPTY ================= */}
+            {isEditing && !file && (
+                <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-3 p-3 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-400 transition-all group"
+                >
+                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                        <Upload size={18} className="text-gray-400 group-hover:text-blue-500" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-semibold text-gray-600 group-hover:text-blue-600">
+                            Click to upload document
+                        </p>
+                        <p className="text-xs text-gray-400">PNG, JPG or PDF</p>
+                    </div>
+                </div>
+            )}
+
+            {/* ================= FILE PRESENT ================= */}
+            {file && (
+                <div className="relative flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                    
+                    {/* REMOVE BUTTON (EDIT MODE ONLY) */}
+                    {isEditing && (
+                        <button
+                            onClick={handleRemove}
+                            className="absolute top-1.5 right-1.5 bg-white border border-gray-200 rounded-full p-1 text-gray-500 hover:text-red-600 hover:border-red-300 transition"
+                        >
+                            <X size={14} />
+                        </button>
+                    )}
+
                     <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
                         {preview ? (
-                            <img src={preview} alt="Document" className="w-full h-full object-cover" />
+                            <img src={preview} alt="Preview" className="w-full h-full object-cover" />
                         ) : (
                             <Upload size={18} className="text-gray-500" />
                         )}
                     </div>
+
                     <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-700">{file?.name || 'document_file.pdf'}</p>
-                        <p 
+                        <p className="text-sm font-semibold text-gray-700">
+                            {file?.name || "document.pdf"}
+                        </p>
+                        <p
                             onClick={handleViewDocument}
                             className="text-xs text-blue-600 font-medium cursor-pointer hover:underline"
                         >
@@ -148,20 +193,8 @@ export const FileUploadField = ({ label, isEditing, className = "", value, onCha
                         </p>
                     </div>
                 </div>
-            ) : (
-                <div 
-                    onClick={handleClick}
-                    className="flex items-center gap-3 p-3 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-400 transition-all group"
-                >
-                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                        <Upload size={18} className="text-gray-400 group-hover:text-blue-500" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-semibold text-gray-600 group-hover:text-blue-600">Click to upload document</p>
-                        <p className="text-xs text-gray-400">PNG, JPG, SVG or PDF</p>
-                    </div>
-                </div>
             )}
         </div>
-    )
-}
+    );
+};
+

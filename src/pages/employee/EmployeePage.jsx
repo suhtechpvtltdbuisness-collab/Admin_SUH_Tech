@@ -217,8 +217,7 @@ export default function EmployeePage() {
                   <th className="p-4">ID</th>
                   <th className="p-4">Department</th>
                   <th className="p-4">Designation</th>
-                  <th className="p-4">Joining Date</th>
-                  <th className="p-4">Contact</th>
+                  <th className="p-4">Email</th>
                   <th className="p-4 text-center">Status</th>
                   <th className="p-4 text-center">Action</th>
                 </tr>
@@ -294,7 +293,6 @@ export default function EmployeePage() {
           )}
         </div>
       </div>
-
       {/* Add Employee Modal */}
       {showAddModal && <AddEmployeeModal onClose={() => setShowAddModal(false)} onSave={handleAddEmployee} />}
 

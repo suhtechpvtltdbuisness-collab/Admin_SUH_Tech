@@ -6,6 +6,7 @@ import JobInformation from "../../components/employee/JobInformation";
 import PersonalInformation from "../../components/employee/PersonalInformation";
 import Toast from "../../components/Toast";
 import api from "../../config/api";
+import ConfirmationModal from "../../components/ConfirmationModal";
 
 // MOCK DATA matching EmployeePage (5 Items)
 const MOCK_DB = {
@@ -180,6 +181,11 @@ export default function EmployeeViewPage() {
                     emp.firstName = nameParts[0] || '';
                     emp.lastName = nameParts.slice(1).join(' ') || '';
                 }
+                emp.joiningDate =
+                emp.joiningDate ||
+                emp.dateOfJoining ||
+                emp.joinDate ||
+                ""; 
                 setEmployee(emp);
             } else {
                 showToast('Employee not found', 'error');
@@ -191,6 +197,22 @@ export default function EmployeeViewPage() {
             setLoading(false);
         }
     };
+
+    // Terminate and Delete Modal
+    const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    type: null, // "terminate" | "delete"
+});
+
+const getEmployeeFullName = (emp) => {
+    if (!emp) return "";
+
+    if (emp.firstName || emp.lastName) {
+        return `${emp.firstName || ""} ${emp.lastName || ""}`.trim();
+    }
+
+    return emp.name || "";
+};
 
     const handleFieldChange = (field, value) => {
         setEditedEmployee(prev => ({
@@ -231,8 +253,33 @@ export default function EmployeeViewPage() {
         }
     };
 
+
+    const formatDate = (date) => {
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    });
+};
+
+const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+        setEditedEmployee((prev) => ({
+            ...prev,
+            avatar: reader.result, // base64 preview
+            avatarFile: file        // future backend use
+        }));
+    };
+    reader.readAsDataURL(file);
+};
+
     const handleCancel = () => {
-        setEditedEmployee({...employee}); // Reset to original
+        setEditedEmployee({...employee}); 
         setIsEditing(false);
     };
 
@@ -244,50 +291,38 @@ export default function EmployeeViewPage() {
         }
     };
 
-    const handleTerminate = async () => {
-        if (!window.confirm(`Are you sure you want to terminate ${employee.name}? This will change their status to Inactive.`)) {
-            return;
-        }
-        
-        try {
-            setSaving(true);
-            // Update employee status to Inactive/Terminated
-            await api.updateEmployee(id, { ...employee, status: 'Inactive' });
-            showToast('Employee terminated successfully', 'success');
-            // Reload employee data
-            await loadEmployee();
-        } catch (error) {
-            console.error('Error terminating employee:', error);
-            showToast('Failed to terminate employee: ' + error.message, 'error');
-        } finally {
-            setSaving(false);
-        }
-    };
+const openTerminateModal = () => {
+    setConfirmModal({ open: true, type: "terminate" });
+};
 
-    const handleDelete = async () => {
-        if (!window.confirm(`Are you sure you want to DELETE ${employee.name}? This action is IRREVERSIBLE and will permanently remove all employee data.`)) {
-            return;
+const openDeleteModal = () => {
+    setConfirmModal({ open: true, type: "delete" });
+};
+const handleConfirmAction = async () => {
+    try {
+        setSaving(true);
+
+        if (confirmModal.type === "terminate") {
+            await api.updateEmployee(id, { ...employee, status: "Inactive" });
+            showToast("Employee terminated successfully", "success");
+            await loadEmployee();
         }
-        
-        // Double confirmation for delete
-        if (!window.confirm('This is your final warning. Type DELETE to confirm (just click OK to proceed).')) {
-            return;
-        }
-        
-        try {
-            setSaving(true);
+
+        if (confirmModal.type === "delete") {
             await api.deleteEmployee(id);
-            showToast('Employee deleted successfully', 'success');
-            // Navigate back to employee list after short delay
+            showToast("Employee deleted successfully", "success");
             setTimeout(() => {
-                window.location.href = '/employees';
+                window.location.href = "/employees";
             }, 1500);
-        } catch (error) {
-            console.error('Error deleting employee:', error);
-            showToast('Failed to delete employee: ' + error.message, 'error');
-            setSaving(false);
         }
-    };
+    } catch (error) {
+        showToast("Action failed", "error");
+    } finally {
+        setSaving(false);
+        setConfirmModal({ open: false, type: null });
+    }
+};
+
 
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center">
@@ -343,17 +378,45 @@ export default function EmployeeViewPage() {
                         {/* Avatar Section */}
                         <div className="flex flex-col items-center">
                             <div className="relative mb-4">
-                                <div className="w-28 h-28 rounded-full border-4 border-gray-50 shadow-inner flex items-center justify-center bg-gray-100 text-center">
-                                    <img
-                                        src={employee.avatar}
-                                        className="w-full h-full object-cover rounded-full"
-                                        alt="Profile"
-                                    />
+                                <div className="w-28 h-28 rounded-full border-4 border-gray-50 shadow-inner
+                                    flex items-center justify-center bg-gray-100 text-center overflow-hidden">
+
+                                    {(
+                                        isEditing
+                                            ? editedEmployee?.avatar
+                                            : employee.avatar
+                                    ) ? (
+                                        <img
+                                            src={isEditing ? editedEmployee?.avatar : employee.avatar}
+                                            className="w-full h-full object-cover rounded-full"
+                                            alt="Profile"
+                                        />
+                                    ) : (
+                                        <span className="text-3xl font-bold text-gray-600">
+                                            {employee.firstName?.[0] || employee.name?.[0] || "U"}
+                                        </span>
+                                    )}
                                 </div>
+
                                 {isEditing && (
-                                    <button className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full border-2 border-white text-white shadow-md hover:bg-blue-700 transition">
-                                        <Camera size={14} />
-                                    </button>
+                                    <>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleAvatarChange}
+                                            className="hidden"
+                                            id="avatarUpload"
+                                        />
+
+                                        <label
+                                            htmlFor="avatarUpload"
+                                            className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full
+                                            border-2 border-white text-white shadow-md hover:bg-blue-700
+                                            transition cursor-pointer"
+                                        >
+                                            <Camera size={14} />
+                                        </label>
+                                    </>
                                 )}
                             </div>
 
@@ -377,7 +440,7 @@ export default function EmployeeViewPage() {
                                     <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">Email</p>
                                     <input
                                         type="text"
-                                        value={employee.contact}
+                                        value={employee.contact || "mayank@suhtech.top"}
                                         readOnly={!isEditing}
                                         className={`w-full py-2 px-3 rounded-lg text-sm font-medium transition-all outline-none
                                             ${isEditing ? "bg-white border border-blue-200 focus:ring-4 focus:ring-blue-50" : "bg-transparent border-none text-gray-800 p-0"}`}
@@ -398,23 +461,58 @@ export default function EmployeeViewPage() {
 
                                 {/* Status */}
                                 <div>
-                                    <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">Status</p>
-                                    <div className={`w-full py-2.5 px-3.5 rounded-lg border text-sm font-medium flex items-center justify-between
-                                        ${employee.status === 'Active' ? 'bg-green-50 border-green-100 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-700'}`}>
-                                        {employee.status} <span className={`w-2 h-2 rounded-full ${employee.status === 'Active' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                                    </div>
+                                    <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">
+                                        Status
+                                    </p>
+                                    {(() => {
+                                        const status = isEditing ? editedEmployee?.status : employee.status;
+
+                                        let bgClass = "bg-gray-50 border-gray-200 text-gray-700";
+                                        let dotClass = "bg-gray-400";
+
+                                        if (status === "Active") {
+                                            bgClass = "bg-green-50 border-green-100 text-green-700";
+                                            dotClass = "bg-green-500";
+                                        } else if (status === "Inactive") {
+                                            bgClass = "bg-yellow-50 border-yellow-200 text-yellow-700";
+                                            dotClass = "bg-yellow-500";
+                                        } else if (status === "On Leave") {
+                                            bgClass = "bg-red-50 border-red-200 text-red-700";
+                                            dotClass = "bg-red-500";
+                                        }
+
+                                        return (
+                                            <div
+                                                className={`w-full py-2.5 px-3.5 rounded-lg border text-sm font-medium flex items-center justify-between ${bgClass}`}
+                                            >
+                                                {status}
+                                                <span className={`w-2 h-2 rounded-full ${dotClass}`} />
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
 
                                 {/* Join Date */}
                                 <div>
-                                    <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">Joining Date</p>
-                                    <input
-                                        type="text"
-                                        value={employee.joinDate}
-                                        readOnly={!isEditing}
-                                        className={`w-full py-2 px-3 rounded-lg text-sm font-medium transition-all outline-none
-                                            ${isEditing ? "bg-white border border-blue-200 focus:ring-4 focus:ring-blue-50" : "bg-transparent border-none text-gray-800 p-0"}`}
-                                    />
+                                    <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">
+                                        Joining Date
+                                    </p>
+
+                                    {isEditing ? (
+                                        <input
+                                            type="date"
+                                            value={editedEmployee?.joiningDate || ""}
+                                            onChange={(e) =>
+                                                handleFieldChange("joiningDate", e.target.value)
+                                            }
+                                            className="w-full py-2 px-3 rounded-lg text-sm font-medium transition-all outline-none
+                                            bg-white border border-blue-200 focus:ring-4 focus:ring-blue-50"
+                                        />
+                                    ) : (
+                                        <div className="text-sm font-medium text-gray-800">
+                                            {formatDate(employee.joiningDate)}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -473,25 +571,48 @@ export default function EmployeeViewPage() {
                             </div>
                             <div className="flex gap-3 w-full md:w-auto">
                                 <button 
-                                    onClick={handleTerminate}
+                                    onClick={openTerminateModal}
+
                                     disabled={saving}
                                     className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100/80 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Ban size={16} /> Terminate
                                 </button>
                                 <button 
-                                    onClick={handleDelete}
+                                    onClick={openDeleteModal}
                                     disabled={saving}
-                                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-600 border border-gray-200 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100/80 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Trash2 size={16} /> Delete
                                 </button>
+
                             </div>
                         </div>
 
                     </div>
                 </div>
             </div>
+            
+            <ConfirmationModal
+                open={confirmModal.open}
+                title={
+                    confirmModal.type === "terminate"
+                        ? "Terminate Employee"
+                        : "Delete Employee"
+                }
+                description={
+                    confirmModal.type === "terminate"
+                        ? `Are you sure you want to terminate ${getEmployeeFullName(employee)}? This will change their status to Inactive.`
+                        : `Are you sure you want to permanently delete ${getEmployeeFullName(employee)}? This action cannot be undone.`
+                }
+                confirmText={
+                    confirmModal.type === "terminate" ? "Terminate" : "Delete"
+                }
+                confirmColor="bg-red-600"
+                onCancel={() => setConfirmModal({ open: false, type: null })}
+                onConfirm={handleConfirmAction}
+                loading={saving}
+            />
 
             {/* Toast Notifications */}
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

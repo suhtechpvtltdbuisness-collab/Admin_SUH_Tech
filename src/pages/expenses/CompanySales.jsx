@@ -1,5 +1,5 @@
 import { BarChart2, DollarSign, Edit2, Filter, Mail, MoreVertical, Phone, Plus, Search, Trash2, TrendingUp, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import Toast from '../../components/Toast';
 import api from '../../config/api';
 
@@ -14,6 +14,8 @@ const CompanySales = () => {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filterStatus, setFilterStatus] = useState('All');
     const [filterPaymentMethod, setFilterPaymentMethod] = useState('All');
+    
+    const filterRef = useRef(null);
 
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
@@ -35,6 +37,20 @@ const CompanySales = () => {
 
     useEffect(() => {
         loadSales();
+    }, []);
+
+    // Close filter dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (filterRef.current && !filterRef.current.contains(event.target)) {
+                setIsFilterOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
     }, []);
 
     const loadSales = async () => {
@@ -255,7 +271,7 @@ const CompanySales = () => {
                         className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all"
                     />
                 </div>
-                <div className="flex gap-3 w-full md:w-auto relative">
+                <div className="flex gap-3 w-full md:w-auto relative" ref={filterRef}>
                     <button 
                         onClick={() => setIsFilterOpen(!isFilterOpen)}
                         className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 cursor-pointer">

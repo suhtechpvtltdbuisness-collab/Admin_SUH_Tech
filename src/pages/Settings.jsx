@@ -2,6 +2,7 @@ import { Calendar, Clock, Key, Mail, MapPin, Phone, Save, Settings as SettingsIc
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Toast from '../components/Toast';
+import { api } from '../config/api';
 
 const Settings = () => {
     const navigate = useNavigate();
@@ -11,6 +12,8 @@ const Settings = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [showDateFormatPicker, setShowDateFormatPicker] = useState(false);
     const dateFormatPickerRef = useRef(null);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
 
     const [profileData, setProfileData] = useState({
         firstName: 'Alex',
@@ -51,6 +54,41 @@ const Settings = () => {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
     const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+
+    // Fetch user profile on mount
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                setLoading(true);
+                const response = await api.getUserProfile();
+                if (response.user) {
+                    setProfileData(response.user);
+                }
+            } catch (error) {
+                showToast('Failed to load profile data', 'error');
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        fetchProfile();
+    }, []);
+
+    // Fetch holidays on mount
+    useEffect(() => {
+        const fetchHolidays = async () => {
+            try {
+                const response = await api.getHolidays();
+                if (response.holidays) {
+                    setHolidays(response.holidays);
+                }
+            } catch (error) {
+                console.error('Failed to load holidays:', error);
+            }
+        };
+        
+        fetchHolidays();
+    }, []);
 
     // Close date format picker when clicking outside
     useEffect(() => {
@@ -149,13 +187,26 @@ const Settings = () => {
         }));
     };
 
-    const handleSaveProfile = (e) => {
+    const handleSaveProfile = async (e) => {
         e.preventDefault();
-        showToast('Profile updated successfully!', 'success');
-        setIsEditing(false);
+        try {
+            setSaving(true);
+            const response = await api.updateUserProfile(profileData);
+            showToast('Profile updated successfully!', 'success');
+            setIsEditing(false);
+            
+            // Dispatch custom event to notify other components about profile update
+            window.dispatchEvent(new CustomEvent('profileUpdated', { 
+                detail: { user: profileData } 
+            }));
+        } catch (error) {
+            showToast('Failed to update profile: ' + error.message, 'error');
+        } finally {
+            setSaving(false);
+        }
     };
 
-    const handleResetPassword = (e) => {
+    const handleResetPassword = async (e) => {
         e.preventDefault();
         if (passwordData.newPassword !== passwordData.confirmPassword) {
             showToast('Passwords do not match!', 'error');
@@ -165,32 +216,84 @@ const Settings = () => {
             showToast('Password must be at least 6 characters!', 'error');
             return;
         }
-        showToast('Password reset successfully!', 'success');
-        setPasswordData({
-            currentPassword: '',
-            newPassword: '',
-            confirmPassword: ''
-        });
+        try {
+            setSaving(true);
+            await api.changePassword(passwordData.currentPassword, passwordData.newPassword);
+            showToast('Password reset successfully!', 'success');
+            setPasswordData({
+                currentPassword: '',
+                newPassword: '',
+                confirmPassword: ''
+            });
+        } catch (error) {
+            showToast('Failed to reset password: ' + error.message, 'error');
+        } finally {
+            setSaving(false);
+        }
     };
 
-    const handleAddHoliday = (e) => {
+    const handleAddHoliday = async (e) => {
         e.preventDefault();
         if (!newHoliday.name || !newHoliday.date) {
             showToast('Please fill all holiday fields!', 'error');
             return;
         }
-        const holiday = {
-            id: holidays.length + 1,
-            ...newHoliday
-        };
-        setHolidays([...holidays, holiday]);
-        setNewHoliday({ name: '', date: '', type: 'Public' });
-        showToast('Holiday added successfully!', 'success');
+        try {
+            const response = await api.createHoliday(newHoliday);
+            setHolidays([...holidays, response.holiday]);
+            setNewHoliday({ name: '', date: '', type: 'Public' });
+            showToast('Holiday added successfully!', 'success');
+        } catch (error) {
+            showToast('Failed to add holiday: ' + error.message, 'error');
+        }
     };
 
-    const handleDeleteHoliday = (id) => {
-        setHolidays(holidays.filter(h => h.id !== id));
-        showToast('Holiday deleted successfully!', 'success');
+    const handleDeleteHoliday = async (id) => {
+        try {
+            await api.deleteHoliday(id);
+            setHolidays(holidays.filter(h => h.id !== id));
+            showToast('Holiday deleted successfully!', 'success');
+        } catch (error) {
+            showToast('Failed to delete holiday: ' + error.message, 'error');
+        }
+    };
+
+    const handleSavePreferences = async () => {
+        try {
+            setSaving(true);
+            await api.updateUserProfile({
+                ...profileData,
+                timezone: profileData.timezone,
+                dateFormat: profileData.dateFormat,
+                timeFormat: profileData.timeFormat
+            });
+            showToast('Preferences saved successfully!', 'success');
+        } catch (error) {
+            showToast('Failed to save preferences: ' + error.message, 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleCancelEdit = async () => {
+        try {
+            // Reload original data from API/localStorage
+            const response = await api.getUserProfile();
+            if (response.user) {
+                setProfileData(response.user);
+            }
+            setIsEditing(false);
+        } catch (error) {
+            console.error('Failed to reload profile data:', error);
+            setIsEditing(false);
+        }
+    };
+
+    // Helper function to get initials from name
+    const getInitials = (firstName, lastName) => {
+        const first = firstName?.charAt(0)?.toUpperCase() || '';
+        const last = lastName?.charAt(0)?.toUpperCase() || '';
+        return `${first}${last}` || 'NA';
     };
 
     const timezones = [
@@ -248,7 +351,7 @@ const Settings = () => {
                             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
                                 <div className="flex items-center gap-6">
                                     <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-                                        <span className="text-white font-bold text-3xl">AH</span>
+                                        <span className="text-white font-bold text-3xl">{getInitials(profileData.firstName, profileData.lastName)}</span>
                                     </div>
                                     <div>
                                         <h2 className="text-2xl font-bold text-gray-900">{profileData.firstName} {profileData.lastName}</h2>
@@ -336,8 +439,9 @@ const Settings = () => {
                                                 type="text"
                                                 name="role"
                                                 value={profileData.role}
-                                                disabled
-                                                className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50"
+                                                onChange={handleProfileChange}
+                                                disabled={!isEditing}
+                                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50"
                                             />
                                         </div>
                                         <div className="md:col-span-2">
@@ -393,8 +497,13 @@ const Settings = () => {
                                         {!isEditing ? (
                                             <button
                                                 type="button"
-                                                onClick={() => setIsEditing(true)}
-                                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setIsEditing(true);
+                                                }}
+                                                disabled={loading}
+                                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 Edit Profile
                                             </button>
@@ -402,15 +511,17 @@ const Settings = () => {
                                             <>
                                                 <button
                                                     type="submit"
-                                                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                                    disabled={saving}
+                                                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     <Save size={18} />
-                                                    Save Changes
+                                                    {saving ? 'Saving...' : 'Save Changes'}
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setIsEditing(false)}
-                                                    className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                                                    onClick={handleCancelEdit}
+                                                    disabled={saving}
+                                                    className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     Cancel
                                                 </button>
@@ -589,11 +700,12 @@ const Settings = () => {
                                 </div>
                             </div>
                             <button
-                                onClick={() => showToast('Preferences saved successfully!', 'success')}
-                                className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                onClick={handleSavePreferences}
+                                disabled={saving}
+                                className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <Save size={18} />
-                                Save Preferences
+                                {saving ? 'Saving...' : 'Save Preferences'}
                             </button>
                         </div>
                     )}
@@ -643,10 +755,11 @@ const Settings = () => {
                                 </div>
                                 <button
                                     type="submit"
-                                    className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                    disabled={saving}
+                                    className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Key size={18} />
-                                    Reset Password
+                                    {saving ? 'Resetting...' : 'Reset Password'}
                                 </button>
                             </form>
                         </div>

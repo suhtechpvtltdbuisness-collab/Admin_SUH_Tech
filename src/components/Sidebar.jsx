@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import api from '../config/api';
 
 /* SIDEBAR ITEM */
 function Item({
@@ -68,15 +69,52 @@ function Item({
 export default function Sidebar({ className = "", onClose }) {
   const location = useLocation();
   const [expensesOpen, setExpensesOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState({ firstName: '', lastName: '', role: '' });
 
   // Helper functions //
   const isActive = (path) => location.pathname === path;
   const isExpensesActive = location.pathname.startsWith("/expenses") && !location.pathname.startsWith("/expenses/invoices");
 
+  // Helper function to get initials from name
+  const getInitials = (firstName, lastName) => {
+    const first = firstName?.charAt(0)?.toUpperCase() || '';
+    const last = lastName?.charAt(0)?.toUpperCase() || '';
+    return `${first}${last}` || 'NA';
+  };
+
   // Auto-open expenses submenu when inside expenses section //
   useEffect(() => {
     if (isExpensesActive) setExpensesOpen(true);
   }, [isExpensesActive]);
+
+  // Load user profile
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        const res = await api.getUserProfile();
+        if (res.user) {
+          setUserProfile(res.user);
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+      }
+    };
+    loadUserProfile();
+  }, []);
+
+  // Listen for profile updates from Settings page
+  useEffect(() => {
+    const handleProfileUpdate = (event) => {
+      if (event.detail?.user) {
+        setUserProfile(event.detail.user);
+      }
+    };
+
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
+    };
+  }, []);
 
   return (
     <aside
@@ -197,11 +235,11 @@ export default function Sidebar({ className = "", onClose }) {
       {/* USER CARD */}
       <div className="flex items-center gap-3 mt-4 p-3 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-100">
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
-          <span className="text-white font-bold text-sm">AH</span>
+          <span className="text-white font-bold text-sm">{getInitials(userProfile.firstName, userProfile.lastName)}</span>
         </div>
-        <div>
-          <p className="font-semibold text-gray-900">Alex Hartman</p>
-          <p className="text-xs text-gray-600">Administrator</p>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-900 text-sm whitespace-nowrap overflow-hidden text-ellipsis">{userProfile.firstName} {userProfile.lastName}</p>
+          <p className="text-xs text-gray-600">{userProfile.role || 'User'}</p>
         </div>
       </div>
     </aside>

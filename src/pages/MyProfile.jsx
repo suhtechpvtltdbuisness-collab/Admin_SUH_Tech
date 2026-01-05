@@ -120,6 +120,13 @@ const MyProfile = () => {
         'Australia/Sydney'
     ];
 
+    // Helper function to get initials from name
+    const getInitials = (firstName, lastName) => {
+        const first = firstName?.charAt(0)?.toUpperCase() || '';
+        const last = lastName?.charAt(0)?.toUpperCase() || '';
+        return `${first}${last}` || 'NA';
+    };
+
     return (
         <div className="p-6">
             <div className="mb-8">
@@ -131,7 +138,7 @@ const MyProfile = () => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
                 <div className="flex items-center gap-6">
                     <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-                        <span className="text-white font-bold text-3xl">AH</span>
+                        <span className="text-white font-bold text-3xl">{getInitials(profileData.firstName, profileData.lastName)}</span>
                     </div>
                     <div>
                         <h2 className="text-2xl font-bold text-gray-900">{profileData.firstName} {profileData.lastName}</h2>

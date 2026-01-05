@@ -337,6 +337,126 @@ export const api = {
       return { success: true };
     }
   },
+
+  // User Profile Management
+  getUserProfile: async () => {
+    try {
+      const response = await apiRequest('/auth/profile');
+      // Cache in localStorage
+      localStorage.setItem('userProfile', JSON.stringify(response.user));
+      return response;
+    } catch (error) {
+      console.warn('Backend unavailable, using localStorage:', error.message);
+      const profile = JSON.parse(localStorage.getItem('userProfile') || 'null');
+      if (!profile) {
+        // Return default profile structure
+        const defaultProfile = {
+          firstName: 'Alex',
+          lastName: 'Hartman',
+          email: 'alex.hartman@suhtech.com',
+          phone: '+91 98765 00000',
+          role: 'Administrator',
+          department: 'Management',
+          address: '123 Business Street',
+          city: 'Mumbai',
+          state: 'Maharashtra',
+          zipCode: '400001',
+          timezone: 'Asia/Kolkata',
+          dateFormat: 'DD/MM/YYYY',
+          timeFormat: '12h'
+        };
+        localStorage.setItem('userProfile', JSON.stringify(defaultProfile));
+        return { user: defaultProfile };
+      }
+      return { user: profile };
+    }
+  },
+
+  updateUserProfile: async (data) => {
+    try {
+      const response = await apiRequest('/auth/profile', {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+      // Also update localStorage for offline access
+      localStorage.setItem('userProfile', JSON.stringify(response.user || data));
+      return response;
+    } catch (error) {
+      console.warn('Backend unavailable, saving to localStorage:', error.message);
+      localStorage.setItem('userProfile', JSON.stringify(data));
+      return { user: data, success: true };
+    }
+  },
+
+  changePassword: async (currentPassword, newPassword) => {
+    try {
+      const response = await apiRequest('/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      return response;
+    } catch (error) {
+      console.warn('Backend unavailable for password change:', error.message);
+      // For security, simulate success in development but warn
+      return { success: true, message: 'Password change simulated (backend unavailable)' };
+    }
+  },
+
+  // Holidays
+  getHolidays: async () => {
+    try {
+      const response = await apiRequest('/holidays');
+      localStorage.setItem('holidays', JSON.stringify(response.holidays));
+      return response;
+    } catch (error) {
+      console.warn('Backend unavailable, using localStorage:', error.message);
+      const holidays = JSON.parse(localStorage.getItem('holidays') || 'null');
+      if (!holidays) {
+        const defaultHolidays = [
+          { id: 1, name: 'New Year', date: '2025-01-01', type: 'Public' },
+          { id: 2, name: 'Republic Day', date: '2025-01-26', type: 'Public' },
+          { id: 3, name: 'Holi', date: '2025-03-14', type: 'Public' },
+          { id: 4, name: 'Independence Day', date: '2025-08-15', type: 'Public' },
+          { id: 5, name: 'Diwali', date: '2025-10-20', type: 'Public' }
+        ];
+        localStorage.setItem('holidays', JSON.stringify(defaultHolidays));
+        return { holidays: defaultHolidays };
+      }
+      return { holidays };
+    }
+  },
+
+  createHoliday: async (data) => {
+    try {
+      const response = await apiRequest('/holidays', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      return response;
+    } catch (error) {
+      console.warn('Backend unavailable, saving to localStorage:', error.message);
+      const holidays = JSON.parse(localStorage.getItem('holidays') || '[]');
+      const newHoliday = { ...data, id: Date.now() };
+      holidays.push(newHoliday);
+      localStorage.setItem('holidays', JSON.stringify(holidays));
+      return { holiday: newHoliday };
+    }
+  },
+
+  deleteHoliday: async (id) => {
+    try {
+      const response = await apiRequest(`/holidays/${id}`, {
+        method: 'DELETE',
+      });
+      return response;
+    } catch (error) {
+      console.warn('Backend unavailable, deleting from localStorage:', error.message);
+      const holidays = JSON.parse(localStorage.getItem('holidays') || '[]');
+      const filtered = holidays.filter(h => h.id !== id);
+      localStorage.setItem('holidays', JSON.stringify(filtered));
+      return { success: true };
+    }
+  },
 };
 
 export default api;

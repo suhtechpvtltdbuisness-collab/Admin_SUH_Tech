@@ -421,7 +421,7 @@ const handleConfirmAction = async () => {
                             </div>
 
                             <span className="mb-2 px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full">
-                                Emp-{id}
+                                {employee.employeeId || employee.empId || `Emp-${id}`}
                             </span>
                             <h2 className="text-xl font-bold text-gray-900">
                                 {employee.firstName || employee.lastName 

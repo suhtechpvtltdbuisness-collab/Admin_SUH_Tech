@@ -648,6 +648,225 @@ const parseInvoiceText = (text) => {
     setActiveMenuId(null);
   };
 
+  // Download Individual Invoice as PDF
+  const handleDownloadInvoice = (invoice) => {
+    try {
+      const doc = new jsPDF();
+      let yPos = 15;
+      
+      // HEADER BOX
+      doc.setFillColor(37, 99, 235);
+      doc.rect(0, 0, 210, 45, 'F');
+      
+      // Company Name
+      doc.setFontSize(26);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text('SUH TECH PRIVATE LIMITED', 105, yPos, { align: 'center' });
+      
+      yPos += 8;
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
+      doc.text('D-8, 4th Floor, Habitech Crystal Mall, Knowledge Park III, Greater Noida,', 105, yPos, { align: 'center' });
+      yPos += 4;
+      doc.text('Uttar Pradesh - 201310', 105, yPos, { align: 'center' });
+      yPos += 5;
+      doc.text('Email: info@suhtech.top | Phone: +91 9211056355 (WhatsApp) | Tel: +91 1204086567', 105, yPos, { align: 'center' });
+      
+      yPos = 55;
+      
+      // Invoice Title
+      doc.setFontSize(20);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('INVOICE', 105, yPos, { align: 'center' });
+      
+      yPos += 10;
+      
+      // Invoice Info Box
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      doc.setDrawColor(200, 200, 200);
+      doc.setFillColor(245, 247, 250);
+      doc.rect(14, yPos, 182, 20, 'FD');
+      
+      yPos += 6;
+      doc.setFont(undefined, 'bold');
+      doc.text('Invoice Number:', 18, yPos);
+      doc.setFont(undefined, 'normal');
+      doc.text(invoice.invoiceNumber || invoice._id, 60, yPos);
+      
+      doc.setFont(undefined, 'bold');
+      doc.text('Date:', 120, yPos);
+      doc.setFont(undefined, 'normal');
+      doc.text(new Date(invoice.invoiceDate || invoice.date).toLocaleDateString('en-IN'), 140, yPos);
+      
+      yPos += 6;
+      doc.setFont(undefined, 'bold');
+      doc.text('Status:', 18, yPos);
+      doc.setFont(undefined, 'normal');
+      
+      // Status with color
+      if (invoice.status === 'Sent') {
+        doc.setTextColor(34, 197, 94);
+      } else if (invoice.status === 'Pending') {
+        doc.setTextColor(234, 179, 8);
+      } else if (invoice.status === 'Overdue') {
+        doc.setTextColor(239, 68, 68);
+      }
+      doc.text(invoice.status, 60, yPos);
+      doc.setTextColor(0, 0, 0);
+      
+      doc.setFont(undefined, 'bold');
+      doc.text('Due Date:', 120, yPos);
+      doc.setFont(undefined, 'normal');
+      doc.text(new Date(invoice.dueDate).toLocaleDateString('en-IN'), 140, yPos);
+      
+      yPos += 16;
+      
+      // Client Information
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text('BILL TO:', 14, yPos);
+      
+      yPos += 8;
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'bold');
+      doc.text(invoice.clientName || 'N/A', 14, yPos);
+      
+      yPos += 6;
+      doc.setFont(undefined, 'normal');
+      if (invoice.clientAddress) {
+        doc.text(invoice.clientAddress, 14, yPos);
+        yPos += 6;
+      }
+      if (invoice.clientPhone || invoice.contact) {
+        doc.text('Phone: ' + (invoice.clientPhone || invoice.contact), 14, yPos);
+        yPos += 6;
+      }
+      if (invoice.clientEmail) {
+        doc.text('Email: ' + invoice.clientEmail, 14, yPos);
+        yPos += 6;
+      }
+      
+      yPos += 8;
+      
+      // Services/Phases Table
+      if (Array.isArray(invoice.phases) && invoice.phases.some(p => Number(p.price) > 0)) {
+        // Phases exist
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('PHASES:', 14, yPos);
+        yPos += 8;
+        
+        const phasesData = invoice.phases
+          .filter(p => Number(p.price) > 0)
+          .map((phase, idx) => [
+            idx + 1,
+            phase.remarks || 'N/A',
+            phase.serviceType || 'N/A',
+            new Date(phase.startDate).toLocaleDateString('en-IN'),
+            new Date(phase.endDate).toLocaleDateString('en-IN'),
+            'Rs. ' + Number(phase.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })
+          ]);
+        
+        autoTable(doc, {
+          startY: yPos,
+          head: [['#', 'Remarks', 'Service Type', 'Start Date', 'End Date', 'Amount']],
+          body: phasesData,
+          theme: 'grid',
+          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 9 },
+          bodyStyles: { fontSize: 8 },
+          columnStyles: {
+            0: { cellWidth: 10 },
+            5: { halign: 'right' }
+          },
+        });
+        
+        yPos = doc.lastAutoTable.finalY + 10;
+      } else if (invoice.services && invoice.services.length > 0) {
+        // Services exist
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('SERVICES:', 14, yPos);
+        yPos += 8;
+        
+        const servicesData = invoice.services.map((service, idx) => [
+          idx + 1,
+          service.description || 'Service',
+          'Rs. ' + Number(service.rate || service.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })
+        ]);
+        
+        autoTable(doc, {
+          startY: yPos,
+          head: [['#', 'Description', 'Amount']],
+          body: servicesData,
+          theme: 'grid',
+          headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 9 },
+          bodyStyles: { fontSize: 9 },
+          columnStyles: {
+            0: { cellWidth: 10 },
+            2: { halign: 'right', cellWidth: 40 }
+          },
+        });
+        
+        yPos = doc.lastAutoTable.finalY + 10;
+      }
+      
+      // Total Amount Box
+      doc.setFillColor(245, 247, 250);
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(120, yPos, 76, 30, 'FD');
+      
+      yPos += 8;
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      
+      if (invoice.subtotal) {
+        doc.text('Subtotal:', 124, yPos);
+        doc.text('Rs. ' + Number(invoice.subtotal).toLocaleString('en-IN', { minimumFractionDigits: 2 }), 192, yPos, { align: 'right' });
+        yPos += 6;
+      }
+      
+      if (invoice.discount && Number(invoice.discount) > 0) {
+        doc.text('Discount:', 124, yPos);
+        doc.text('- Rs. ' + Number(invoice.discount).toLocaleString('en-IN', { minimumFractionDigits: 2 }), 192, yPos, { align: 'right' });
+        yPos += 6;
+      }
+      
+      if (invoice.taxAmount) {
+        doc.text(`Tax (${invoice.taxRate || 18}%):`, 124, yPos);
+        doc.text('Rs. ' + Number(invoice.taxAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 }), 192, yPos, { align: 'right' });
+        yPos += 6;
+      }
+      
+      doc.setFont(undefined, 'bold');
+      doc.setFontSize(12);
+      doc.text('Total:', 124, yPos);
+      doc.text('Rs. ' + Number(invoice.total).toLocaleString('en-IN', { minimumFractionDigits: 2 }), 192, yPos, { align: 'right' });
+      
+      // Footer
+      yPos = 270;
+      doc.setFontSize(8);
+      doc.setFont(undefined, 'italic');
+      doc.setTextColor(100, 100, 100);
+      doc.text('Thank you for your business!', 105, yPos, { align: 'center' });
+      yPos += 4;
+      doc.text('For any queries, please contact us at info@suhtech.top', 105, yPos, { align: 'center' });
+      
+      // Save PDF
+      const fileName = `Invoice_${invoice.invoiceNumber || invoice._id}_${invoice.clientName.replace(/\s+/g, '_')}.pdf`;
+      doc.save(fileName);
+      
+      showToast('Invoice downloaded successfully!', 'success');
+      setActiveMenuId(null);
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+      showToast('Failed to download invoice: ' + error.message, 'error');
+    }
+  };
+
+
   // PDF Export Function - Professional Invoice Format
   const handleExportPDF = () => {
     try {
@@ -1435,7 +1654,7 @@ const parseInvoiceText = (text) => {
 
       {/* Table */}
       <div className='bg-white rounded-xl shadow-sm border border-gray-100'>
-        <div className='overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent'>
+        <div className='overflow-x-auto overflow-y-visible scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent'>
           <table className='w-full text-left border-collapse min-w-[1000px]'>
             <thead>
               <tr className='bg-gray-50 border-b border-gray-100'>
@@ -1606,12 +1825,21 @@ const parseInvoiceText = (text) => {
                                   onClick={() => handleEditInvoice(inv)}
                                   className='w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2'
                                 >
+                                  <FileText size={16} />
                                   Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDownloadInvoice(inv)}
+                                  className='w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2'
+                                >
+                                  <Download size={16} />
+                                  Download
                                 </button>
                                 <button
                                   onClick={() => handleDeleteInvoice(inv._id)}
                                   className='w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2'
                                 >
+                                  <X size={16} />
                                   Delete
                                 </button>
                               </div>

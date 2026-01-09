@@ -27,6 +27,7 @@ export default function AddEmployeeModal({ onClose, onSave }) {
     // Transform skills from comma-separated string to array
     const dataToSave = {
       ...form,
+      phone: `+91 ${form.phone}`,
       skills: form.skills.split(',').map(s => s.trim()).filter(Boolean)
     };
 
@@ -60,13 +61,13 @@ export default function AddEmployeeModal({ onClose, onSave }) {
               <Label label="Employee ID" required />
               <input
                 type="text"
-                placeholder="e.g., DEV-0001"
+                placeholder="e.g., EMP-0001"
                 value={form.employeeId}
                 onChange={(e) => updateField("employeeId", e.target.value)}
                 className="input-field"
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">Format: DEPT-XXXX (e.g., DEV-0001)</p>
+              <p className="text-xs text-gray-500 mt-1">Format: EMP-XXXX (e.g., EMP-0001)</p>
             </div>
 
             {/* First Name */}
@@ -111,14 +112,24 @@ export default function AddEmployeeModal({ onClose, onSave }) {
             {/* Mobile Number */}
             <div>
               <Label label="Phone Number" required />
-              <input
-                type="tel"
-                placeholder="e.g., +91 9876543210"
-                value={form.phone}
-                onChange={(e) => updateField("phone", e.target.value)}
-                className="input-field"
-                required
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium text-sm border-r pr-2 border-gray-300 pointer-events-none select-none">
+                  +91
+                </span>
+                <input
+                  type="text"
+                  placeholder=""
+                  value={form.phone}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    updateField("phone", val);
+                  }}
+                  className="input-field !pl-14"
+                  required
+                  pattern="[0-9]{10}"
+                  title="Please enter a valid 10-digit mobile number"
+                />
+              </div>
             </div>
 
             {/* Designation */}

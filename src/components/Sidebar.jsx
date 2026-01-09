@@ -1,5 +1,6 @@
 import {
   Briefcase,
+  CalendarCheck,
   ChevronDown,
   ChevronRight,
   DollarSign,
@@ -146,6 +147,8 @@ export default function Sidebar({ className = "", onClose }) {
         <Item icon={Home} label="Dashboard" path="/" active={isActive("/")} onClose={onClose} onClick={() => setExpensesOpen(false)} />
 
         <Item icon={User2} label="Employees" path="/employees" active={isActive("/employees")} onClose={onClose} onClick={() => setExpensesOpen(false)} />
+
+        <Item icon={CalendarCheck} label="Attendance" path="/employee-attendance" active={isActive("/employee-attendance")} onClose={onClose} onClick={() => setExpensesOpen(false)} />
 
         <Item icon={Briefcase} label="Jobs" path="/jobs" active={isActive("/jobs")} onClose={onClose} onClick={() => setExpensesOpen(false)} />
 

@@ -14,6 +14,7 @@ const CompanySales = () => {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filterStatus, setFilterStatus] = useState('All');
     const [filterPaymentMethod, setFilterPaymentMethod] = useState('All');
+    const [deleteConfirmId, setDeleteConfirmId] = useState(null);
     
     const filterRef = useRef(null);
 
@@ -52,6 +53,26 @@ const CompanySales = () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
+
+    // Close action menu dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (activeMenuId !== null) {
+                const target = event.target;
+                const isMenuButton = target.closest('button[data-action-menu-button]');
+                const isMenuContent = target.closest('[data-action-menu-content]');
+                
+                if (!isMenuButton && !isMenuContent) {
+                    setActiveMenuId(null);
+                }
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [activeMenuId]);
 
     const loadSales = async () => {
         try {
@@ -185,17 +206,22 @@ const CompanySales = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this sale entry?")) {
-            return;
-        }
+        setDeleteConfirmId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirmId) return;
+        
         try {
-            await api.deleteSale(id);
+            await api.deleteSale(deleteConfirmId);
             showToast("Sale entry deleted successfully!", 'success');
             await loadSales();
             setActiveMenuId(null);
+            setDeleteConfirmId(null);
         } catch (error) {
             console.error("Error deleting sale:", error);
             showToast("Failed to delete sale: " + error.message, 'error');
+            setDeleteConfirmId(null);
         }
     };
 
@@ -323,7 +349,7 @@ const CompanySales = () => {
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100" style={{ overflow: 'visible' }}>
                 {loading ? (
                     <div className="p-8 flex flex-col items-center justify-center">
                         <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
@@ -339,7 +365,7 @@ const CompanySales = () => {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
+                    <div>
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-100">
@@ -404,24 +430,43 @@ const CompanySales = () => {
                                         <td className="p-3 text-right">
                                             <div className="relative inline-block text-left">
                                                 <button
-                                                    onClick={() => setActiveMenuId(activeMenuId === sale._id ? null : sale._id)}
+                                                    data-action-menu-button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveMenuId(activeMenuId === sale._id ? null : sale._id);
+                                                    }}
                                                     className="p-1.5 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors"
                                                 >
                                                     <MoreVertical size={16} />
                                                 </button>
 
                                                 {activeMenuId === sale._id && (
-                                                    <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-10 py-1">
+                                                    <div 
+                                                        data-action-menu-content 
+                                                        className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1"
+                                                        style={{
+                                                            bottom: 'auto',
+                                                            top: '100%'
+                                                        }}
+                                                    >
                                                         <button
                                                             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                                                            onClick={() => openEditModal(sale)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                openEditModal(sale);
+                                                                setActiveMenuId(null);
+                                                            }}
                                                         >
                                                             <Edit2 size={14} />
                                                             Edit
                                                         </button>
                                                         <button
                                                             className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                                            onClick={() => handleDelete(sale._id)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDelete(sale._id);
+                                                                setActiveMenuId(null);
+                                                            }}
                                                         >
                                                             <Trash2 size={14} />
                                                             Delete
@@ -505,6 +550,40 @@ const CompanySales = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deleteConfirmId && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white w-full max-w-md mx-4 rounded-xl shadow-lg p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                <Trash2 size={24} className="text-red-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">Delete Sale Entry</h3>
+                                <p className="text-sm text-gray-500">This action cannot be undone</p>
+                            </div>
+                        </div>
+                        <p className="text-gray-600 mb-6">
+                            Are you sure you want to delete this sale entry? All data associated with this entry will be permanently removed.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setDeleteConfirmId(null)}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                            >
+                                Delete
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -23,6 +23,7 @@ const EmployeeSalary = () => {
         role: '',
         status: ''
     });
+    const [deleteConfirmId, setDeleteConfirmId] = useState(null);
     
     const filterRef = useRef(null);
 
@@ -65,6 +66,26 @@ const EmployeeSalary = () => {
         };
     }, []);
 
+    // Close action menu dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (activeMenuId !== null) {
+                const target = event.target;
+                const isMenuButton = target.closest('button[data-action-menu-button]');
+                const isMenuContent = target.closest('[data-action-menu-content]');
+                
+                if (!isMenuButton && !isMenuContent) {
+                    setActiveMenuId(null);
+                }
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [activeMenuId]);
+
     const loadEmployeeSalaries = async () => {
         try {
             setLoading(true);
@@ -101,10 +122,22 @@ const EmployeeSalary = () => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setNewSalary(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        
+        // Special handling for phone number
+        if (name === 'phone') {
+            // Remove any non-digit characters and limit to 10 digits
+            const digits = value.replace(/\D/g, '').slice(0, 10);
+            
+            setNewSalary(prev => ({
+                ...prev,
+                [name]: digits
+            }));
+        } else {
+            setNewSalary(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
     };
 
 
@@ -117,7 +150,7 @@ const EmployeeSalary = () => {
                 employeeName: newSalary.employeeName,
                 role: newSalary.role,
                 department: newSalary.department,
-                phone: newSalary.phone,
+                phone: newSalary.phone ? `+91${newSalary.phone}` : '',
                 email: newSalary.email,
                 paymentDate: newSalary.paymentDate,
                 paymentMode: newSalary.paymentMode,
@@ -185,7 +218,7 @@ const EmployeeSalary = () => {
             employeeName: emp.employeeName || emp.name || '',
             role: emp.role || '',
             department: emp.department || '',
-            phone: emp.phone || '',
+            phone: emp.phone ? emp.phone.replace(/^\+91/, '') : '',
             email: emp.email || '',
             status: emp.status || 'Pending',
             paymentMode: emp.paymentMode || 'Bank Transfer',
@@ -201,16 +234,22 @@ const EmployeeSalary = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this salary entry?")) {
-            return;
-        }
+        setDeleteConfirmId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirmId) return;
+        
         try {
-            await api.deleteEmployeeSalary(id);
+            await api.deleteEmployeeSalary(deleteConfirmId);
             await loadEmployeeSalaries();
             setActiveMenuId(null);
+            setDeleteConfirmId(null);
+            showToast("Salary entry deleted successfully!", 'success');
         } catch (error) {
             console.error("Error deleting salary:", error);
             showToast("Failed to delete salary: " + error.message, 'error');
+            setDeleteConfirmId(null);
         }
     };
 
@@ -493,7 +532,7 @@ const EmployeeSalary = () => {
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100" style={{ overflow: 'visible' }}>
                 {loading ? (
                     <div className="p-8 flex flex-col items-center justify-center">
                         <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
@@ -509,8 +548,8 @@ const EmployeeSalary = () => {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[1000px]">
+                    <div>
+                        <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-100">
                                     <th className="p-4 font-semibold text-gray-600 text-sm">Slip No</th>
@@ -578,24 +617,44 @@ const EmployeeSalary = () => {
                                                 </button>
                                                 <div className="relative">
                                                     <button
-                                                        onClick={() => setActiveMenuId(activeMenuId === emp._id ? null : emp._id)}
+                                                        data-action-menu-button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            console.log('Clicked employee ID:', emp._id, 'Current activeMenuId:', activeMenuId);
+                                                            setActiveMenuId(activeMenuId === emp._id ? null : emp._id);
+                                                        }}
                                                         className="p-2 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors"
                                                     >
                                                         <MoreVertical size={18} />
                                                     </button>
 
                                                     {activeMenuId === emp._id && (
-                                                        <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-10 py-1">
+                                                        <div 
+                                                            data-action-menu-content 
+                                                            className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1"
+                                                            style={{
+                                                                bottom: 'auto',
+                                                                top: '100%'
+                                                            }}
+                                                        >
                                                             <button
                                                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                                                                onClick={() => handleEdit(emp)}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleEdit(emp);
+                                                                    setActiveMenuId(null);
+                                                                }}
                                                             >
                                                                 <Edit2 size={16} />
                                                                 Edit
                                                             </button>
                                                             <button
                                                                 className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                                                onClick={() => handleDelete(emp._id)}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDelete(emp._id);
+                                                                    setActiveMenuId(null);
+                                                                }}
                                                             >
                                                                 <X size={16} />
                                                                 Delete
@@ -641,7 +700,25 @@ const EmployeeSalary = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                                <input type="text" name="phone" value={newSalary.phone} onChange={handleInputChange} required className="w-full p-2 border border-gray-300 rounded-lg" />
+                                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                                    <span className="px-3 py-2 bg-gray-100 text-gray-700 font-medium border-r border-gray-300">+91</span>
+                                    <input 
+                                        type="number" 
+                                        name="phone" 
+                                        value={newSalary.phone} 
+                                        onChange={handleInputChange} 
+                                        placeholder="Enter 10 digit mobile number"
+                                        required 
+                                        className="flex-1 p-2 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                        maxLength="10"
+                                        onInput={(e) => {
+                                            if (e.target.value.length > 10) {
+                                                e.target.value = e.target.value.slice(0, 10);
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">Enter exactly 10 digits</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -733,6 +810,40 @@ const EmployeeSalary = () => {
                             >
                                 <Download size={18} />
                                 Download Invoice
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deleteConfirmId && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white w-full max-w-md mx-4 rounded-xl shadow-lg p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                <X size={24} className="text-red-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">Delete Salary Entry</h3>
+                                <p className="text-sm text-gray-500">This action cannot be undone</p>
+                            </div>
+                        </div>
+                        <p className="text-gray-600 mb-6">
+                            Are you sure you want to delete this salary entry? All data associated with this entry will be permanently removed.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setDeleteConfirmId(null)}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                            >
+                                Delete
                             </button>
                         </div>
                     </div>

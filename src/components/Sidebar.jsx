@@ -13,6 +13,7 @@ import {
   Receipt,
   Settings,
   User2,
+  Users,
   X
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -70,11 +71,13 @@ function Item({
 export default function Sidebar({ className = "", onClose }) {
   const location = useLocation();
   const [expensesOpen, setExpensesOpen] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(false);
   const [userProfile, setUserProfile] = useState({ firstName: '', lastName: '', role: '' });
 
   // Helper functions //
   const isActive = (path) => location.pathname === path;
   const isExpensesActive = location.pathname.startsWith("/expenses") && !location.pathname.startsWith("/expenses/invoices");
+  const isProjectsActive = location.pathname.startsWith("/projects") || isActive("/clients");
 
   // Helper function to get initials from name
   const getInitials = (firstName, lastName) => {
@@ -83,10 +86,14 @@ export default function Sidebar({ className = "", onClose }) {
     return `${first}${last}` || 'NA';
   };
 
-  // Auto-open expenses submenu when inside expenses section //
+  // Auto-open submenus when inside their sections //
   useEffect(() => {
     if (isExpensesActive) setExpensesOpen(true);
   }, [isExpensesActive]);
+
+  useEffect(() => {
+    if (isProjectsActive) setProjectsOpen(true);
+  }, [isProjectsActive]);
 
   // Load user profile
   useEffect(() => {
@@ -124,9 +131,9 @@ export default function Sidebar({ className = "", onClose }) {
       {/* TOP HEADER */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center">
-          <img  
-            src="/SUH_TECH_WEBHeader_LOGO (12).svg" 
-            alt="SUH Tech Logo" 
+          <img
+            src="/SUH_TECH_WEBHeader_LOGO (12).svg"
+            alt="SUH Tech Logo"
             className="h-8 w-auto max-w-[140px] object-contain"
           />
         </div>
@@ -144,23 +151,71 @@ export default function Sidebar({ className = "", onClose }) {
 
       {/* NAVIGATION */}
       <nav className="flex-1 space-y-1">
-        <Item icon={Home} label="Dashboard" path="/" active={isActive("/")} onClose={onClose} onClick={() => setExpensesOpen(false)} />
+        <Item icon={Home} label="Dashboard" path="/" active={isActive("/")} onClose={onClose} onClick={() => { setExpensesOpen(false); setProjectsOpen(false); }} />
 
-        <Item icon={User2} label="Employees" path="/employees" active={isActive("/employees")} onClose={onClose} onClick={() => setExpensesOpen(false)} />
+        <Item icon={User2} label="Employees" path="/employees" active={isActive("/employees")} onClose={onClose} onClick={() => { setExpensesOpen(false); setProjectsOpen(false); }} />
 
-        <Item icon={CalendarCheck} label="Attendance" path="/employee-attendance" active={isActive("/employee-attendance")} onClose={onClose} onClick={() => setExpensesOpen(false)} />
+        <Item icon={CalendarCheck} label="Attendance" path="/employee-attendance" active={isActive("/employee-attendance")} onClose={onClose} onClick={() => { setExpensesOpen(false); setProjectsOpen(false); }} />
 
-        <Item icon={Briefcase} label="Jobs" path="/jobs" active={isActive("/jobs")} onClose={onClose} onClick={() => setExpensesOpen(false)} />
+        <Item icon={Briefcase} label="Jobs" path="/jobs" active={isActive("/jobs")} onClose={onClose} onClick={() => { setExpensesOpen(false); setProjectsOpen(false); }} />
 
-        <Item icon={Folder} label="Projects" path="/projects" active={isActive("/projects")} onClose={onClose} onClick={() => setExpensesOpen(false)} />
+        {/* ================= PROJECTS DROPDOWN ================= */}
+        <div>
+          <Item
+            icon={Folder}
+            label="Projects"
+            hasSubmenu
+            isOpen={projectsOpen}
+            active={location.pathname.startsWith("/projects") || isActive("/clients")}
+            onClick={() => setProjectsOpen(!projectsOpen)}
+            onClose={onClose}
+          />
 
-        <Item icon={FileText} label="Blog" path="/blog" active={isActive("/blog")} onClose={onClose} onClick={() => setExpensesOpen(false)} />
+          {/* Dropdown content */}
+          <div
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${projectsOpen ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
+              }`}
+          >
+            <div className="ml-9 pl-2 space-y-1 mt-1 mb-2">
+              <Link
+                to="/projects"
+                onClick={() => {
+                  if (onClose) onClose();
+                }}
+                className={`block px-3 py-2 rounded-lg text-sm transition
+                ${isActive("/projects")
+                    ? "bg-blue-50 text-blue-600 font-medium"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  }`}
+              >
+                All Projects
+              </Link>
 
-        <Item icon={Newspaper} label="Newsletter" path="/newsletter" active={isActive("/newsletter")} onClose={onClose} onClick={() => setExpensesOpen(false)} />
 
-        <Item icon={Mail} label="Messages" path="/messages" active={isActive("/messages")} onClose={onClose} onClick={() => setExpensesOpen(false)} />
+              <Link
+                to="/clients"
+                onClick={() => {
+                  if (onClose) onClose();
+                }}
+                className={`block px-3 py-2 rounded-lg text-sm transition
+                ${isActive("/clients")
+                    ? "bg-blue-50 text-blue-600 font-medium"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  }`}
+              >
+                Clients
+              </Link>
+            </div>
+          </div>
+        </div>
 
-        <Item icon={Receipt} label="Invoices" path="/expenses/invoices" active={isActive("/expenses/invoices")} onClose={onClose} onClick={() => setExpensesOpen(false)} />
+        <Item icon={FileText} label="Blog" path="/blog" active={isActive("/blog")} onClose={onClose} onClick={() => { setExpensesOpen(false); setProjectsOpen(false); }} />
+
+        <Item icon={Newspaper} label="Newsletter" path="/newsletter" active={isActive("/newsletter")} onClose={onClose} onClick={() => { setExpensesOpen(false); setProjectsOpen(false); }} />
+
+        <Item icon={Mail} label="Messages" path="/messages" active={isActive("/messages")} onClose={onClose} onClick={() => { setExpensesOpen(false); setProjectsOpen(false); }} />
+
+        <Item icon={Receipt} label="Invoices" path="/expenses/invoices" active={isActive("/expenses/invoices")} onClose={onClose} onClick={() => { setExpensesOpen(false); setProjectsOpen(false); }} />
 
         {/* ================= EXPENSES DROPDOWN ================= */}
         <div>

@@ -25,6 +25,7 @@ const CompanyExpenses = () => {
     const [filterCategory, setFilterCategory] = useState('All');
     const [filterPaymentMethod, setFilterPaymentMethod] = useState('All');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [deleteConfirmId, setDeleteConfirmId] = useState(null);
     
     const filterRef = useRef(null);
 
@@ -50,6 +51,26 @@ const CompanyExpenses = () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
+
+    // Close action menu dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (activeMenuId !== null) {
+                const target = event.target;
+                const isMenuButton = target.closest('button[data-action-menu-button]');
+                const isMenuContent = target.closest('[data-action-menu-content]');
+                
+                if (!isMenuButton && !isMenuContent) {
+                    setActiveMenuId(null);
+                }
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [activeMenuId]);
 
     const loadExpenses = async () => {
         try {
@@ -165,15 +186,23 @@ const CompanyExpenses = () => {
     };
 
     const handleDeleteExpense = async (expenseId) => {
+        setDeleteConfirmId(expenseId);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirmId) return;
+        
         try {
-            await api.deleteExpense(expenseId);
+            await api.deleteExpense(deleteConfirmId);
             await loadExpenses();
             showToast('Successfully deleted this expense', 'success');
+            setActiveMenuId(null);
+            setDeleteConfirmId(null);
         } catch (error) {
             console.error('Error deleting expense:', error);
             showToast('Failed to delete expense: ' + error.message, 'error');
+            setDeleteConfirmId(null);
         }
-        setActiveMenuId(null);
     };
 
     return (
@@ -330,9 +359,9 @@ const CompanyExpenses = () => {
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[1000px]">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100" style={{ overflow: 'visible' }}>
+                <div>
+                    <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-gray-50 border-b border-gray-100">
                                 <th className="p-4 font-semibold text-gray-600 text-sm">Expense Details</th>
@@ -385,21 +414,40 @@ const CompanyExpenses = () => {
                                         <td className="p-4 text-right">
                                             <div className="relative">
                                                 <button
-                                                    onClick={() => setActiveMenuId(activeMenuId === expense._id ? null : expense._id)}
+                                                    data-action-menu-button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveMenuId(activeMenuId === expense._id ? null : expense._id);
+                                                    }}
                                                     className="p-2 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                                                 >
                                                     <MoreVertical size={18} />
                                                 </button>
                                                 {activeMenuId === expense._id && (
-                                                    <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-10 py-1">
+                                                    <div 
+                                                        data-action-menu-content 
+                                                        className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1"
+                                                        style={{
+                                                            bottom: 'auto',
+                                                            top: '100%'
+                                                        }}
+                                                    >
                                                         <button
-                                                            onClick={() => handleEditExpense(expense)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleEditExpense(expense);
+                                                                setActiveMenuId(null);
+                                                            }}
                                                             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                                                         >
                                                             Edit
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDeleteExpense(expense._id)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeleteExpense(expense._id);
+                                                                setActiveMenuId(null);
+                                                            }}
                                                             className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                                                         >
                                                             Delete
@@ -501,6 +549,40 @@ const CompanyExpenses = () => {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deleteConfirmId && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white w-full max-w-md mx-4 rounded-xl shadow-lg p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                <X size={24} className="text-red-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">Delete Expense</h3>
+                                <p className="text-sm text-gray-500">This action cannot be undone</p>
+                            </div>
+                        </div>
+                        <p className="text-gray-600 mb-6">
+                            Are you sure you want to delete this expense? All data associated with this expense will be permanently removed.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setDeleteConfirmId(null)}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                            >
+                                Delete
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -16,6 +16,7 @@ import Invoices from "./pages/expenses/Invoices";
 
 import BlogPage from "./pages/BlogPage";
 import Dashboard from "./pages/Dashboard";
+import EmployeeAttendance from "./pages/EmployeeAttendance";
 import JobsPage from "./pages/JobsPage";
 import MessagesPage from "./pages/Messages";
 import NewsletterPage from "./pages/NewsletterPage";
@@ -54,6 +55,7 @@ export default function App() {
           {/* EMPLOYEE ROUTES - Now inside Layout */}
           <Route path="employees" element={<EmployeePage />} />
           <Route path="employee/:id" element={<EmployeeViewPage />} />
+          <Route path="employee-attendance" element={<EmployeeAttendance />} />
 
           <Route path="profile" element={<MyProfile />} />
           <Route path="settings" element={<Settings />} />

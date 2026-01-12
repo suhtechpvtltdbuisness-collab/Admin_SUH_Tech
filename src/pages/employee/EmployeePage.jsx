@@ -49,6 +49,12 @@ export default function EmployeePage() {
 
   const handleAddEmployee = async (newEmp) => {
     try {
+      // Check for duplicate Employee ID
+      if (employees.some(emp => emp.employeeId === newEmp.employeeId)) {
+        showToast("Employee ID already exists! Please use a unique ID.", 'error');
+        return;
+      }
+
       await api.createEmployee(newEmp);
       await loadEmployees();
       setShowAddModal(false);

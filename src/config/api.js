@@ -191,22 +191,125 @@ export const api = {
   }),
 
   // Employees
-  getEmployees: (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    return apiRequest(`/employees${queryString ? `?${queryString}` : ''}`);
+  getEmployees: async (params = {}) => {
+    try {
+      const queryString = new URLSearchParams(params).toString();
+      const response = await apiRequest(`/employees${queryString ? `?${queryString}` : ''}`);
+      
+      // MERGE STRATEGY: Backend Data + Local Only Data + Locally Modified Data
+      const localEmployees = JSON.parse(localStorage.getItem('employees') || '[]');
+      
+      // 1. Get backend employees
+      let finalEmployees = [...response.employees];
+      
+      // 2. Append locally created employees (ids starting with 'local_')
+      const localOnly = localEmployees.filter(e => e._id && e._id.toString().startsWith('local_'));
+      finalEmployees = [...finalEmployees, ...localOnly];
+      
+      // 3. Apply local edits (if any item is marked as locally modified)
+      finalEmployees = finalEmployees.map(backendEmp => {
+        const localVersion = localEmployees.find(l => l._id === backendEmp._id);
+        if (localVersion && localVersion._isLocallyModified) {
+          return localVersion;
+        }
+        return backendEmp;
+      });
+
+      // Update localStorage with the merged result
+      localStorage.setItem('employees', JSON.stringify(finalEmployees));
+      
+      // Return merged result
+      return { ...response, employees: finalEmployees };
+      
+    } catch (error) {
+      console.warn('Backend unavailable, using localStorage:', error.message);
+      const employees = JSON.parse(localStorage.getItem('employees') || 'null');
+      
+      if (!employees) {
+        // Default mock data if nothing in storage
+        const defaultEmployees = [
+          { _id: '1', name: 'Rahul Sharma', employeeId: 'EMP001', department: 'Engineering', avatar: '👨‍💻', status: 'Present' },
+          { _id: '2', name: 'Priya Singh', employeeId: 'EMP002', department: 'Design', avatar: '👩‍🎨', status: 'Present' },
+          { _id: '3', name: 'Amit Kumar', employeeId: 'EMP003', department: 'Marketing', avatar: '👨‍💼', status: 'Absent' },
+          { _id: '4', name: 'Sneha Patel', employeeId: 'EMP004', department: 'HR', avatar: '👩‍💼', status: 'Present' },
+          { _id: '5', name: 'Vikash Verma', employeeId: 'EMP005', department: 'Engineering', avatar: '👨‍🔧', status: 'Late' },
+          { _id: '6', name: 'Anjali Gupta', employeeId: 'EMP006', department: 'Sales', avatar: '👩‍💻', status: 'Leave' }
+        ];
+        localStorage.setItem('employees', JSON.stringify(defaultEmployees));
+        return { employees: defaultEmployees };
+      }
+      return { employees };
+    }
   },
+
   getEmployee: (id) => apiRequest(`/employees/${id}`),
-  createEmployee: (data) => apiRequest('/employees', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
-  updateEmployee: (id, data) => apiRequest(`/employees/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  }),
-  deleteEmployee: (id) => apiRequest(`/employees/${id}`, {
-    method: 'DELETE',
-  }),
+
+  createEmployee: async (data) => {
+    try {
+      const response = await apiRequest('/employees', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      return response;
+    } catch (error) {
+      console.warn('Backend unavailable, saving to localStorage:', error.message);
+      const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+      
+      // Check for duplicate Employee ID
+      if (employees.some(e => e.employeeId === data.employeeId)) {
+        throw new Error('Employee ID already exists');
+      }
+
+      const newEmployee = {
+        ...data,
+        _id: `local_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+      };
+      employees.push(newEmployee);
+      localStorage.setItem('employees', JSON.stringify(employees));
+      return { employee: newEmployee };
+    }
+  },
+
+  updateEmployee: async (id, data) => {
+    try {
+      const response = await apiRequest(`/employees/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+      return response;
+    } catch (error) {
+      console.warn('Backend unavailable, updating in localStorage:', error.message);
+      const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+      const index = employees.findIndex(e => e._id === id);
+      if (index !== -1) {
+        employees[index] = {
+          ...employees[index],
+          ...data,
+          _isLocallyModified: true, // Mark as locally modified to win merge
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem('employees', JSON.stringify(employees));
+        return { employee: employees[index] };
+      }
+      throw new Error('Employee not found');
+    }
+  },
+
+  deleteEmployee: async (id) => {
+    try {
+      const response = await apiRequest(`/employees/${id}`, {
+        method: 'DELETE',
+      });
+      return response;
+    } catch (error) {
+      console.warn('Backend unavailable, deleting from localStorage:', error.message);
+      const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+      const filtered = employees.filter(e => e._id !== id);
+      localStorage.setItem('employees', JSON.stringify(filtered));
+      return { success: true };
+    }
+  },
 
   // Orders
   getOrders: (params = {}) => {

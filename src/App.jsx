@@ -21,6 +21,7 @@ import JobsPage from "./pages/JobsPage";
 import MessagesPage from "./pages/Messages";
 import NewsletterPage from "./pages/NewsletterPage";
 import ProjectsPage from "./pages/ProjectsPage";
+import ClientsPage from "./pages/ClientsPage";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import Login from "./pages/auth/Login";
 import ResetPassword from "./pages/auth/ResetPassword";
@@ -48,6 +49,7 @@ export default function App() {
 
           <Route path="jobs" element={<JobsPage />} />
           <Route path="projects" element={<ProjectsPage />} />
+          <Route path="clients" element={<ClientsPage />} />
           <Route path="blog" element={<BlogPage />} />
           <Route path="newsletter" element={<NewsletterPage />} />
           <Route path="messages" element={<MessagesPage />} />

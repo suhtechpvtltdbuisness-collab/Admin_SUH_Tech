@@ -1,9 +1,11 @@
 import { Edit2, MoreVertical, Plus, Trash2, ExternalLink, Mail, Ban, CheckCircle2, Clock, Search } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Toast from "../components/Toast";
 import api from "../config/api";
 
 export default function ClientsPage() {
+  const navigate = useNavigate();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeMenuId, setActiveMenuId] = useState(null);
@@ -89,7 +91,7 @@ export default function ClientsPage() {
   const handleAction = (action, client) => {
     setActiveMenuId(null);
     if (action === "view") {
-      showToast(`Viewing client: ${client.organizationName}`);
+      navigate(`/client/${client._id}`);
     } else if (action === "resendEmail") {
       showToast(`Resending email to ${client.adminEmail}`);
     } else if (action === "disable") {

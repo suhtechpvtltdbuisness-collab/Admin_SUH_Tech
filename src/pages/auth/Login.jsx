@@ -33,6 +33,7 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (validate()) {
       setIsLoading(true);
       try {
@@ -40,7 +41,15 @@ export default function Login() {
           formData.email,
           formData.password
         );
-        navigate("/"); // Redirect to dashboard
+
+        if (response.success) {
+          navigate("/"); // Redirect to dashboard
+        } else {
+          setErrors({
+            submit: response.message || "Login failed. Please check your credentials.",
+          });
+          setIsLoading(false);
+        }
       } catch (error) {
         setErrors({
           submit:
@@ -83,10 +92,9 @@ export default function Login() {
               <input
                 type="email"
                 className={`w-full pl-10 pr-4 py-2.5 rounded-xl border bg-gray-50/50 focus:bg-white text-sm outline-none transition-all duration-200
-                  ${
-                    errors.email
-                      ? "border-red-300 focus:ring-4 focus:ring-red-100"
-                      : "border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                  ${errors.email
+                    ? "border-red-300 focus:ring-4 focus:ring-red-100"
+                    : "border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
                   }`}
                 placeholder="you@example.com"
                 value={formData.email}
@@ -111,7 +119,7 @@ export default function Login() {
               </label>
               <Link
                 to="/forgot-password"
-                class="text-xs font-medium text-blue-600 hover:text-blue-700 transition"
+                className="text-xs font-medium text-blue-600 hover:text-blue-700 transition"
               >
                 Forgot Password?
               </Link>
@@ -123,10 +131,9 @@ export default function Login() {
               <input
                 type={showPassword ? "text" : "password"}
                 className={`w-full pl-10 pr-10 py-2.5 rounded-xl border bg-gray-50/50 focus:bg-white text-sm outline-none transition-all duration-200
-                  ${
-                    errors.password
-                      ? "border-red-300 focus:ring-4 focus:ring-red-100"
-                      : "border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                  ${errors.password
+                    ? "border-red-300 focus:ring-4 focus:ring-red-100"
+                    : "border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
                   }`}
                 placeholder="••••••••"
                 value={formData.password}
@@ -155,10 +162,9 @@ export default function Login() {
             type="submit"
             disabled={isLoading}
             className={`w-full py-3 px-4 rounded-xl text-white text-sm font-semibold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2
-              ${
-                isLoading
-                  ? "bg-blue-400 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
+              ${isLoading
+                ? "bg-blue-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
               }`}
           >
             {isLoading ? (

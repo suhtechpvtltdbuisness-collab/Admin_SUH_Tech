@@ -1,27 +1,26 @@
-import { ChevronDown, Download, Eye, Plus, Search, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronUp, Plus, Search, X, Download, Eye, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AddEmployeeModal from "../../components/employee/AddEmployeeModal";
 import Toast from "../../components/Toast";
-import api from "../../config/api";
+import { employeeService } from "../../services";
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function EmployeePage() {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showAddModal, setShowAddModal] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [toast, setToast] = useState(null);
-  const itemsPerPage = 10;
-
-  // Filters State //
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
     department: "",
-    status: ""
+    status: "",
   });
+  const [toast, setToast] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+  const itemsPerPage = 10; // This was not removed in the diff, keeping it.
+  const [currentPage, setCurrentPage] = useState(1); // This was not removed in the diff, keeping it.
 
   // Toast helper
   const showToast = (message, type = 'success') => {
@@ -37,8 +36,8 @@ export default function EmployeePage() {
   const loadEmployees = async () => {
     try {
       setLoading(true);
-      const response = await api.getEmployees();
-      setEmployees(response.employees || []);
+      const employeeList = await employeeService.getAllEmployees();
+      setEmployees(employeeList || []);
     } catch (error) {
       console.error("Error loading employees:", error);
       showToast("Failed to load employees: " + error.message, 'error');
@@ -47,27 +46,21 @@ export default function EmployeePage() {
     }
   };
 
-  const handleAddEmployee = async (newEmp) => {
+  const handleAddEmployee = async (newEmployee) => {
     try {
-      // Check for duplicate Employee ID
-      if (employees.some(emp => emp.employeeId === newEmp.employeeId)) {
-        showToast("Employee ID already exists! Please use a unique ID.", 'error');
-        return;
-      }
-
-      await api.createEmployee(newEmp);
+      // The employee is already created in the modal, just refresh the list
       await loadEmployees();
       setShowAddModal(false);
       showToast("Employee added successfully!", 'success');
     } catch (error) {
-      console.error("Error adding employee:", error);
-      showToast("Failed to add employee: " + error.message, 'error');
+      console.error("Error refreshing employees:", error);
+      showToast("Failed to refresh employee list: " + error.message, 'error');
     }
   };
 
   const filteredEmployees = useMemo(() => {
-    return employees.filter(emp => {
-      const fullName = `${emp.firstName} ${emp.lastName}`.toLowerCase();
+    const filtered = employees.filter(emp => {
+      const fullName = `${emp.firstName || ''} ${emp.lastName || ''}`.toLowerCase();
       const matchesSearch =
         fullName.includes(searchTerm.toLowerCase()) ||
         emp.employeeId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -78,6 +71,8 @@ export default function EmployeePage() {
 
       return matchesSearch && matchesDept && matchesStatus;
     });
+
+    return filtered;
   }, [employees, searchTerm, filters]);
 
   // Pagination Logic
@@ -235,7 +230,7 @@ export default function EmployeePage() {
           </div>
 
           <div className="flex gap-3 w-full md:w-auto">
-            <button 
+            <button
               onClick={handleExportPDF}
               className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-all text-sm shadow-sm flex-1 md:flex-none hover:shadow-md"
             >
@@ -333,89 +328,88 @@ export default function EmployeePage() {
               </p>
             </div>
           ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gradient-to-r from-gray-50 to-transparent border-b border-gray-200 text-xs text-gray-600 uppercase tracking-wider font-semibold">
-                  <th className="p-4 w-12 text-center">Sr. No.</th>
-                  <th className="p-4">Employee Name</th>
-                  <th className="p-4">ID</th>
-                  <th className="p-4">Department</th>
-                  <th className="p-4">Designation</th>
-                  <th className="p-4">Joining Date</th>
-                  <th className="p-4">Email</th>
-                  <th className="p-4 text-center">Status</th>
-                  <th className="p-4 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm divide-y divide-gray-100">
-                {paginatedEmployees.map((emp, index) => (
-                  <tr key={emp._id} className="hover:bg-blue-50/30 transition-colors duration-150">
-                    <td className="p-4 text-center text-gray-400 text-xs">
-                      {((currentPage - 1) * itemsPerPage + index + 1).toString().padStart(2, '0')}
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-sm font-bold">
-                          {emp.firstName?.[0]}{emp.lastName?.[0]}
-                        </div>
-                        <span className="font-semibold text-gray-900">{emp.firstName} {emp.lastName}</span>
-                      </div>
-                    </td>
-                    <td className="p-4 text-gray-600 font-mono text-xs font-medium">{emp.employeeId}</td>
-                    <td className="p-4 text-gray-700 font-medium">{emp.department}</td>
-                    <td className="p-4 text-gray-700">{emp.designation}</td>
-                    <td className="p-4 text-gray-500 text-xs font-medium">{formatDate(emp.joiningDate)}</td>
-                    <td className="p-4 text-blue-600 text-xs font-medium">{emp.email}</td>
-                    <td className="p-4 text-center">
-                      <span className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold ${
-                        emp.status === "Active" ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200" :
-                        emp.status === "On Leave" ? "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200" :
-                        emp.status === "Resigned" ? "bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border border-purple-200" :
-                        "bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border border-red-200"
-                      }`}>
-                        {emp.status}
-                      </span>
-                    </td>
-                    <td className="p-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => navigate(`/employee/${emp._id || emp.employeeId}`)}
-                          className="p-2 rounded-xl hover:bg-blue-50 text-blue-600 transition-all duration-200"
-                          title="View Profile"
-                        >
-                          <Eye size={18} />
-                        </button>
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gradient-to-r from-gray-50 to-transparent border-b border-gray-200 text-xs text-gray-600 uppercase tracking-wider font-semibold">
+                    <th className="p-4 w-12 text-center">Sr. No.</th>
+                    <th className="p-4">Employee Name</th>
+                    <th className="p-4">ID</th>
+                    <th className="p-4">Department</th>
+                    <th className="p-4">Designation</th>
+                    <th className="p-4">Joining Date</th>
+                    <th className="p-4">Email</th>
+                    <th className="p-4 text-center">Status</th>
+                    <th className="p-4 text-center">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="text-sm divide-y divide-gray-100">
+                  {paginatedEmployees.map((emp, index) => (
+                    <tr key={emp._id} className="hover:bg-blue-50/30 transition-colors duration-150">
+                      <td className="p-4 text-center text-gray-400 text-xs">
+                        {((currentPage - 1) * itemsPerPage + index + 1).toString().padStart(2, '0')}
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-sm font-bold">
+                            {emp.firstName?.[0]}{emp.lastName?.[0]}
+                          </div>
+                          <span className="font-semibold text-gray-900">{emp.firstName} {emp.lastName}</span>
+                        </div>
+                      </td>
+                      <td className="p-4 text-gray-600 font-mono text-xs font-medium">{emp.employeeId}</td>
+                      <td className="p-4 text-gray-700 font-medium">{emp.department}</td>
+                      <td className="p-4 text-gray-700">{emp.designation}</td>
+                      <td className="p-4 text-gray-500 text-xs font-medium">{formatDate(emp.joiningDate)}</td>
+                      <td className="p-4 text-blue-600 text-xs font-medium">{emp.email}</td>
+                      <td className="p-4 text-center">
+                        <span className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold ${emp.status === "Active" ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200" :
+                          emp.status === "On Leave" ? "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200" :
+                            emp.status === "Resigned" ? "bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border border-purple-200" :
+                              "bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border border-red-200"
+                          }`}>
+                          {emp.status}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => navigate(`/employee/${emp._id || emp.employeeId}`)}
+                            className="p-2 rounded-xl hover:bg-blue-50 text-blue-600 transition-all duration-200"
+                            title="View Profile"
+                          >
+                            <Eye size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
 
           {/* Pagination Controls */}
           {!loading && paginatedEmployees.length > 0 && (
-          <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center text-sm text-gray-600 bg-gradient-to-r from-gray-50/50 to-transparent">
-            <span className="font-medium">Showing {((currentPage - 1) * itemsPerPage + 1)} to {Math.min(currentPage * itemsPerPage, filteredEmployees.length)} of {filteredEmployees.length} entries</span>
-            <div className="flex gap-2 text-sm font-semibold">
-              <button
-                onClick={goToPrevPage}
-                disabled={currentPage === 1}
-                className="px-4 py-2 bg-blue-50 border-2 border-gray-200 rounded-xl hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                Previous
-              </button>
-              <button
-                onClick={goToNextPage}
-                disabled={currentPage === totalPages || totalPages === 0}
-                className="px-4 py-2 bg-blue-50 border-2 border-gray-200 rounded-xl hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                Next
-              </button>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center text-sm text-gray-600 bg-gradient-to-r from-gray-50/50 to-transparent">
+              <span className="font-medium">Showing {((currentPage - 1) * itemsPerPage + 1)} to {Math.min(currentPage * itemsPerPage, filteredEmployees.length)} of {filteredEmployees.length} entries</span>
+              <div className="flex gap-2 text-sm font-semibold">
+                <button
+                  onClick={goToPrevPage}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 bg-blue-50 border-2 border-gray-200 rounded-xl hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={goToNextPage}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="px-4 py-2 bg-blue-50 border-2 border-gray-200 rounded-xl hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  Next
+                </button>
+              </div>
             </div>
-          </div>
           )}
         </div>
       </div>
@@ -427,4 +421,3 @@ export default function EmployeePage() {
     </div>
   );
 }
-    

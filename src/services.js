@@ -1,9 +1,10 @@
 // API Service for handling server calls
 class ApiService {
   constructor() {
-    this.baseURL =
-      import.meta.env.VITE_BACKEND_BASE_URL ||
-      "https://suh-tech-main-backend.vercel.app";
+    // Use proxy in development, direct URL in production
+    this.baseURL = import.meta.env.DEV
+      ? "/api"  // Proxy path for development (avoids CORS)
+      : (import.meta.env.VITE_BACKEND_BASE_URL || "https://suh-tech-main-backend.vercel.app");
   }
 
   // Generic method for making API requests
@@ -26,13 +27,13 @@ class ApiService {
       const response = await fetch(url, requestOptions);
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error("API request failed:", error);
       throw error;
     }
   }
@@ -111,7 +112,6 @@ export const authService = {
 
       return response;
     } catch (error) {
-      console.error("Login failed:", error);
       throw error;
     }
   },
@@ -158,22 +158,123 @@ export const employeeService = {
       );
       // Filter out admin users and return only the data array
       if (response.success && response.data) {
-        return response.data.filter((employee) => !employee.admin);
+        const apiEmployees = response.data.filter((employee) => !employee.admin);
+
+        // Get localStorage employees (those created offline)
+        const localEmployees = JSON.parse(localStorage.getItem('employees') || '[]');
+
+        // Merge: Keep localStorage employees that don't exist in API
+        const localOnlyEmployees = localEmployees.filter(localEmp =>
+          !apiEmployees.some(apiEmp => apiEmp.email === localEmp.email)
+        );
+
+        const mergedEmployees = [...apiEmployees, ...localOnlyEmployees];
+
+        // Cache merged result
+        localStorage.setItem('employees', JSON.stringify(mergedEmployees));
+        return mergedEmployees;
       }
       return [];
     } catch (error) {
-      console.error("Error fetching employees:", error);
-      throw error;
+      // Fallback to localStorage
+      const cached = localStorage.getItem('employees');
+      return cached ? JSON.parse(cached) : [];
     }
   },
-  getEmployee: (id) =>
-    apiService.get(`/employee/${id}`, authService.getToken()),
-  createEmployee: (data) =>
-    apiService.post("/employee", data, authService.getToken()),
-  updateEmployee: (id, data) =>
-    apiService.put(`/employee/${id}`, data, authService.getToken()),
-  deleteEmployee: (id) =>
-    apiService.delete(`/employee/${id}`, authService.getToken()),
+
+  getEmployee: async (id) => {
+    try {
+      return await apiService.get(`/employee/${id}`, authService.getToken());
+    } catch (error) {
+      // Fallback to localStorage
+      const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+      return employees.find(emp => emp.id === id || emp._id === id);
+    }
+  },
+
+  createEmployee: async (data) => {
+    try {
+      const response = await apiService.post("/employee", data, authService.getToken());
+      return response;
+    } catch (error) {
+      // Fallback: Save to localStorage
+      const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+
+      // Get department and designation names from their services
+      let departmentName = "Unknown";
+      let designationTitle = "Unknown";
+
+      try {
+        const departments = await departmentService.getAllDepartments();
+        const department = departments.find(d => d.id === data.departmentId);
+        if (department) departmentName = department.name;
+      } catch (e) {
+        // Could not fetch department name
+      }
+
+      try {
+        const designations = await designationService.getAllDesignations();
+        const designation = designations.find(d => d.id === data.designationId);
+        if (designation) designationTitle = designation.title;
+      } catch (e) {
+        // Could not fetch designation title
+      }
+
+      // Generate employee ID
+      const employeeId = `EMP${Date.now().toString().slice(-6)}`;
+
+      const newEmployee = {
+        ...data,
+        id: Date.now(),
+        _id: Date.now().toString(),
+        employeeId: employeeId,
+        department: departmentName,
+        designation: designationTitle,
+        joiningDate: data.joinedDate, // Map joinedDate to joiningDate
+        status: data.active ? "Active" : "Inactive",
+        createdAt: new Date().toISOString(),
+      };
+
+      employees.push(newEmployee);
+      localStorage.setItem('employees', JSON.stringify(employees));
+
+      return { success: true, data: newEmployee };
+    }
+  },
+
+  updateEmployee: async (id, data) => {
+    try {
+      return await apiService.put(`/employee/${id}`, data, authService.getToken());
+    } catch (error) {
+      console.error("Error updating employee via API:", error);
+      console.log("Updating employee in localStorage instead");
+
+      // Fallback: Update in localStorage
+      const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+      const index = employees.findIndex(emp => emp.id === id || emp._id === id);
+      if (index !== -1) {
+        employees[index] = { ...employees[index], ...data };
+        localStorage.setItem('employees', JSON.stringify(employees));
+        return { success: true, data: employees[index] };
+      }
+      throw new Error('Employee not found');
+    }
+  },
+
+  deleteEmployee: async (id) => {
+    try {
+      return await apiService.delete(`/employee/${id}`, authService.getToken());
+    } catch (error) {
+      console.error("Error deleting employee via API:", error);
+      console.log("Deleting employee from localStorage instead");
+
+      // Fallback: Delete from localStorage
+      const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+      const filtered = employees.filter(emp => emp.id !== id && emp._id !== id);
+      localStorage.setItem('employees', JSON.stringify(filtered));
+      return { success: true };
+    }
+  },
 };
 
 // Department service

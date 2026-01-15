@@ -11,7 +11,7 @@ const Layout = () => {
     const [invoices, setInvoices] = useState([]);
     const [userProfile, setUserProfile] = useState({ firstName: '', lastName: '', role: '' });
     const navigate = useNavigate();
-    
+
     const notificationRef = useRef(null);
     const profileRef = useRef(null);
 
@@ -93,9 +93,9 @@ const Layout = () => {
                 <Sidebar onClose={() => setIsSidebarOpen(false)} />
             </div>
 
-            <main className="flex-1 overflow-y-auto flex flex-col h-full">
+            <main className="flex-1 flex flex-col h-full overflow-hidden">
                 {/* Header - All Devices */}
-                <div className="bg-white/90 backdrop-blur-md border-b border-gray-200 p-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+                <div className="bg-white/90 backdrop-blur-md border-b border-gray-200 p-4 flex items-center justify-between sticky top-0 z-30 shadow-sm flex-shrink-0">
                     <div className="flex items-center gap-3">
                         {/* Hamburger Menu - Mobile Only */}
                         <button
@@ -104,7 +104,7 @@ const Layout = () => {
                         >
                             <Menu size={24} />
                         </button>
-                        
+
                         {/* Dashboard Title & Welcome */}
                         <div>
                             <h2 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent">
@@ -116,11 +116,11 @@ const Layout = () => {
                             </p>
                         </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-3">
                         {/* Notification Bell */}
                         <div className="relative" ref={notificationRef}>
-                            <button 
+                            <button
                                 onClick={() => {
                                     setIsNotificationOpen(!isNotificationOpen);
                                     setIsProfileOpen(false); // Close profile when opening notifications
@@ -133,17 +133,17 @@ const Layout = () => {
                                     const today = new Date();
                                     return dueDate < today && inv.status !== 'Paid';
                                 }).length > 0 && (
-                                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                                )}
+                                        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                                    )}
                             </button>
-                            
+
                             {/* Notification Dropdown */}
                             {isNotificationOpen && (
                                 <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 max-h-[500px] overflow-hidden flex flex-col">
                                     <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
                                         <h3 className="font-bold text-gray-900">Notifications</h3>
                                     </div>
-                                    
+
                                     <div className="overflow-y-auto flex-1">
                                         {(() => {
                                             const today = new Date();
@@ -151,11 +151,11 @@ const Layout = () => {
                                                 const dueDate = new Date(inv.dueDate);
                                                 return dueDate < today && inv.status !== 'Paid';
                                             });
-                                            
+
                                             const pendingInvoices = invoices.filter(inv => inv.status === 'Pending');
                                             const sentInvoices = invoices.filter(inv => inv.status === 'Sent');
                                             const recentInvoices = invoices.slice(0, 5);
-                                            
+
                                             // Show "No notifications" only if there are NO invoices at all
                                             if (invoices.length === 0) {
                                                 return (
@@ -166,7 +166,7 @@ const Layout = () => {
                                                     </div>
                                                 );
                                             }
-                                            
+
                                             return (
                                                 <>
                                                     {/* Overdue Invoices */}
@@ -176,7 +176,7 @@ const Layout = () => {
                                                                 <p className="text-xs font-semibold text-red-700">⚠️ Overdue ({overdueInvoices.length})</p>
                                                             </div>
                                                             {overdueInvoices.slice(0, 3).map(inv => (
-                                                                <div 
+                                                                <div
                                                                     key={inv._id}
                                                                     onClick={() => {
                                                                         setIsNotificationOpen(false);
@@ -193,7 +193,7 @@ const Layout = () => {
                                                             ))}
                                                         </div>
                                                     )}
-                                                    
+
                                                     {/* Pending Invoices */}
                                                     {pendingInvoices.length > 0 && (
                                                         <div className="border-b border-gray-100">
@@ -201,7 +201,7 @@ const Layout = () => {
                                                                 <p className="text-xs font-semibold text-yellow-700">⏳ Pending ({pendingInvoices.length})</p>
                                                             </div>
                                                             {pendingInvoices.slice(0, 3).map(inv => (
-                                                                <div 
+                                                                <div
                                                                     key={inv._id}
                                                                     onClick={() => {
                                                                         setIsNotificationOpen(false);
@@ -216,7 +216,7 @@ const Layout = () => {
                                                             ))}
                                                         </div>
                                                     )}
-                                                    
+
                                                     {/* Sent Invoices */}
                                                     {sentInvoices.length > 0 && (
                                                         <div className="border-b border-gray-100">
@@ -224,7 +224,7 @@ const Layout = () => {
                                                                 <p className="text-xs font-semibold text-green-700">📤 Sent ({sentInvoices.length})</p>
                                                             </div>
                                                             {sentInvoices.slice(0, 3).map(inv => (
-                                                                <div 
+                                                                <div
                                                                     key={inv._id}
                                                                     onClick={() => {
                                                                         setIsNotificationOpen(false);
@@ -239,7 +239,7 @@ const Layout = () => {
                                                             ))}
                                                         </div>
                                                     )}
-                                                    
+
                                                     {/* Recent Activity */}
                                                     {recentInvoices.length > 0 && (
                                                         <div>
@@ -247,7 +247,7 @@ const Layout = () => {
                                                                 <p className="text-xs font-semibold text-blue-700">📋 Recent Activity</p>
                                                             </div>
                                                             {recentInvoices.map(inv => (
-                                                                <div 
+                                                                <div
                                                                     key={inv._id}
                                                                     onClick={() => {
                                                                         setIsNotificationOpen(false);
@@ -267,9 +267,9 @@ const Layout = () => {
                                             );
                                         })()}
                                     </div>
-                                    
+
                                     <div className="p-3 border-t border-gray-200 bg-gray-50">
-                                        <button 
+                                        <button
                                             onClick={() => {
                                                 setIsNotificationOpen(false);
                                                 navigate('/expenses/invoices');
@@ -344,7 +344,7 @@ const Layout = () => {
                     </div>
                 </div>
 
-                <div className="flex-1">
+                <div className="flex-1 overflow-y-auto min-h-0">
                     <Outlet />
                 </div>
             </main>

@@ -14,30 +14,30 @@ const PageLoader = () => (
   </div>
 );
 
-import Layout from "./components/Layout";
+import Layout from "./components/layout/Layout";
 
 // Lazy loaded components
-const Home = lazy(() => import("./pages/Home"));
-const CompanyExpenses = lazy(() => import("./pages/expenses/CompanyExpenses"));
-const CompanySales = lazy(() => import("./pages/expenses/CompanySales"));
-const EmployeeSalary = lazy(() => import("./pages/expenses/EmployeeSalary"));
-const Invoices = lazy(() => import("./pages/expenses/Invoices"));
-const BlogPage = lazy(() => import("./pages/BlogPage"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const EmployeeAttendance = lazy(() => import("./pages/EmployeeAttendance"));
-const JobsPage = lazy(() => import("./pages/JobsPage"));
-const MessagesPage = lazy(() => import("./pages/Messages"));
-const NewsletterPage = lazy(() => import("./pages/NewsletterPage"));
-const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
-const ClientsPage = lazy(() => import("./pages/ClientsPage"));
-const ClientViewPage = lazy(() => import("./pages/ClientViewPage"));
+const Home = lazy(() => import("./pages/dashboard/Home"));
+const CompanyExpenses = lazy(() => import("./pages/finance/CompanyExpenses"));
+const CompanySales = lazy(() => import("./pages/finance/CompanySales"));
+const EmployeeSalary = lazy(() => import("./pages/finance/EmployeeSalary"));
+const Invoices = lazy(() => import("./pages/finance/Invoices"));
+const BlogPage = lazy(() => import("./pages/content/BlogPage"));
+const Dashboard = lazy(() => import("./pages/dashboard/DashboardPage"));
+const EmployeeAttendance = lazy(() => import("./pages/hrms/EmployeeAttendance"));
+const JobsPage = lazy(() => import("./pages/jobs/JobsPage"));
+const MessagesPage = lazy(() => import("./pages/messages/MessagesPage"));
+const NewsletterPage = lazy(() => import("./pages/content/NewsletterPage"));
+const ProjectsPage = lazy(() => import("./pages/projects/ProjectsPage"));
+const ClientsPage = lazy(() => import("./pages/clients/ClientsPage"));
+const ClientViewPage = lazy(() => import("./pages/clients/ClientViewPage"));
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
 const Login = lazy(() => import("./pages/auth/Login"));
 const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
-const EmployeePage = lazy(() => import("./pages/employee/EmployeePage"));
-const EmployeeViewPage = lazy(() => import("./pages/employee/EmployeeViewPage"));
-const MyProfile = lazy(() => import("./pages/MyProfile"));
-const Settings = lazy(() => import("./pages/Settings"));
+const EmployeePage = lazy(() => import("./pages/hrms/EmployeePage"));
+const EmployeeViewPage = lazy(() => import("./pages/hrms/EmployeeViewPage"));
+const MyProfile = lazy(() => import("./pages/settings/MyProfile"));
+const Settings = lazy(() => import("./pages/settings/SettingsPage"));
 
 import "./App.css";
 

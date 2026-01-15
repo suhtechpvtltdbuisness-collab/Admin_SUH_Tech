@@ -33,6 +33,47 @@ const EmployeeAttendance = () => {
         setTimeout(() => setToast(null), 4000);
     };
 
+    // Calculate working hours from check-in and check-out times
+    const calculateWorkingHours = (checkIn, checkOut) => {
+        if (!checkIn || !checkOut || checkIn === '-' || checkOut === '-') {
+            return '0h 0m';
+        }
+
+        try {
+            // Parse time in format "02:15 PM"
+            const parseTime = (timeStr) => {
+                const [time, period] = timeStr.split(' ');
+                let [hours, minutes] = time.split(':').map(Number);
+                
+                if (period === 'PM' && hours !== 12) {
+                    hours += 12;
+                } else if (period === 'AM' && hours === 12) {
+                    hours = 0;
+                }
+                
+                return hours * 60 + minutes; // Return total minutes
+            };
+
+            const checkInMinutes = parseTime(checkIn);
+            const checkOutMinutes = parseTime(checkOut);
+            
+            let diffMinutes = checkOutMinutes - checkInMinutes;
+            
+            // Handle case where checkout is next day (rare but possible)
+            if (diffMinutes < 0) {
+                diffMinutes += 24 * 60;
+            }
+            
+            const hours = Math.floor(diffMinutes / 60);
+            const minutes = diffMinutes % 60;
+            
+            return `${hours}h ${minutes}m`;
+        } catch (error) {
+            console.error('Error calculating working hours:', error);
+            return '0h 0m';
+        }
+    };
+
     // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -100,7 +141,7 @@ const EmployeeAttendance = () => {
             ...attendance[employeeId],
             checkIn: time,
             status: 'Present',
-            hours: 'In Progress'
+            hours: '0h 0m'
         };
 
         const newAttendance = {
@@ -116,11 +157,17 @@ const EmployeeAttendance = () => {
         const now = new Date();
         const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
         
+        const currentRecord = attendance[employeeId] || {};
+        const checkInTime = currentRecord.checkIn || '-';
+        
+        // Calculate working hours
+        const workingHours = calculateWorkingHours(checkInTime, time);
+        
         const updatedRecord = {
-            ...attendance[employeeId],
+            ...currentRecord,
             checkOut: time,
             status: 'Present',
-            hours: '9h 0m' // Default hours, normally calculated or edited
+            hours: workingHours
         };
 
         const newAttendance = {
@@ -170,7 +217,7 @@ const EmployeeAttendance = () => {
                         checkIn: '-',
                         checkOut: '-',
                         status: newEmployee.status,
-                        hours: '0h'
+                        hours: '0h 0m'
                     };
                      const newAttendance = {
                         ...attendance,
@@ -214,7 +261,7 @@ const EmployeeAttendance = () => {
             employeeId: currentId,
             department: emp.department || 'Engineering',
             status: empAttendance.status || 'Present',
-            hours: empAttendance.hours || '0h'
+            hours: empAttendance.hours || '0h 0m'
         });
         setIsAddModalOpen(true);
     };
@@ -365,7 +412,7 @@ const EmployeeAttendance = () => {
             const rows = [
                 ['Check In', att.checkIn || '-'],
                 ['Check Out', att.checkOut || '-'],
-                ['Working Hours', att.hours || '0h'],
+                ['Working Hours', att.hours || '0h 0m'],
                 ['Status', att.status || 'Absent']
             ];
             
@@ -412,7 +459,7 @@ const EmployeeAttendance = () => {
                         emp.department || '',
                         att.checkIn || '-',
                         att.checkOut || '-',
-                        att.hours || '0h',
+                        att.hours || '0h 0m',
                         att.status || 'Absent'
                     ];
                 })
@@ -521,7 +568,7 @@ const EmployeeAttendance = () => {
                             emp.department || '',
                             att.checkIn || '-',
                             att.checkOut || '-',
-                            att.hours || '0h',
+                            att.hours || '0h 0m',
                             att.status || 'Absent'
                         ]);
                     }
@@ -798,7 +845,9 @@ const EmployeeAttendance = () => {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4 text-sm font-semibold text-gray-700 hidden lg:table-cell align-middle text-center">{att.hours || '0h'}</td>
+                                            <td className="p-4 text-sm font-semibold text-gray-700 hidden lg:table-cell align-middle text-center">
+                                                {att.hours || '0h 0m'} / 8h 0m
+                                            </td>
                                             <td className="p-4 align-middle text-center">
                                                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${getStatusColor(att.status || 'Absent')}`}>
                                                     {att.status || 'Absent'}

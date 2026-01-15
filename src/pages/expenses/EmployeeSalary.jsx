@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import Toast from '../../components/Toast';
 import api from '../../config/api';
 import suhTechLogo from '../../assets/suh-tech-logo.png';
+import phoneIcon from '../../assets/phone-icon.png';
+import emailIcon from '../../assets/email-icon.png';
 
 const EmployeeSalary = () => {
     const [employees, setEmployees] = useState([]);
@@ -367,30 +369,30 @@ const EmployeeSalary = () => {
             // ===== HEADER SECTION =====
             // Add SUH Tech Logo
             try {
-                // Logo sized to match company name + address height
-                doc.addImage(suhTechLogo, 'PNG', 15, 22, 12, 12);
+                // Logo sized to 24x24, vertically centered with company text
+                doc.addImage(suhTechLogo, 'PNG', 15, 18, 24, 24);
             } catch (error) {
                 console.log('Logo loading error:', error);
                 // Fallback to purple box if logo fails to load
                 doc.setFillColor(124, 58, 237);
-                doc.rect(15, 22, 12, 12, 'F');
+                doc.rect(15, 18, 24, 24, 'F');
                 doc.setTextColor(255, 255, 255);
-                doc.setFontSize(7);
+                doc.setFontSize(10);
                 doc.setFont('helvetica', 'bold');
-                doc.text("Logo", 21, 28.5, { align: 'center' });
+                doc.text("Logo", 27, 32, { align: 'center' });
             }
 
             // Company Name and Address
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(16);
             doc.setFont('helvetica', 'bold');
-            doc.text("SUH Tech Pvt Ltd", 33, 23);
+            doc.text("SUH Tech Pvt Ltd", 43, 23);
             
             doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(...darkGray);
-            doc.text("D-8, 4th Floor, Habitech Crystal Mall, Knowledge Park III,", 33, 29);
-            doc.text("Greater Noida, Uttar Pradesh - 201310 India", 33, 33);
+            doc.text("D-8, 4th Floor, Habitech Crystal Mall, Knowledge Park III,", 43, 29);
+            doc.text("Greater Noida, Uttar Pradesh - 201310 India", 43, 33);
 
             // Payslip For the Month (Top Right)
             doc.setFontSize(9);
@@ -406,10 +408,10 @@ const EmployeeSalary = () => {
             // Horizontal line after header
             doc.setDrawColor(...lightGray);
             doc.setLineWidth(0.5);
-            doc.line(15, 40, pageWidth - 15, 40);
+            doc.line(15, 50, pageWidth - 15, 50);
 
             // ===== EMPLOYEE SUMMARY SECTION =====
-            const summaryStartY = 50;
+            const summaryStartY = 58;
             
             doc.setFontSize(11);
             doc.setFont('helvetica', 'bold');
@@ -621,7 +623,57 @@ const EmployeeSalary = () => {
             // ===== FOOTER =====
             doc.setFontSize(8);
             doc.setTextColor(...lightGray);
-            doc.text("-- This is a system-generated document. --", pageWidth / 2, 280, { align: 'center' });
+            doc.text("-- This is a system-generated document. --", pageWidth / 2, 265, { align: 'center' });
+            
+            // Contact Information with Icons
+            const contactStartY = 273;
+            const iconSize = 8;
+            const iconX = 20;
+            
+            // Phone Icon - Use actual image instead of drawing
+            try {
+                doc.addImage(phoneIcon, 'PNG', iconX, contactStartY, iconSize, iconSize);
+            } catch (error) {
+                console.log('Phone icon loading error:', error);
+                // Fallback to circle if image fails
+                doc.setFillColor(230, 220, 255);
+                doc.circle(iconX + iconSize/2, contactStartY + iconSize/2, iconSize/2, 'F');
+                doc.setDrawColor(124, 58, 237);
+                doc.setLineWidth(0.3);
+                doc.circle(iconX + iconSize/2, contactStartY + iconSize/2, iconSize/2, 'S');
+            }
+            
+            // Phone Number
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.text("Phone Number", iconX + iconSize + 5, contactStartY + 2);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...darkGray);
+            doc.text("8298252909", iconX + iconSize + 5, contactStartY + 7);
+            
+            // Email Icon - Use actual image instead of drawing
+            const emailY = contactStartY + 15;
+            try {
+                doc.addImage(emailIcon, 'PNG', iconX, emailY, iconSize, iconSize);
+            } catch (error) {
+                console.log('Email icon loading error:', error);
+                // Fallback to circle if image fails
+                doc.setFillColor(220, 230, 255);
+                doc.circle(iconX + iconSize/2, emailY + iconSize/2, iconSize/2, 'F');
+                doc.setDrawColor(59, 130, 246);
+                doc.setLineWidth(0.3);
+                doc.circle(iconX + iconSize/2, emailY + iconSize/2, iconSize/2, 'S');
+            }
+            
+            // Email Support
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.text("Email Support", iconX + iconSize + 5, emailY + 2);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...darkGray);
+            doc.text("info@suhtech.top", iconX + iconSize + 5, emailY + 7);
 
             return doc;
         } catch (error) {

@@ -1,27 +1,26 @@
-import { ChevronDown, Download, Eye, Plus, Search, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronUp, Plus, Search, X, Download, Eye, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AddEmployeeModal from "../../components/employee/AddEmployeeModal";
 import Toast from "../../components/common/Toast";
-import api from "../../config/api";
+import { employeeService } from "../../services";
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function EmployeePage() {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showAddModal, setShowAddModal] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [toast, setToast] = useState(null);
-  const itemsPerPage = 10;
-
-  // Filters State //
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
     department: "",
-    status: ""
+    status: "",
   });
+  const [toast, setToast] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+  const itemsPerPage = 10; // This was not removed in the diff, keeping it.
+  const [currentPage, setCurrentPage] = useState(1); // This was not removed in the diff, keeping it.
 
   // Toast helper
   const showToast = (message, type = 'success') => {
@@ -37,8 +36,8 @@ export default function EmployeePage() {
   const loadEmployees = async () => {
     try {
       setLoading(true);
-      const response = await api.getEmployees();
-      setEmployees(response.employees || []);
+      const employeeList = await employeeService.getAllEmployees();
+      setEmployees(employeeList || []);
     } catch (error) {
       console.error("Error loading employees:", error);
       showToast("Failed to load employees: " + error.message, 'error');
@@ -47,27 +46,21 @@ export default function EmployeePage() {
     }
   };
 
-  const handleAddEmployee = async (newEmp) => {
+  const handleAddEmployee = async (newEmployee) => {
     try {
-      // Check for duplicate Employee ID
-      if (employees.some(emp => emp.employeeId === newEmp.employeeId)) {
-        showToast("Employee ID already exists! Please use a unique ID.", 'error');
-        return;
-      }
-
-      await api.createEmployee(newEmp);
+      // The employee is already created in the modal, just refresh the list
       await loadEmployees();
       setShowAddModal(false);
       showToast("Employee added successfully!", 'success');
     } catch (error) {
-      console.error("Error adding employee:", error);
-      showToast("Failed to add employee: " + error.message, 'error');
+      console.error("Error refreshing employees:", error);
+      showToast("Failed to refresh employee list: " + error.message, 'error');
     }
   };
 
   const filteredEmployees = useMemo(() => {
-    return employees.filter(emp => {
-      const fullName = `${emp.firstName} ${emp.lastName}`.toLowerCase();
+    const filtered = employees.filter(emp => {
+      const fullName = `${emp.firstName || ''} ${emp.lastName || ''}`.toLowerCase();
       const matchesSearch =
         fullName.includes(searchTerm.toLowerCase()) ||
         emp.employeeId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -78,6 +71,8 @@ export default function EmployeePage() {
 
       return matchesSearch && matchesDept && matchesStatus;
     });
+
+    return filtered;
   }, [employees, searchTerm, filters]);
 
   // Pagination Logic
@@ -369,9 +364,9 @@ export default function EmployeePage() {
                       <td className="p-4 text-blue-600 text-xs font-medium">{emp.email}</td>
                       <td className="p-4 text-center">
                         <span className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold ${emp.status === "Active" ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200" :
-                            emp.status === "On Leave" ? "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200" :
-                              emp.status === "Resigned" ? "bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border border-purple-200" :
-                                "bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border border-red-200"
+                          emp.status === "On Leave" ? "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200" :
+                            emp.status === "Resigned" ? "bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border border-purple-200" :
+                              "bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border border-red-200"
                           }`}>
                           {emp.status}
                         </span>

@@ -58,11 +58,24 @@ export default function AddEmployeeModal({ onClose, onSave }) {
     setLoading(true);
 
     try {
+      // Validate required fields
+      if (!form.email || !form.firstName || !form.lastName) {
+        alert("Please fill in all required fields: Email, First Name, and Last Name");
+        setLoading(false);
+        return;
+      }
+
+      if (!form.departmentId || !form.designationId) {
+        alert("Please select both Department and Designation");
+        setLoading(false);
+        return;
+      }
+
       // Prepare data for API
       const dataToSave = {
-        email: form.email,
-        firstName: form.firstName,
-        lastName: form.lastName,
+        email: form.email.trim(),
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
         phoneNumber: form.phoneNumber,
         address: form.address,
         admin: form.admin,
@@ -73,6 +86,13 @@ export default function AddEmployeeModal({ onClose, onSave }) {
         active: form.active,
         empType: form.empType,
       };
+
+      // Validate parsed IDs
+      if (isNaN(dataToSave.departmentId) || isNaN(dataToSave.designationId)) {
+        alert("Invalid department or designation selected");
+        setLoading(false);
+        return;
+      }
 
       // Call API to create employee
       const response = await employeeService.createEmployee(dataToSave);

@@ -1,9 +1,11 @@
 import { Edit2, MoreVertical, Plus, Trash2, ExternalLink, Mail, Ban, CheckCircle2, Clock, Search } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Toast from "../components/Toast";
 import api from "../config/api";
 
 export default function ClientsPage() {
+  const navigate = useNavigate();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeMenuId, setActiveMenuId] = useState(null);
@@ -89,7 +91,7 @@ export default function ClientsPage() {
   const handleAction = (action, client) => {
     setActiveMenuId(null);
     if (action === "view") {
-      showToast(`Viewing client: ${client.organizationName}`);
+      navigate(`/client/${client._id}`);
     } else if (action === "resendEmail") {
       showToast(`Resending email to ${client.adminEmail}`);
     } else if (action === "disable") {
@@ -117,34 +119,27 @@ export default function ClientsPage() {
   );
 
   return (
-    <div className="flex-1 h-full bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 lg:p-10 flex flex-col overflow-hidden">
-      <div className="max-w-7xl mx-auto w-full flex flex-col h-full overflow-hidden">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 flex-shrink-0">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Responsive Header */}
+        <div className="mb-6 md:mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent mb-2">
-              Clients List View
-            </h1>
-            <p className="text-gray-600 text-sm">
-              Manage your organizations and their subscription status.
-            </p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Organizations</h1>
+            <p className="text-sm text-gray-500 mt-1">Manage your clients and their subscriptions</p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full border border-blue-200 order-2 sm:order-1">
+              {filteredClients.length} {searchTerm ? 'Found' : 'Total'}
+            </span>
+            <button className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 cursor-pointer order-1 sm:order-2">
+              <Plus size={18} className="mr-2" /> Add New Client
+            </button>
           </div>
         </div>
 
-        {/* Table Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden hover:shadow-lg transition-shadow duration-300 flex-1 min-h-0">
-          <div className="px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-gradient-to-r from-gray-50 to-transparent flex-shrink-0">
-            <div className="flex items-center gap-4">
-              <h2 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-                <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
-                All Clients
-              </h2>
-              <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full border border-blue-200">
-                {filteredClients.length} {searchTerm ? 'Found' : 'Total'}
-              </span>
-            </div>
-
-            <div className="relative w-full md:w-96">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
+          <div className="p-4 md:p-6 border-b border-gray-100 bg-white sticky left-0 z-10">
+            <div className="relative max-w-md w-full">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search size={18} className="text-gray-400" />
               </div>
@@ -338,6 +333,6 @@ export default function ClientsPage() {
         {/* Toast Notifications */}
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </div>
-    </div>
+    </div >
   );
 }

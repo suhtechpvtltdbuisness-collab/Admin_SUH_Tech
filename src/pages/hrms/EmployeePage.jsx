@@ -37,7 +37,9 @@ export default function EmployeePage() {
     try {
       setLoading(true);
       const employeeList = await employeeService.getAllEmployees();
-      setEmployees(employeeList || []);
+      // Filter out the specific employee with email john.doe@example.com
+      const filteredList = (employeeList || []).filter(emp => emp.email !== 'john.doe@example.com');
+      setEmployees(filteredList);
     } catch (error) {
       console.error("Error loading employees:", error);
       showToast("Failed to load employees: " + error.message, 'error');

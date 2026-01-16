@@ -49,12 +49,6 @@ const apiRequest = async (endpoint, options = {}) => {
 // API methods
 export const api = {
   // Auth
-  login: (email, password) =>
-    apiRequest("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    }),
-
   register: (name, email, password) =>
     apiRequest("/auth/register", {
       method: "POST",
@@ -215,138 +209,8 @@ export const api = {
       method: "DELETE",
     }),
 
-  // Employees
-  getEmployees: async (params = {}) => {
-    try {
-      const queryString = new URLSearchParams(params).toString();
-      const response = await apiRequest(
-        `/employees${queryString ? `?${queryString}` : ""}`
-      );
-
-      // MERGE STRATEGY: Backend Data + Local Only Data + Locally Modified Data
-      const localEmployees = JSON.parse(
-        localStorage.getItem("employees") || "[]"
-      );
-
-      // 1. Get backend employees
-      let finalEmployees = [...response.employees];
-
-      // 2. Append locally created employees (ids starting with 'local_')
-      const localOnly = localEmployees.filter(
-        (e) => e._id && e._id.toString().startsWith("local_")
-      );
-      finalEmployees = [...finalEmployees, ...localOnly];
-
-      // 3. Apply local edits (if any item is marked as locally modified)
-      finalEmployees = finalEmployees.map((backendEmp) => {
-        const localVersion = localEmployees.find(
-          (l) => l._id === backendEmp._id
-        );
-        if (localVersion && localVersion._isLocallyModified) {
-          return localVersion;
-        }
-        return backendEmp;
-      });
-
-      // Update localStorage with the merged result
-      localStorage.setItem("employees", JSON.stringify(finalEmployees));
-
-      // Return merged result
-      return { ...response, employees: finalEmployees };
-    } catch (error) {
-      console.warn("Backend unavailable, using localStorage:", error.message);
-      const employees = JSON.parse(localStorage.getItem("employees") || "null");
-
-      if (!employees) {
-        // Default mock data if nothing in storage
-        const defaultEmployees = [
-          {
-            _id: "1",
-            name: "Rahul Sharma",
-            employeeId: "EMP001",
-            department: "Engineering",
-            avatar: "👨‍💻",
-            status: "Present",
-          },
-          {
-            _id: "2",
-            name: "Priya Singh",
-            employeeId: "EMP002",
-            department: "Design",
-            avatar: "👩‍🎨",
-            status: "Present",
-          },
-          {
-            _id: "3",
-            name: "Amit Kumar",
-            employeeId: "EMP003",
-            department: "Marketing",
-            avatar: "👨‍💼",
-            status: "Absent",
-          },
-          {
-            _id: "4",
-            name: "Sneha Patel",
-            employeeId: "EMP004",
-            department: "HR",
-            avatar: "👩‍💼",
-            status: "Present",
-          },
-          {
-            _id: "5",
-            name: "Vikash Verma",
-            employeeId: "EMP005",
-            department: "Engineering",
-            avatar: "👨‍🔧",
-            status: "Late",
-          },
-          {
-            _id: "6",
-            name: "Anjali Gupta",
-            employeeId: "EMP006",
-            department: "Sales",
-            avatar: "👩‍💻",
-            status: "Leave",
-          },
-        ];
-        localStorage.setItem("employees", JSON.stringify(defaultEmployees));
-        return { employees: defaultEmployees };
-      }
-      return { employees };
-    }
-  },
-
+  // Employees - Use employeeService from services.js for get/create operations
   getEmployee: (id) => apiRequest(`/employees/${id}`),
-
-  createEmployee: async (data) => {
-    try {
-      const response = await apiRequest("/employees", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      return response;
-    } catch (error) {
-      console.warn(
-        "Backend unavailable, saving to localStorage:",
-        error.message
-      );
-      const employees = JSON.parse(localStorage.getItem("employees") || "[]");
-
-      // Check for duplicate Employee ID
-      if (employees.some((e) => e.employeeId === data.employeeId)) {
-        throw new Error("Employee ID already exists");
-      }
-
-      const newEmployee = {
-        ...data,
-        _id: `local_${Date.now()}`,
-        createdAt: new Date().toISOString(),
-      };
-      employees.push(newEmployee);
-      localStorage.setItem("employees", JSON.stringify(employees));
-      return { employee: newEmployee };
-    }
-  },
 
   updateEmployee: async (id, data) => {
     try {

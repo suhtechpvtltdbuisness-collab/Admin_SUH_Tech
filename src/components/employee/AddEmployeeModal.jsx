@@ -130,164 +130,162 @@ export default function AddEmployeeModal({ onClose, onSave }) {
 
         {/* FORM */}
         <div className="overflow-y-auto p-8">
-          {loadingData ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-gray-500">
-                Loading departments and designations...
-              </div>
+          <form
+            id="addEmployeeForm"
+            onSubmit={handleSubmit}
+            className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6"
+          >
+            {/* First Name */}
+            <div>
+              <Label label="First Name" required />
+              <input
+                type="text"
+                placeholder="e.g., John"
+                value={form.firstName}
+                onChange={(e) => updateField("firstName", e.target.value)}
+                className="input-field"
+                required
+              />
             </div>
-          ) : (
-            <form
-              id="addEmployeeForm"
-              onSubmit={handleSubmit}
-              className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6"
-            >
-              {/* First Name */}
-              <div>
-                <Label label="First Name" required />
-                <input
-                  type="text"
-                  placeholder="e.g., John"
-                  value={form.firstName}
-                  onChange={(e) => updateField("firstName", e.target.value)}
-                  className="input-field"
-                  required
-                />
-              </div>
 
-              {/* Last Name */}
-              <div>
-                <Label label="Last Name" required />
-                <input
-                  type="text"
-                  placeholder="e.g., Doe"
-                  value={form.lastName}
-                  onChange={(e) => updateField("lastName", e.target.value)}
-                  className="input-field"
-                  required
-                />
-              </div>
+            {/* Last Name */}
+            <div>
+              <Label label="Last Name" required />
+              <input
+                type="text"
+                placeholder="e.g., Doe"
+                value={form.lastName}
+                onChange={(e) => updateField("lastName", e.target.value)}
+                className="input-field"
+                required
+              />
+            </div>
 
-              {/* Email */}
-              <div>
-                <Label label="Email Address" required />
-                <input
-                  type="email"
-                  placeholder="e.g., john.doe@company.com"
-                  value={form.email}
-                  onChange={(e) => updateField("email", e.target.value)}
-                  className="input-field"
-                  required
-                />
-              </div>
+            {/* Email */}
+            <div>
+              <Label label="Email Address" required />
+              <input
+                type="email"
+                placeholder="e.g., john.doe@company.com"
+                value={form.email}
+                onChange={(e) => updateField("email", e.target.value)}
+                className="input-field"
+                required
+              />
+            </div>
 
-              {/* Mobile Number */}
-              <div>
-                <Label label="Phone Number" required />
-                <input
-                  type="text"
-                  placeholder="e.g., 1234567890"
-                  value={form.phoneNumber}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, "").slice(0, 10);
-                    updateField("phoneNumber", val);
-                  }}
-                  className="input-field"
-                  required
-                  pattern="[0-9]{10}"
-                  title="Please enter a valid 10-digit mobile number"
-                />
-              </div>
+            {/* Mobile Number */}
+            <div>
+              <Label label="Phone Number" required />
+              <input
+                type="text"
+                placeholder="e.g., 1234567890"
+                value={form.phoneNumber}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  updateField("phoneNumber", val);
+                }}
+                className="input-field"
+                required
+                pattern="[0-9]{10}"
+                title="Please enter a valid 10-digit mobile number"
+              />
+            </div>
 
-              {/* Designation */}
-              <div>
-                <Label label="Designation / Role" required />
-                <select
-                  value={form.designationId}
-                  onChange={(e) => updateField("designationId", e.target.value)}
-                  className="input-field"
-                  required
-                >
-                  <option value="">Select Designation</option>
-                  {designations.map((designation) => (
-                    <option key={designation.id} value={designation.id}>
-                      {designation.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Designation */}
+            <div>
+              <Label label="Designation / Role" required />
+              <select
+                value={form.designationId}
+                onChange={(e) => updateField("designationId", e.target.value)}
+                className="input-field"
+                required
+                disabled={loadingData}
+              >
+                <option value="">
+                  {loadingData ? "Loading designations..." : "Select Designation"}
+                </option>
+                {designations.map((designation) => (
+                  <option key={designation.id} value={designation.id}>
+                    {designation.title}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              {/* Department */}
-              <div>
-                <Label label="Department" required />
-                <select
-                  value={form.departmentId}
-                  onChange={(e) => updateField("departmentId", e.target.value)}
-                  className="input-field"
-                  required
-                >
-                  <option value="">Select Department</option>
-                  {departments.map((department) => (
-                    <option key={department.id} value={department.id}>
-                      {department.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Department */}
+            <div>
+              <Label label="Department" required />
+              <select
+                value={form.departmentId}
+                onChange={(e) => updateField("departmentId", e.target.value)}
+                className="input-field"
+                required
+                disabled={loadingData}
+              >
+                <option value="">
+                  {loadingData ? "Loading departments..." : "Select Department"}
+                </option>
+                {departments.map((department) => (
+                  <option key={department.id} value={department.id}>
+                    {department.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              {/* Employment Type */}
-              <div>
-                <Label label="Employment Type" required />
-                <select
-                  value={form.empType}
-                  onChange={(e) => updateField("empType", e.target.value)}
-                  className="input-field"
-                  required
-                >
-                  <option value="full-time">Full-time</option>
-                  <option value="part-time">Part-time</option>
-                  <option value="contract">Contract</option>
-                  <option value="intern">Intern</option>
-                </select>
-              </div>
+            {/* Employment Type */}
+            <div>
+              <Label label="Employment Type" required />
+              <select
+                value={form.empType}
+                onChange={(e) => updateField("empType", e.target.value)}
+                className="input-field"
+                required
+              >
+                <option value="full-time">Full-time</option>
+                <option value="part-time">Part-time</option>
+                <option value="contract">Contract</option>
+                <option value="intern">Intern</option>
+              </select>
+            </div>
 
-              {/* Join Date */}
-              <div>
-                <Label label="Joining Date" required />
-                <input
-                  type="date"
-                  value={form.joinedDate}
-                  onChange={(e) => updateField("joinedDate", e.target.value)}
-                  className="input-field text-gray-500"
-                  required
-                />
-              </div>
+            {/* Join Date */}
+            <div>
+              <Label label="Joining Date" required />
+              <input
+                type="date"
+                value={form.joinedDate}
+                onChange={(e) => updateField("joinedDate", e.target.value)}
+                className="input-field text-gray-500"
+                required
+              />
+            </div>
 
-              {/* Skills */}
-              <div>
-                <Label label="Skills" />
-                <input
-                  type="text"
-                  placeholder="e.g., JavaScript, TypeScript, Node.js"
-                  value={form.skills}
-                  onChange={(e) => updateField("skills", e.target.value)}
-                  className="input-field"
-                />
-              </div>
+            {/* Skills */}
+            <div>
+              <Label label="Skills" />
+              <input
+                type="text"
+                placeholder="e.g., JavaScript, TypeScript, Node.js"
+                value={form.skills}
+                onChange={(e) => updateField("skills", e.target.value)}
+                className="input-field"
+              />
+            </div>
 
-              {/* Address - Full Width */}
-              <div className="md:col-span-2">
-                <Label label="Address" />
-                <textarea
-                  placeholder="e.g., 123 Main Street, Mumbai, Maharashtra"
-                  value={form.address}
-                  onChange={(e) => updateField("address", e.target.value)}
-                  className="input-field"
-                  rows={3}
-                />
-              </div>
-            </form>
-          )}
+            {/* Address - Full Width */}
+            <div className="md:col-span-2">
+              <Label label="Address" />
+              <textarea
+                placeholder="e.g., 123 Main Street, Mumbai, Maharashtra"
+                value={form.address}
+                onChange={(e) => updateField("address", e.target.value)}
+                className="input-field"
+                rows={3}
+              />
+            </div>
+          </form>
         </div>
 
         {/* FOOTER */}

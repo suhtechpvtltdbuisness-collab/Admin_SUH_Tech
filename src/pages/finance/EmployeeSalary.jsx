@@ -4,6 +4,7 @@ import { AlertCircle, Calendar, Download, Edit2, Eye, FileText, Filter, Mail, Mo
 import { useEffect, useMemo, useState, useRef } from 'react';
 import Toast from "../../components/common/Toast";
 import api from "../../config/api";
+import { employeeService } from "../../services";
 
 // Import logo, icons, and stamp from public folder
 const suhTechLogo = '/suh-tech-logo.png';
@@ -95,16 +96,17 @@ const EmployeeSalary = () => {
     const loadEmployeeSalaries = async () => {
         try {
             setLoading(true);
-            
+
             // Fetch both employees and salary records
-            const [employeesRes, salariesRes] = await Promise.all([
-                api.getEmployees(),
+            const [employees, salariesRes] = await Promise.all([
+                employeeService.getAllEmployees(),
                 api.getEmployeeSalaries()
             ]);
-            
-            const allEmployees = employeesRes.employees || [];
+
+            // Filter out the specific employee with email john.doe@example.com
+            const allEmployees = (employees || []).filter(emp => emp.email !== 'john.doe@example.com');
             const salaryRecords = salariesRes.salaries || salariesRes.employeeSalaries || [];
-            
+
             // Create a map of salary records by employee ID for quick lookup
             const salaryMap = {};
             salaryRecords.forEach(salary => {
@@ -114,18 +116,18 @@ const EmployeeSalary = () => {
                     salaryMap[empId] = salary;
                 }
             });
-            
+
             // Merge employee data with salary records
             const mergedData = allEmployees.map(emp => {
                 const empId = emp.employeeId || emp.empId || emp._id;
                 const salaryRecord = salaryMap[empId];
-                
+
                 if (salaryRecord) {
                     // Employee has salary record - merge the data
                     return {
                         ...salaryRecord,
                         // Ensure employee details are from main employee database
-                        employeeName: emp.firstName && emp.lastName 
+                        employeeName: emp.firstName && emp.lastName
                             ? `${emp.firstName} ${emp.lastName}`
                             : emp.name || emp.fullName || salaryRecord.employeeName,
                         employeeId: empId,
@@ -138,7 +140,7 @@ const EmployeeSalary = () => {
                     // Employee doesn't have salary record yet - show with default values
                     return {
                         _id: emp._id,
-                        employeeName: emp.firstName && emp.lastName 
+                        employeeName: emp.firstName && emp.lastName
                             ? `${emp.firstName} ${emp.lastName}`
                             : emp.name || emp.fullName || 'N/A',
                         employeeId: empId,
@@ -164,7 +166,7 @@ const EmployeeSalary = () => {
                     };
                 }
             });
-            
+
             setEmployees(mergedData);
         } catch (error) {
             console.error("Error loading employee salaries:", error);
@@ -337,11 +339,11 @@ const EmployeeSalary = () => {
             // Helper function to convert number to words
             const numberToWords = (num) => {
                 if (num === 0) return "Zero";
-                
+
                 const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
                 const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
                 const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
-                
+
                 const convertHundreds = (n) => {
                     if (n === 0) return "";
                     if (n < 10) return ones[n];
@@ -349,20 +351,20 @@ const EmployeeSalary = () => {
                     if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? " " + ones[n % 10] : "");
                     return ones[Math.floor(n / 100)] + " Hundred" + (n % 100 !== 0 ? " " + convertHundreds(n % 100) : "");
                 };
-                
+
                 if (num < 1000) return convertHundreds(num);
                 if (num < 100000) {
                     const thousands = Math.floor(num / 1000);
                     const remainder = num % 1000;
                     return convertHundreds(thousands) + " Thousand" + (remainder !== 0 ? " " + convertHundreds(remainder) : "");
                 }
-                
+
                 return "Twenty-Six Thousand"; // Fallback for demo
             };
 
             const doc = new jsPDF();
             const pageWidth = doc.internal.pageSize.getWidth();
-            
+
             // Colors
             const darkGray = [102, 102, 102];
             const lightGray = [179, 179, 179];
@@ -391,7 +393,7 @@ const EmployeeSalary = () => {
             doc.setFontSize(16);
             doc.setFont('helvetica', 'bold');
             doc.text("SUH Tech Pvt Ltd", 40, 21);
-            
+
             doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
@@ -402,7 +404,7 @@ const EmployeeSalary = () => {
             doc.setFontSize(9);
             doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
             doc.text("Payslip For the Month", pageWidth - 15, 23, { align: 'right' });
-            
+
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(0, 0, 0);
@@ -416,7 +418,7 @@ const EmployeeSalary = () => {
 
             // ===== EMPLOYEE SUMMARY SECTION =====
             const summaryStartY = 58;
-            
+
             doc.setFontSize(11);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(0, 0, 0);
@@ -425,7 +427,7 @@ const EmployeeSalary = () => {
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-            
+
             const summaryY = summaryStartY + 8;
             doc.text("Employee Name", 15, summaryY);
             doc.text(":", 55, summaryY);
@@ -504,7 +506,7 @@ const EmployeeSalary = () => {
             const specialAllowance = emp.breakdown?.allowances?.Special || 0;
             const totalAllowances = hraAllowance + specialAllowance;
             const grossEarnings = basicSalary + totalAllowances;
-            
+
             const incomeTax = emp.breakdown?.deductions?.Tax || 0;
             const providentFund = emp.breakdown?.deductions?.PF || 0;
             const totalDeductions = incomeTax + providentFund;
@@ -522,7 +524,7 @@ const EmployeeSalary = () => {
                 head: [['EARNINGS', 'AMOUNT']],
                 body: earningsData,
                 theme: 'plain',
-                headStyles: { 
+                headStyles: {
                     fillColor: [255, 255, 255],
                     textColor: [0, 0, 0],
                     fontSize: 10,
@@ -532,18 +534,18 @@ const EmployeeSalary = () => {
                     lineColor: [200, 200, 200],
                     cellPadding: { left: 2, right: 5, top: 3, bottom: 3 }
                 },
-                bodyStyles: { 
+                bodyStyles: {
                     fontSize: 9,
                     cellPadding: { left: 2, right: 5, top: 3, bottom: 3 },
                     textColor: [0, 0, 0]
                 },
-                columnStyles: { 
+                columnStyles: {
                     0: { cellWidth: 50, fontStyle: 'normal', halign: 'left' },
                     1: { cellWidth: 35, halign: 'right', fontStyle: 'normal' }
                 },
                 margin: { left: 15 },
                 tableWidth: 85,
-                didParseCell: function(data) {
+                didParseCell: function (data) {
                     // Make last row (Gross Earnings) bold
                     if (data.row.index === 3) {
                         data.cell.styles.fontStyle = 'bold';
@@ -564,7 +566,7 @@ const EmployeeSalary = () => {
                 head: [['DEDUCTIONS', 'AMOUNT']],
                 body: deductionsData,
                 theme: 'plain',
-                headStyles: { 
+                headStyles: {
                     fillColor: [255, 255, 255],
                     textColor: [0, 0, 0],
                     fontSize: 10,
@@ -574,18 +576,18 @@ const EmployeeSalary = () => {
                     lineColor: [200, 200, 200],
                     cellPadding: { left: 2, right: 5, top: 3, bottom: 3 }
                 },
-                bodyStyles: { 
+                bodyStyles: {
                     fontSize: 9,
                     cellPadding: { left: 2, right: 5, top: 3, bottom: 3 },
                     textColor: [0, 0, 0]
                 },
-                columnStyles: { 
+                columnStyles: {
                     0: { cellWidth: 50, fontStyle: 'normal', halign: 'left' },
                     1: { cellWidth: 35, halign: 'right', fontStyle: 'normal' }
                 },
                 margin: { left: 110 },
                 tableWidth: 85,
-                didParseCell: function(data) {
+                didParseCell: function (data) {
                     // Make last row (Total Deductions) bold
                     if (data.row.index === 3) {
                         data.cell.styles.fontStyle = 'bold';
@@ -604,7 +606,7 @@ const EmployeeSalary = () => {
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(0, 0, 0);
             doc.text("TOTAL NET PAYABLE", 20, finalY + 3);
-            
+
             doc.setTextColor(greenBorder[0], greenBorder[1], greenBorder[2]);
             const totalNetPayText = `Rs. ${(emp.breakdown?.net || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             doc.text(totalNetPayText, pageWidth - 20, finalY + 3, { align: 'right' });
@@ -644,15 +646,15 @@ const EmployeeSalary = () => {
             // ===== FOOTER =====
             // Contact Information - Single line, no icons, gray text
             const contactStartY = 265;
-            
+
             doc.setFontSize(9); // Increased from 8
             doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
             doc.setFont('helvetica', 'normal');
-            
+
             // Single line: Phone Number: +91 9211056355 | Email: info@suhtech.top
             const contactText = "Phone Number: +91 9211056355  |  Email: info@suhtech.top";
             doc.text(contactText, pageWidth / 2, contactStartY, { align: 'center' });
-            
+
             // System-generated text below contact info
             doc.setFontSize(8);
             doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);

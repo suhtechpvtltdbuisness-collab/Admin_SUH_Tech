@@ -16,7 +16,7 @@ import {
 import { useEffect, useState } from "react";
 import Toast from "../../components/common/Toast";
 import api from "../../config/api";
-import { attendanceService } from "../../services";
+import { attendanceService, employeeService } from "../../services";
 import jsPDF from "jspdf";
 
 const EmployeeAttendance = () => {
@@ -75,8 +75,10 @@ const EmployeeAttendance = () => {
   const loadEmployees = async () => {
     try {
       setLoading(true);
-      const res = await api.getEmployees();
-      setEmployees(res.employees || []);
+      const employees = await employeeService.getAllEmployees();
+      // Filter out the specific employee with email john.doe@example.com
+      const filteredEmployees = (employees || []).filter(emp => emp.email !== 'john.doe@example.com');
+      setEmployees(filteredEmployees);
     } catch (error) {
       console.error("Error loading employees:", error);
       showToast("Failed to load employees", "error");
@@ -191,7 +193,7 @@ const EmployeeAttendance = () => {
         showToast("Employee updated successfully!", "success");
       } else {
         // Add new employee
-        const res = await api.createEmployee(newEmployee);
+        const res = await employeeService.createEmployee(newEmployee);
 
         // Initialize attendance for new employee
         if (res.employee && res.employee._id) {
@@ -521,9 +523,8 @@ const EmployeeAttendance = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `attendance-last-7-days-${
-        new Date().toISOString().split("T")[0]
-      }.csv`;
+      a.download = `attendance-last-7-days-${new Date().toISOString().split("T")[0]
+        }.csv`;
       a.click();
       URL.revokeObjectURL(url);
 
@@ -561,9 +562,8 @@ const EmployeeAttendance = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `attendance-last-30-days-${
-        new Date().toISOString().split("T")[0]
-      }.csv`;
+      a.download = `attendance-last-30-days-${new Date().toISOString().split("T")[0]
+        }.csv`;
       a.click();
       URL.revokeObjectURL(url);
 
@@ -820,9 +820,8 @@ const EmployeeAttendance = () => {
               <span className="hidden sm:inline">Export</span>
               <ChevronDown
                 size={16}
-                className={`transition-transform ${
-                  openExportDropdown ? "rotate-180" : ""
-                }`}
+                className={`transition-transform ${openExportDropdown ? "rotate-180" : ""
+                  }`}
               />
             </button>
 
@@ -926,9 +925,9 @@ const EmployeeAttendance = () => {
                                 emp.firstName && emp.lastName
                                   ? `${emp.firstName} ${emp.lastName}`
                                   : emp.name ||
-                                    emp.fullName ||
-                                    emp.employeeName ||
-                                    "NA";
+                                  emp.fullName ||
+                                  emp.employeeName ||
+                                  "NA";
                               return fullName
                                 .split(" ")
                                 .map((n) => n[0])
@@ -940,9 +939,9 @@ const EmployeeAttendance = () => {
                               {emp.firstName && emp.lastName
                                 ? `${emp.firstName} ${emp.lastName}`
                                 : emp.name ||
-                                  emp.fullName ||
-                                  emp.employeeName ||
-                                  "Unknown"}
+                                emp.fullName ||
+                                emp.employeeName ||
+                                "Unknown"}
                             </p>
                           </div>
                         </div>
@@ -957,11 +956,10 @@ const EmployeeAttendance = () => {
                         <div className="flex items-center justify-center gap-2 text-sm text-gray-600 whitespace-nowrap">
                           <Clock size={14} className="text-gray-400" />
                           <span
-                            className={`font-medium ${
-                              att.checkIn && att.checkIn !== "-"
-                                ? "text-gray-900"
-                                : "text-gray-400"
-                            }`}
+                            className={`font-medium ${att.checkIn && att.checkIn !== "-"
+                              ? "text-gray-900"
+                              : "text-gray-400"
+                              }`}
                           >
                             {att.checkIn || "-"}
                           </span>
@@ -971,11 +969,10 @@ const EmployeeAttendance = () => {
                         <div className="flex items-center justify-center gap-2 text-sm text-gray-600 whitespace-nowrap">
                           <Clock size={14} className="text-gray-400" />
                           <span
-                            className={`font-medium ${
-                              att.checkOut && att.checkOut !== "-"
-                                ? "text-gray-900"
-                                : "text-gray-400"
-                            }`}
+                            className={`font-medium ${att.checkOut && att.checkOut !== "-"
+                              ? "text-gray-900"
+                              : "text-gray-400"
+                              }`}
                           >
                             {att.checkOut || "-"}
                           </span>
@@ -1015,11 +1012,10 @@ const EmployeeAttendance = () => {
                               </span>
                               <ChevronDown
                                 size={14}
-                                className={`transition-transform ${
-                                  openStatusDropdown === emp._id
-                                    ? "rotate-180"
-                                    : ""
-                                }`}
+                                className={`transition-transform ${openStatusDropdown === emp._id
+                                  ? "rotate-180"
+                                  : ""
+                                  }`}
                               />
                             </button>
 

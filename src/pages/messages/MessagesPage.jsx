@@ -2,6 +2,7 @@ import { Mail, MessageSquare, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import Toast from "../../components/common/Toast";
 import api from "../../config/api";
+import { employeeService } from "../../services";
 
 export default function MessagesPage() {
   const [activeTab, setActiveTab] = useState("contacts");
@@ -48,8 +49,10 @@ export default function MessagesPage() {
     const loadEmployees = async () => {
       try {
         setLoadingEmployees(true);
-        const res = await api.getEmployees();
-        setEmployees(res.employees || []);
+        const employees = await employeeService.getAllEmployees();
+        // Filter out the specific employee with email john.doe@example.com
+        const filteredEmployees = (employees || []).filter(emp => emp.email !== 'john.doe@example.com');
+        setEmployees(filteredEmployees);
       } catch (error) {
         console.error("Error loading employees:", error);
         showToast("Failed to load employees: " + error.message, 'error');
@@ -83,8 +86,8 @@ export default function MessagesPage() {
           <button
             onClick={() => setActiveTab("contacts")}
             className={`px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${activeTab === "contacts"
-                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
-                : "text-gray-600 hover:bg-gray-50"
+              ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
+              : "text-gray-600 hover:bg-gray-50"
               }`}
           >
             <span className="inline-flex items-center gap-2">
@@ -94,8 +97,8 @@ export default function MessagesPage() {
           <button
             onClick={() => setActiveTab("infos")}
             className={`px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${activeTab === "infos"
-                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
-                : "text-gray-600 hover:bg-gray-50"
+              ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
+              : "text-gray-600 hover:bg-gray-50"
               }`}
           >
             <span className="inline-flex items-center gap-2">
@@ -105,8 +108,8 @@ export default function MessagesPage() {
           <button
             onClick={() => setActiveTab("employees")}
             className={`px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${activeTab === "employees"
-                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
-                : "text-gray-600 hover:bg-gray-50"
+              ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
+              : "text-gray-600 hover:bg-gray-50"
               }`}
           >
             <span className="inline-flex items-center gap-2">

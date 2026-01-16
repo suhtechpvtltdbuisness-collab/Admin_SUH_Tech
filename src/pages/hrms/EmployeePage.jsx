@@ -3,7 +3,7 @@ import { ChevronDown, ChevronUp, Plus, Search, X, Download, Eye, Users } from "l
 import { useNavigate } from "react-router-dom";
 import AddEmployeeModal from "../../components/employee/AddEmployeeModal";
 import Toast from "../../components/common/Toast";
-import { employeeService } from "../../services";
+import { employeeService, attendanceService } from "../../services";
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 

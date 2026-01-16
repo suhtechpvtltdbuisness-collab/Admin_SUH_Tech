@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import api from '../../config/api';
+import { userService } from '../../services';
 
 /* SIDEBAR ITEM */
 function Item({
@@ -99,7 +99,7 @@ export default function Sidebar({ className = "", onClose }) {
   useEffect(() => {
     const loadUserProfile = async () => {
       try {
-        const res = await api.getUserProfile();
+        const res = await userService.getProfile();
         if (res.user) {
           setUserProfile(res.user);
         }

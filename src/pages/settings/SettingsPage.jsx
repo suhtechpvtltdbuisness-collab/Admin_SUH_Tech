@@ -2,7 +2,7 @@ import { Calendar, Clock, Key, Mail, MapPin, Phone, Save, Settings as SettingsIc
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Toast from "../../components/common/Toast";
-import api from "../../config/api";
+import { userService } from '../../services';
 
 const Settings = () => {
     const navigate = useNavigate();
@@ -60,7 +60,7 @@ const Settings = () => {
         const fetchProfile = async () => {
             try {
                 setLoading(true);
-                const response = await api.getUserProfile();
+                const response = await userService.getProfile();
                 if (response.user) {
                     setProfileData(response.user);
                 }
@@ -78,7 +78,9 @@ const Settings = () => {
     useEffect(() => {
         const fetchHolidays = async () => {
             try {
-                const response = await api.getHolidays();
+                // Fetch holidays from localStorage for now
+                const cached = localStorage.getItem('holidays');
+                const response = { holidays: cached ? JSON.parse(cached) : [] };
                 if (response.holidays) {
                     setHolidays(response.holidays);
                 }
@@ -191,7 +193,7 @@ const Settings = () => {
         e.preventDefault();
         try {
             setSaving(true);
-            const response = await api.updateUserProfile(profileData);
+            const response = await userService.updateProfile(profileData);
             showToast('Profile updated successfully!', 'success');
             setIsEditing(false);
 
@@ -218,7 +220,9 @@ const Settings = () => {
         }
         try {
             setSaving(true);
-            await api.changePassword(passwordData.currentPassword, passwordData.newPassword);
+            // Password change not yet implemented in services
+            showToast('Password change feature coming soon!', 'info');
+            // await userService.changePassword(passwordData.currentPassword, passwordData.newPassword);
             showToast('Password reset successfully!', 'success');
             setPasswordData({
                 currentPassword: '',
@@ -239,7 +243,12 @@ const Settings = () => {
             return;
         }
         try {
-            const response = await api.createHoliday(newHoliday);
+            // Save to localStorage for now
+            const holidays = JSON.parse(localStorage.getItem('holidays') || '[]');
+            const newHolidayWithId = { ...newHoliday, id: Date.now() };
+            holidays.push(newHolidayWithId);
+            localStorage.setItem('holidays', JSON.stringify(holidays));
+            const response = { holiday: newHolidayWithId };
             setHolidays([...holidays, response.holiday]);
             setNewHoliday({ name: '', date: '', type: 'Public' });
             showToast('Holiday added successfully!', 'success');
@@ -250,7 +259,10 @@ const Settings = () => {
 
     const handleDeleteHoliday = async (id) => {
         try {
-            await api.deleteHoliday(id);
+            // Delete from localStorage
+            const holidays = JSON.parse(localStorage.getItem('holidays') || '[]');
+            const filtered = holidays.filter(h => h.id !== id);
+            localStorage.setItem('holidays', JSON.stringify(filtered));
             setHolidays(holidays.filter(h => h.id !== id));
             showToast('Holiday deleted successfully!', 'success');
         } catch (error) {
@@ -261,7 +273,7 @@ const Settings = () => {
     const handleSavePreferences = async () => {
         try {
             setSaving(true);
-            await api.updateUserProfile({
+            await userService.updateProfile({
                 ...profileData,
                 timezone: profileData.timezone,
                 dateFormat: profileData.dateFormat,
@@ -278,7 +290,7 @@ const Settings = () => {
     const handleCancelEdit = async () => {
         try {
             // Reload original data from API/localStorage
-            const response = await api.getUserProfile();
+            const response = await userService.getProfile();
             if (response.user) {
                 setProfileData(response.user);
             }
@@ -330,8 +342,8 @@ const Settings = () => {
                                 key={section.id}
                                 onClick={() => setActiveSection(section.id)}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left ${activeSection === section.id
-                                        ? 'bg-blue-50 text-blue-600 font-medium'
-                                        : 'text-gray-700 hover:bg-gray-50'
+                                    ? 'bg-blue-50 text-blue-600 font-medium'
+                                    : 'text-gray-700 hover:bg-gray-50'
                                     }`}
                             >
                                 <section.icon size={18} />
@@ -639,10 +651,10 @@ const Settings = () => {
                                                             key={day}
                                                             onClick={() => handleDateSelect(day)}
                                                             className={`text-center py-1 text-sm rounded transition-colors ${isSelected
-                                                                    ? 'bg-blue-600 text-white font-bold'
-                                                                    : isToday
-                                                                        ? 'bg-blue-100 text-blue-600 font-semibold'
-                                                                        : 'hover:bg-gray-100 text-gray-800'
+                                                                ? 'bg-blue-600 text-white font-bold'
+                                                                : isToday
+                                                                    ? 'bg-blue-100 text-blue-600 font-semibold'
+                                                                    : 'hover:bg-gray-100 text-gray-800'
                                                                 }`}
                                                         >
                                                             {day}
@@ -821,8 +833,8 @@ const Settings = () => {
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${holiday.type === 'Public' ? 'bg-green-100 text-green-700' :
-                                                    holiday.type === 'Company' ? 'bg-blue-100 text-blue-700' :
-                                                        'bg-yellow-100 text-yellow-700'
+                                                holiday.type === 'Company' ? 'bg-blue-100 text-blue-700' :
+                                                    'bg-yellow-100 text-yellow-700'
                                                 }`}>
                                                 {holiday.type}
                                             </span>

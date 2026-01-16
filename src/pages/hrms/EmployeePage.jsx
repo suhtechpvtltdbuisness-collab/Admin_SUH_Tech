@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Plus, Search, X, Download, Eye, Users } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import AddEmployeeModal from "../../components/employee/AddEmployeeModal";
 import Toast from "../../components/common/Toast";
 import { employeeService, attendanceService } from "../../services";
@@ -9,6 +9,7 @@ import autoTable from 'jspdf-autotable';
 
 export default function EmployeePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -28,18 +29,16 @@ export default function EmployeePage() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Load employees from API
+  // Load employees from API - refresh when returning to this page
   useEffect(() => {
     loadEmployees();
-  }, []);
+  }, [location.pathname]); // Re-fetch when pathname changes (e.g., coming back from /employee/:id)
 
   const loadEmployees = async () => {
     try {
       setLoading(true);
       const employeeList = await employeeService.getAllEmployees();
-      // Filter out the specific employee with email john.doe@example.com
-      const filteredList = (employeeList || []).filter(emp => emp.email !== 'john.doe@example.com');
-      setEmployees(filteredList);
+      setEmployees(employeeList || []);
     } catch (error) {
       console.error("Error loading employees:", error);
       showToast("Failed to load employees: " + error.message, 'error');
@@ -376,7 +375,7 @@ export default function EmployeePage() {
                       <td className="p-4 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <button
-                            onClick={() => navigate(`/employee/${emp._id || emp.employeeId}`)}
+                            onClick={() => navigate(`/employee/${emp.id}`)}
                             className="p-2 rounded-xl hover:bg-blue-50 text-blue-600 transition-all duration-200"
                             title="View Profile"
                           >

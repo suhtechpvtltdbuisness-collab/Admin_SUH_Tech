@@ -1,7 +1,7 @@
 import { Bell, Menu, Sparkles, User, LogOut } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import api from '../../config/api';
+import { userService } from '../../services';
 import Sidebar from './Sidebar';
 
 const Layout = () => {
@@ -39,8 +39,9 @@ const Layout = () => {
 
     const loadInvoices = async () => {
         try {
-            const res = await api.getInvoices();
-            setInvoices(res.invoices || []);
+            // Fetch invoices from localStorage for now
+            const cached = localStorage.getItem('invoices');
+            setInvoices(cached ? JSON.parse(cached) : []);
         } catch (error) {
             console.error('Error loading invoices:', error);
         }
@@ -48,7 +49,7 @@ const Layout = () => {
 
     const loadUserProfile = async () => {
         try {
-            const res = await api.getUserProfile();
+            const res = await userService.getProfile();
             if (res.user) {
                 setUserProfile(res.user);
             }

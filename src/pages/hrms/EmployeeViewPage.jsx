@@ -5,7 +5,7 @@ import Documents from "../../components/employee/Documents";
 import JobInformation from "../../components/employee/JobInformation";
 import PersonalInformation from "../../components/employee/PersonalInformation";
 import Toast from "../../components/common/Toast";
-import api from "../../config/api";
+import { employeeService } from "../../services";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
 
 // MOCK DATA matching EmployeePage (5 Items)
@@ -172,7 +172,7 @@ export default function EmployeeViewPage() {
     const loadEmployee = async () => {
         try {
             setLoading(true);
-            const response = await api.getEmployee(id);
+            const response = await employeeService.getEmployee(id);
             if (response.employee) {
                 const emp = response.employee;
                 // Split name into firstName and lastName if it exists
@@ -239,7 +239,7 @@ export default function EmployeeViewPage() {
             if (dataToSave.firstName || dataToSave.lastName) {
                 dataToSave.name = `${dataToSave.firstName || ''} ${dataToSave.lastName || ''}`.trim();
             }
-            await api.updateEmployee(id, dataToSave);
+            await employeeService.updateEmployee(id, dataToSave);
             // Update local employee state with combined name
             const updatedEmployee = { ...dataToSave };
             setEmployee(updatedEmployee);
@@ -303,13 +303,13 @@ export default function EmployeeViewPage() {
             setSaving(true);
 
             if (confirmModal.type === "terminate") {
-                await api.updateEmployee(id, { ...employee, status: "Inactive" });
+                await employeeService.updateEmployee(id, { ...employee, status: "Inactive" });
                 showToast("Employee terminated successfully", "success");
                 await loadEmployee();
             }
 
             if (confirmModal.type === "delete") {
-                await api.deleteEmployee(id);
+                await employeeService.deleteEmployee(id);
                 showToast("Employee deleted successfully", "success");
                 setTimeout(() => {
                     window.location.href = "/employees";

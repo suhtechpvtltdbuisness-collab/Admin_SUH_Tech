@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Toast from "../../components/common/Toast";
-import api from "../../config/api";
 import { attendanceService, employeeService } from "../../services";
 import jsPDF from "jspdf";
 
@@ -175,7 +174,7 @@ const EmployeeAttendance = () => {
     try {
       if (editingEmployee) {
         // Update existing employee
-        await api.updateEmployee(editingEmployee._id, newEmployee);
+        await employeeService.updateEmployee(editingEmployee._id, newEmployee);
 
         // Also update the attendance record for the current date if status/hours changed
         const updatedRecord = {
@@ -274,7 +273,7 @@ const EmployeeAttendance = () => {
     if (!deleteConfirmId) return;
 
     try {
-      await api.deleteEmployee(deleteConfirmId);
+      await employeeService.deleteEmployee(deleteConfirmId);
       await loadEmployees();
 
       // Optional: Remove attendance records for this employee?

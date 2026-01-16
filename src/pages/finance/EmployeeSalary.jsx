@@ -2,16 +2,14 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { AlertCircle, Calendar, Download, Edit2, Eye, FileText, Filter, Mail, MoreVertical, Phone, Plus, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useState, useRef } from 'react';
-<<<<<<< HEAD:src/pages/expenses/EmployeeSalary.jsx
-import Toast from '../../components/Toast';
-import api from '../../config/api';
-import suhTechLogo from '../../assets/suh-tech-logo.png';
-import phoneIcon from '../../assets/phone-icon.png';
-import emailIcon from '../../assets/email-icon.png';
-=======
 import Toast from "../../components/common/Toast";
 import api from "../../config/api";
->>>>>>> dev:src/pages/finance/EmployeeSalary.jsx
+
+// Import logo, icons, and stamp from public folder
+const suhTechLogo = '/suh-tech-logo.png';
+const emailIcon = '/email-icon.png';
+const phoneIcon = '/phone-icon.png';
+const companyStamp = '/company-stamp.png';
 
 const EmployeeSalary = () => {
     const [employees, setEmployees] = useState([]);
@@ -372,36 +370,37 @@ const EmployeeSalary = () => {
             const lightGreen = [220, 252, 231];
 
             // ===== HEADER SECTION =====
-            // Add SUH Tech Logo
+            // Add SUH Tech Logo (240x240 scaled to fit)
             try {
-                // Logo sized to 24x24, vertically centered with company text
-                doc.addImage(suhTechLogo, 'PNG', 15, 18, 24, 24);
+                // Logo sized proportionally from 240x240, positioned on the left
+                const logoSize = 20; // Scaled down from 240x240 to fit header
+                doc.addImage(suhTechLogo, 'PNG', 15, 15, logoSize, logoSize);
             } catch (error) {
                 console.log('Logo loading error:', error);
-                // Fallback to purple box if logo fails to load
+                // Fallback to colored box if logo fails to load
                 doc.setFillColor(124, 58, 237);
-                doc.rect(15, 18, 24, 24, 'F');
+                doc.rect(15, 15, 20, 20, 'F');
                 doc.setTextColor(255, 255, 255);
-                doc.setFontSize(10);
+                doc.setFontSize(8);
                 doc.setFont('helvetica', 'bold');
-                doc.text("Logo", 27, 32, { align: 'center' });
+                doc.text("ST", 25, 27, { align: 'center' });
             }
 
-            // Company Name and Address
+            // Company Name and Address (aligned with logo)
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(16);
             doc.setFont('helvetica', 'bold');
-            doc.text("SUH Tech Pvt Ltd", 43, 23);
+            doc.text("SUH Tech Pvt Ltd", 40, 21);
             
             doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
-            doc.setTextColor(...darkGray);
-            doc.text("D-8, 4th Floor, Habitech Crystal Mall, Knowledge Park III,", 43, 29);
-            doc.text("Greater Noida, Uttar Pradesh - 201310 India", 43, 33);
+            doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+            doc.text("D-8, 4th Floor, Habitech Crystal Mall, Knowledge Park III,", 40, 27);
+            doc.text("Greater Noida, Uttar Pradesh - 201310 India", 40, 31);
 
             // Payslip For the Month (Top Right)
             doc.setFontSize(9);
-            doc.setTextColor(...darkGray);
+            doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
             doc.text("Payslip For the Month", pageWidth - 15, 23, { align: 'right' });
             
             doc.setFontSize(14);
@@ -410,9 +409,9 @@ const EmployeeSalary = () => {
             const payPeriod = emp.paymentDate ? new Date(emp.paymentDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'December 2025';
             doc.text(payPeriod, pageWidth - 15, 30, { align: 'right' });
 
-            // Horizontal line after header
-            doc.setDrawColor(...lightGray);
-            doc.setLineWidth(0.5);
+            // Horizontal line after header (thick border)
+            doc.setDrawColor(darkGray[0], darkGray[1], darkGray[2]);
+            doc.setLineWidth(1.5);
             doc.line(15, 50, pageWidth - 15, 50);
 
             // ===== EMPLOYEE SUMMARY SECTION =====
@@ -425,7 +424,7 @@ const EmployeeSalary = () => {
 
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
-            doc.setTextColor(...darkGray);
+            doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
             
             const summaryY = summaryStartY + 8;
             doc.text("Employee Name", 15, summaryY);
@@ -433,24 +432,24 @@ const EmployeeSalary = () => {
             doc.setTextColor(0, 0, 0);
             doc.text(emp.employeeName || "N/A", 60, summaryY);
 
-            doc.setTextColor(...darkGray);
-            doc.text("Employee ID", 15, summaryY + 6);
-            doc.text(":", 55, summaryY + 6);
+            doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+            doc.text("Employee ID", 15, summaryY + 5);
+            doc.text(":", 55, summaryY + 5);
             doc.setTextColor(0, 0, 0);
-            doc.text(emp.employeeId || emp._id?.slice(-6) || "N/A", 60, summaryY + 6);
+            doc.text(emp.employeeId || emp._id?.slice(-6) || "N/A", 60, summaryY + 5);
 
-            doc.setTextColor(...darkGray);
-            doc.text("Pay Period", 15, summaryY + 12);
-            doc.text(":", 55, summaryY + 12);
+            doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+            doc.text("Pay Period", 15, summaryY + 10);
+            doc.text(":", 55, summaryY + 10);
             doc.setTextColor(0, 0, 0);
-            doc.text(payPeriod, 60, summaryY + 12);
+            doc.text(payPeriod, 60, summaryY + 10);
 
-            doc.setTextColor(...darkGray);
-            doc.text("Pay Date", 15, summaryY + 18);
-            doc.text(":", 55, summaryY + 18);
+            doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+            doc.text("Pay Date", 15, summaryY + 15);
+            doc.text(":", 55, summaryY + 15);
             doc.setTextColor(0, 0, 0);
             const payDate = emp.paymentDate ? new Date(emp.paymentDate).toLocaleDateString('en-GB') : "31/12/2025";
-            doc.text(payDate, 60, summaryY + 18);
+            doc.text(payDate, 60, summaryY + 15);
 
             // ===== NET PAY BOX (Right Side) =====
             const netPayBoxX = 120;
@@ -459,42 +458,38 @@ const EmployeeSalary = () => {
             const netPayBoxHeight = 32;
 
             // Green border box
-            doc.setDrawColor(...greenBorder);
+            doc.setDrawColor(greenBorder[0], greenBorder[1], greenBorder[2]);
             doc.setLineWidth(0.5); // Thinner border
-            doc.setFillColor(...lightGreen);
+            doc.setFillColor(lightGreen[0], lightGreen[1], lightGreen[2]);
             doc.roundedRect(netPayBoxX, netPayBoxY, netPayBoxWidth, netPayBoxHeight, 2, 2, 'FD');
-
-            // Vertical green bar on left (removed for cleaner look)
-            // doc.setFillColor(...greenBorder);
-            // doc.rect(netPayBoxX, netPayBoxY, 3, netPayBoxHeight, 'F');
 
             // Net Pay Amount
             doc.setFontSize(20);
             doc.setFont('helvetica', 'bold');
-            doc.setTextColor(...greenBorder);
+            doc.setTextColor(greenBorder[0], greenBorder[1], greenBorder[2]);
             const netPayText = `Rs. ${(emp.breakdown?.net || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             doc.text(netPayText, netPayBoxX + netPayBoxWidth / 2, netPayBoxY + 12, { align: 'center' });
 
             doc.setFontSize(8);
             doc.setFont('helvetica', 'normal');
-            doc.setTextColor(...darkGray);
+            doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
             doc.text("Total Net Pay", netPayBoxX + netPayBoxWidth / 2, netPayBoxY + 17, { align: 'center' });
 
             // Dotted line
             doc.setLineDash([1, 1]);
-            doc.setDrawColor(...lightGray);
+            doc.setDrawColor(lightGray[0], lightGray[1], lightGray[2]);
             doc.line(netPayBoxX + 5, netPayBoxY + 20, netPayBoxX + netPayBoxWidth - 5, netPayBoxY + 20);
             doc.setLineDash([]);
 
             // Paid Days and LOP Days
             doc.setFontSize(9);
-            doc.setTextColor(...darkGray);
+            doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
             doc.text("Paid Days", netPayBoxX + 8, netPayBoxY + 25);
             doc.text(":", netPayBoxX + 28, netPayBoxY + 25);
             doc.setTextColor(0, 0, 0);
             doc.text("22", netPayBoxX + 31, netPayBoxY + 25);
 
-            doc.setTextColor(...darkGray);
+            doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
             doc.text("LOP Days", netPayBoxX + 8, netPayBoxY + 30);
             doc.text(":", netPayBoxX + 28, netPayBoxY + 30);
             doc.setTextColor(0, 0, 0);
@@ -610,13 +605,13 @@ const EmployeeSalary = () => {
             doc.setTextColor(0, 0, 0);
             doc.text("TOTAL NET PAYABLE", 20, finalY + 3);
             
-            doc.setTextColor(...greenBorder);
+            doc.setTextColor(greenBorder[0], greenBorder[1], greenBorder[2]);
             const totalNetPayText = `Rs. ${(emp.breakdown?.net || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             doc.text(totalNetPayText, pageWidth - 20, finalY + 3, { align: 'right' });
 
             doc.setFontSize(8);
             doc.setFont('helvetica', 'normal');
-            doc.setTextColor(...darkGray);
+            doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
             doc.text("Gross Earnings - Total Deductions", 20, finalY + 8);
 
             // Amount in words
@@ -625,60 +620,43 @@ const EmployeeSalary = () => {
             doc.setTextColor(0, 0, 0);
             doc.text(`Amount In Words : ${amountInWords}`, pageWidth - 20, finalY + 20, { align: 'right' });
 
+            // Company Stamp - Left side below Total Net Payable
+            try {
+                const stampSize = 40; // Larger size for prominence
+                const stampX = 20; // More left position
+                const stampY = finalY + 25; // Below the amount in words
+                doc.addImage(companyStamp, 'PNG', stampX, stampY, stampSize, stampSize);
+            } catch (error) {
+                console.log('Stamp loading error:', error);
+                // Fallback: Draw a circular stamp outline
+                const stampX = 40;
+                const stampY = finalY + 45;
+                doc.setDrawColor(34, 197, 94);
+                doc.setLineWidth(1.5);
+                doc.circle(stampX, stampY, 18, 'S');
+                doc.setFontSize(7);
+                doc.setTextColor(34, 197, 94);
+                doc.setFont('helvetica', 'bold');
+                doc.text("SUH TECH", stampX, stampY - 2, { align: 'center' });
+                doc.text("PVT LTD", stampX, stampY + 4, { align: 'center' });
+            }
+
             // ===== FOOTER =====
+            // Contact Information - Single line, no icons, gray text
+            const contactStartY = 265;
+            
+            doc.setFontSize(9); // Increased from 8
+            doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+            doc.setFont('helvetica', 'normal');
+            
+            // Single line: Phone Number: +91 9211056355 | Email: info@suhtech.top
+            const contactText = "Phone Number: +91 9211056355  |  Email: info@suhtech.top";
+            doc.text(contactText, pageWidth / 2, contactStartY, { align: 'center' });
+            
+            // System-generated text below contact info
             doc.setFontSize(8);
-            doc.setTextColor(...lightGray);
-            doc.text("-- This is a system-generated document. --", pageWidth / 2, 265, { align: 'center' });
-            
-            // Contact Information with Icons
-            const contactStartY = 273;
-            const iconSize = 8;
-            const iconX = 20;
-            
-            // Phone Icon - Use actual image instead of drawing
-            try {
-                doc.addImage(phoneIcon, 'PNG', iconX, contactStartY, iconSize, iconSize);
-            } catch (error) {
-                console.log('Phone icon loading error:', error);
-                // Fallback to circle if image fails
-                doc.setFillColor(230, 220, 255);
-                doc.circle(iconX + iconSize/2, contactStartY + iconSize/2, iconSize/2, 'F');
-                doc.setDrawColor(124, 58, 237);
-                doc.setLineWidth(0.3);
-                doc.circle(iconX + iconSize/2, contactStartY + iconSize/2, iconSize/2, 'S');
-            }
-            
-            // Phone Number
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
-            doc.setFont('helvetica', 'bold');
-            doc.text("Phone Number", iconX + iconSize + 5, contactStartY + 2);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(...darkGray);
-            doc.text("8298252909", iconX + iconSize + 5, contactStartY + 7);
-            
-            // Email Icon - Use actual image instead of drawing
-            const emailY = contactStartY + 15;
-            try {
-                doc.addImage(emailIcon, 'PNG', iconX, emailY, iconSize, iconSize);
-            } catch (error) {
-                console.log('Email icon loading error:', error);
-                // Fallback to circle if image fails
-                doc.setFillColor(220, 230, 255);
-                doc.circle(iconX + iconSize/2, emailY + iconSize/2, iconSize/2, 'F');
-                doc.setDrawColor(59, 130, 246);
-                doc.setLineWidth(0.3);
-                doc.circle(iconX + iconSize/2, emailY + iconSize/2, iconSize/2, 'S');
-            }
-            
-            // Email Support
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
-            doc.setFont('helvetica', 'bold');
-            doc.text("Email Support", iconX + iconSize + 5, emailY + 2);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(...darkGray);
-            doc.text("info@suhtech.top", iconX + iconSize + 5, emailY + 7);
+            doc.setTextColor(lightGray[0], lightGray[1], lightGray[2]);
+            doc.text("-- This is a system-generated document. --", pageWidth / 2, contactStartY + 10, { align: 'center' });
 
             return doc;
         } catch (error) {

@@ -326,3 +326,129 @@ export const designationService = {
   deleteDesignation: (id) =>
     apiService.delete(`/designations/${id}`, authService.getToken()),
 };
+
+// Attendance service
+export const attendanceService = {
+  // Get all attendance records
+  getAllAttendance: async () => {
+    try {
+      const response = await apiService.get(
+        "/attendances/",
+        authService.getToken()
+      );
+      // Handle nested response structure
+      return response.success && response.data ? response.data : response || [];
+    } catch (error) {
+      console.error("Error fetching attendance:", error);
+      // Fallback to localStorage
+      const cached = localStorage.getItem('attendance');
+      return cached ? JSON.parse(cached) : [];
+    }
+  },
+
+  // Get attendance by ID
+  getAttendanceById: async (id) => {
+    try {
+      const response = await apiService.get(
+        `/attendances/${id}`,
+        authService.getToken()
+      );
+      return response.success && response.data ? response.data : response;
+    } catch (error) {
+      console.error("Error fetching attendance by ID:", error);
+      // Fallback to localStorage
+      const attendance = JSON.parse(localStorage.getItem('attendance') || '[]');
+      return attendance.find(att => att.id === id || att._id === id);
+    }
+  },
+
+  // Get attendance by user ID
+  getAttendanceByUserId: async (userId) => {
+    try {
+      const response = await apiService.get(
+        `/attendances/user/${userId}`,
+        authService.getToken()
+      );
+      return response.success && response.data ? response.data : response || [];
+    } catch (error) {
+      console.error("Error fetching attendance by user ID:", error);
+      // Fallback to localStorage
+      const attendance = JSON.parse(localStorage.getItem('attendance') || '[]');
+      return attendance.filter(att => att.userId === userId);
+    }
+  },
+
+  // Create new attendance record
+  createAttendance: async (data) => {
+    try {
+      const response = await apiService.post(
+        "/attendances/",
+        data,
+        authService.getToken()
+      );
+      return response;
+    } catch (error) {
+      console.error("Error creating attendance via API:", error);
+      console.log("Saving attendance to localStorage instead");
+
+      // Fallback: Save to localStorage
+      const attendance = JSON.parse(localStorage.getItem('attendance') || '[]');
+      const newAttendance = {
+        ...data,
+        id: Date.now(),
+        _id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+      };
+
+      attendance.push(newAttendance);
+      localStorage.setItem('attendance', JSON.stringify(attendance));
+
+      return { success: true, data: newAttendance };
+    }
+  },
+
+  // Update attendance by ID
+  updateAttendanceById: async (id, data) => {
+    try {
+      const response = await apiService.put(
+        `/attendances/${id}`,
+        data,
+        authService.getToken()
+      );
+      return response;
+    } catch (error) {
+      console.error("Error updating attendance via API:", error);
+      console.log("Updating attendance in localStorage instead");
+
+      // Fallback: Update in localStorage
+      const attendance = JSON.parse(localStorage.getItem('attendance') || '[]');
+      const index = attendance.findIndex(att => att.id === id || att._id === id);
+      if (index !== -1) {
+        attendance[index] = { ...attendance[index], ...data, updatedAt: new Date().toISOString() };
+        localStorage.setItem('attendance', JSON.stringify(attendance));
+        return { success: true, data: attendance[index] };
+      }
+      throw new Error('Attendance record not found');
+    }
+  },
+
+  // Delete attendance by ID
+  deleteAttendanceById: async (id) => {
+    try {
+      const response = await apiService.delete(
+        `/attendances/${id}`,
+        authService.getToken()
+      );
+      return response;
+    } catch (error) {
+      console.error("Error deleting attendance via API:", error);
+      console.log("Deleting attendance from localStorage instead");
+
+      // Fallback: Delete from localStorage
+      const attendance = JSON.parse(localStorage.getItem('attendance') || '[]');
+      const filtered = attendance.filter(att => att.id !== id && att._id !== id);
+      localStorage.setItem('attendance', JSON.stringify(filtered));
+      return { success: true };
+    }
+  },
+};

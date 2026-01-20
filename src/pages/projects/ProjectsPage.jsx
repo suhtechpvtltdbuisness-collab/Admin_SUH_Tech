@@ -1,7 +1,7 @@
 import { Edit2, MoreVertical, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Toast from "../../components/common/Toast";
-import { authService, employeeService } from "../../services";
+import { authService, employeeService, projectService } from "../../services";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState([]);
@@ -37,8 +37,8 @@ export default function ProjectsPage() {
   const loadProjects = async () => {
     try {
       setLoading(true);
-      const res = await api.getProjects();
-      setProjects(res.projects || []);
+      const res = await projectService.getAllProjects();
+      setProjects(res.projects || res.data || res || []);
     } catch (error) {
       console.error("Error loading projects:", error);
       showToast("Failed to load projects: " + error.message, "error");
@@ -120,13 +120,13 @@ export default function ProjectsPage() {
       };
 
       if (editingProject) {
-        await api.updateProject(
+        await projectService.updateProjectById(
           editingProject._id || editingProject.projectCode,
           payload,
         );
         showToast("Project updated successfully!", "success");
       } else {
-        await api.createProject(payload);
+        await projectService.createProject(payload);
         showToast("Project created successfully!", "success");
       }
 
@@ -144,7 +144,7 @@ export default function ProjectsPage() {
       return;
     }
     try {
-      await api.deleteProject(idOrCode);
+      await projectService.deleteProjectById(idOrCode);
       showToast("Project deleted successfully!", "success");
       await loadProjects();
     } catch (error) {

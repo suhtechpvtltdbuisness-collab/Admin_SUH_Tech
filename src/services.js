@@ -504,3 +504,495 @@ export const attendanceService = {
     }
   },
 };
+
+// Client Expense Service (Company Sales)
+export const clientExpenseService = {
+  // Get all client expenses
+  getAllClientExpenses: async () => {
+    try {
+      const response = await apiService.get(
+        "/expenses/client",
+        authService.getToken(),
+      );
+      return response.success && response.data ? response.data : response || [];
+    } catch (error) {
+      console.error("Error fetching client expenses:", error);
+      // Fallback to localStorage
+      const cached = localStorage.getItem("clientExpenses");
+      return cached ? JSON.parse(cached) : [];
+    }
+  },
+
+  // Get client expense by ID
+  getClientExpenseById: async (id) => {
+    try {
+      const response = await apiService.get(
+        `/expenses/client/${id}`,
+        authService.getToken(),
+      );
+      return response.success && response.data ? response.data : response;
+    } catch (error) {
+      console.error("Error fetching client expense by ID:", error);
+      // Fallback to localStorage
+      const expenses = JSON.parse(
+        localStorage.getItem("clientExpenses") || "[]",
+      );
+      return expenses.find((exp) => exp.id === id || exp._id === id);
+    }
+  },
+
+  // Create new client expense
+  createClientExpense: async (data) => {
+    try {
+      const response = await apiService.post(
+        "/expenses/client",
+        data,
+        authService.getToken(),
+      );
+      return response;
+    } catch (error) {
+      console.error("Error creating client expense via API:", error);
+      console.log("Saving client expense to localStorage instead");
+
+      // Fallback: Save to localStorage
+      const expenses = JSON.parse(
+        localStorage.getItem("clientExpenses") || "[]",
+      );
+      const newExpense = {
+        ...data,
+        id: Date.now(),
+        _id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+      };
+
+      expenses.push(newExpense);
+      localStorage.setItem("clientExpenses", JSON.stringify(expenses));
+
+      return { success: true, data: newExpense };
+    }
+  },
+
+  // Update client expense by ID
+  updateClientExpenseById: async (id, data) => {
+    try {
+      const response = await apiService.patch(
+        `/expenses/client/${id}`,
+        data,
+        authService.getToken(),
+      );
+      return response;
+    } catch (error) {
+      console.error("Error updating client expense via API:", error);
+      console.log("Updating client expense in localStorage instead");
+
+      // Fallback: Update in localStorage
+      const expenses = JSON.parse(
+        localStorage.getItem("clientExpenses") || "[]",
+      );
+      const index = expenses.findIndex(
+        (exp) => exp.id === id || exp._id === id,
+      );
+      if (index !== -1) {
+        expenses[index] = {
+          ...expenses[index],
+          ...data,
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem("clientExpenses", JSON.stringify(expenses));
+        return { success: true, data: expenses[index] };
+      }
+      throw new Error("Client expense not found");
+    }
+  },
+
+  // Delete client expense by ID
+  deleteClientExpenseById: async (id) => {
+    try {
+      const response = await apiService.delete(
+        `/expenses/client/${id}`,
+        authService.getToken(),
+      );
+      return response;
+    } catch (error) {
+      console.error("Error deleting client expense via API:", error);
+      console.log("Deleting client expense from localStorage instead");
+
+      // Fallback: Delete from localStorage
+      const expenses = JSON.parse(
+        localStorage.getItem("clientExpenses") || "[]",
+      );
+      const filtered = expenses.filter(
+        (exp) => exp.id !== id && exp._id !== id,
+      );
+      localStorage.setItem("clientExpenses", JSON.stringify(filtered));
+      return { success: true };
+    }
+  },
+};
+
+// Personal Expense Service (Company Expenses)
+export const personalExpenseService = {
+  // Get all personal expenses
+  getAllPersonalExpenses: async () => {
+    try {
+      const response = await apiService.get(
+        "/expenses/personal",
+        authService.getToken(),
+      );
+      return response.success && response.data ? response.data : response || [];
+    } catch (error) {
+      console.error("Error fetching personal expenses:", error);
+      // Fallback to localStorage
+      const cached = localStorage.getItem("personalExpenses");
+      return cached ? JSON.parse(cached) : [];
+    }
+  },
+
+  // Get personal expense by ID
+  getPersonalExpenseById: async (id) => {
+    try {
+      const response = await apiService.get(
+        `/expenses/personal/${id}`,
+        authService.getToken(),
+      );
+      return response.success && response.data ? response.data : response;
+    } catch (error) {
+      console.error("Error fetching personal expense by ID:", error);
+      // Fallback to localStorage
+      const expenses = JSON.parse(
+        localStorage.getItem("personalExpenses") || "[]",
+      );
+      return expenses.find((exp) => exp.id === id || exp._id === id);
+    }
+  },
+
+  // Create new personal expense
+  createPersonalExpense: async (data) => {
+    try {
+      const response = await apiService.post(
+        "/expenses/personal",
+        data,
+        authService.getToken(),
+      );
+      return response;
+    } catch (error) {
+      console.error("Error creating personal expense via API:", error);
+      console.log("Saving personal expense to localStorage instead");
+
+      // Fallback: Save to localStorage
+      const expenses = JSON.parse(
+        localStorage.getItem("personalExpenses") || "[]",
+      );
+      const newExpense = {
+        ...data,
+        id: Date.now(),
+        _id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+      };
+
+      expenses.push(newExpense);
+      localStorage.setItem("personalExpenses", JSON.stringify(expenses));
+
+      return { success: true, data: newExpense };
+    }
+  },
+
+  // Update personal expense by ID
+  updatePersonalExpenseById: async (id, data) => {
+    try {
+      const response = await apiService.patch(
+        `/expenses/personal/${id}`,
+        data,
+        authService.getToken(),
+      );
+      return response;
+    } catch (error) {
+      console.error("Error updating personal expense via API:", error);
+      console.log("Updating personal expense in localStorage instead");
+
+      // Fallback: Update in localStorage
+      const expenses = JSON.parse(
+        localStorage.getItem("personalExpenses") || "[]",
+      );
+      const index = expenses.findIndex(
+        (exp) => exp.id === id || exp._id === id,
+      );
+      if (index !== -1) {
+        expenses[index] = {
+          ...expenses[index],
+          ...data,
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem("personalExpenses", JSON.stringify(expenses));
+        return { success: true, data: expenses[index] };
+      }
+      throw new Error("Personal expense not found");
+    }
+  },
+
+  // Delete personal expense by ID
+  deletePersonalExpenseById: async (id) => {
+    try {
+      const response = await apiService.delete(
+        `/expenses/personal/${id}`,
+        authService.getToken(),
+      );
+      return response;
+    } catch (error) {
+      console.error("Error deleting personal expense via API:", error);
+      console.log("Deleting personal expense from localStorage instead");
+
+      // Fallback: Delete from localStorage
+      const expenses = JSON.parse(
+        localStorage.getItem("personalExpenses") || "[]",
+      );
+      const filtered = expenses.filter(
+        (exp) => exp.id !== id && exp._id !== id,
+      );
+      localStorage.setItem("personalExpenses", JSON.stringify(filtered));
+      return { success: true };
+    }
+  },
+};
+
+// Employee Expense Service (Employee Salary)
+export const employeeExpenseService = {
+  // Get all employee expenses
+  getAllEmployeeExpenses: async () => {
+    try {
+      const response = await apiService.get(
+        "/expenses/employee",
+        authService.getToken(),
+      );
+      return response.success && response.data ? response.data : response || [];
+    } catch (error) {
+      console.error("Error fetching employee expenses:", error);
+      // Fallback to localStorage
+      const cached = localStorage.getItem("employeeExpenses");
+      return cached ? JSON.parse(cached) : [];
+    }
+  },
+
+  // Get employee expense by ID
+  getEmployeeExpenseById: async (id) => {
+    try {
+      const response = await apiService.get(
+        `/expenses/employee/${id}`,
+        authService.getToken(),
+      );
+      return response.success && response.data ? response.data : response;
+    } catch (error) {
+      console.error("Error fetching employee expense by ID:", error);
+      // Fallback to localStorage
+      const expenses = JSON.parse(
+        localStorage.getItem("employeeExpenses") || "[]",
+      );
+      return expenses.find((exp) => exp.id === id || exp._id === id);
+    }
+  },
+
+  // Create new employee expense
+  createEmployeeExpense: async (data) => {
+    try {
+      const response = await apiService.post(
+        "/expenses/employee",
+        data,
+        authService.getToken(),
+      );
+      return response;
+    } catch (error) {
+      console.error("Error creating employee expense via API:", error);
+      console.log("Saving employee expense to localStorage instead");
+
+      // Fallback: Save to localStorage
+      const expenses = JSON.parse(
+        localStorage.getItem("employeeExpenses") || "[]",
+      );
+      const newExpense = {
+        ...data,
+        id: Date.now(),
+        _id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+      };
+
+      expenses.push(newExpense);
+      localStorage.setItem("employeeExpenses", JSON.stringify(expenses));
+
+      return { success: true, data: newExpense };
+    }
+  },
+
+  // Update employee expense by ID
+  updateEmployeeExpenseById: async (id, data) => {
+    try {
+      const response = await apiService.patch(
+        `/expenses/employee/${id}`,
+        data,
+        authService.getToken(),
+      );
+      return response;
+    } catch (error) {
+      console.error("Error updating employee expense via API:", error);
+      console.log("Updating employee expense in localStorage instead");
+
+      // Fallback: Update in localStorage
+      const expenses = JSON.parse(
+        localStorage.getItem("employeeExpenses") || "[]",
+      );
+      const index = expenses.findIndex(
+        (exp) => exp.id === id || exp._id === id,
+      );
+      if (index !== -1) {
+        expenses[index] = {
+          ...expenses[index],
+          ...data,
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem("employeeExpenses", JSON.stringify(expenses));
+        return { success: true, data: expenses[index] };
+      }
+      throw new Error("Employee expense not found");
+    }
+  },
+
+  // Delete employee expense by ID
+  deleteEmployeeExpenseById: async (id) => {
+    try {
+      const response = await apiService.delete(
+        `/expenses/employee/${id}`,
+        authService.getToken(),
+      );
+      return response;
+    } catch (error) {
+      console.error("Error deleting employee expense via API:", error);
+      console.log("Deleting employee expense from localStorage instead");
+
+      // Fallback: Delete from localStorage
+      const expenses = JSON.parse(
+        localStorage.getItem("employeeExpenses") || "[]",
+      );
+      const filtered = expenses.filter(
+        (exp) => exp.id !== id && exp._id !== id,
+      );
+      localStorage.setItem("employeeExpenses", JSON.stringify(filtered));
+      return { success: true };
+    }
+  },
+};
+
+// Project Service
+export const projectService = {
+  // Get all projects
+  getAllProjects: async () => {
+    try {
+      const response = await apiService.get(
+        "/projects",
+        authService.getToken(),
+      );
+      return response.success && response.data ? response.data : response || [];
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      // Fallback to localStorage
+      const cached = localStorage.getItem("projects");
+      return cached ? JSON.parse(cached) : [];
+    }
+  },
+
+  // Get project by ID
+  getProjectById: async (id) => {
+    try {
+      const response = await apiService.get(
+        `/projects/${id}`,
+        authService.getToken(),
+      );
+      return response.success && response.data ? response.data : response;
+    } catch (error) {
+      console.error("Error fetching project by ID:", error);
+      // Fallback to localStorage
+      const projects = JSON.parse(localStorage.getItem("projects") || "[]");
+      return projects.find((proj) => proj.id === id || proj._id === id);
+    }
+  },
+
+  // Create new project
+  createProject: async (data) => {
+    try {
+      const response = await apiService.post(
+        "/projects",
+        data,
+        authService.getToken(),
+      );
+      return response;
+    } catch (error) {
+      console.error("Error creating project via API:", error);
+      console.log("Saving project to localStorage instead");
+
+      // Fallback: Save to localStorage
+      const projects = JSON.parse(localStorage.getItem("projects") || "[]");
+      const newProject = {
+        ...data,
+        id: Date.now(),
+        _id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+      };
+
+      projects.push(newProject);
+      localStorage.setItem("projects", JSON.stringify(projects));
+
+      return { success: true, data: newProject };
+    }
+  },
+
+  // Update project by ID
+  updateProjectById: async (id, data) => {
+    try {
+      const response = await apiService.patch(
+        `/projects/${id}`,
+        data,
+        authService.getToken(),
+      );
+      return response;
+    } catch (error) {
+      console.error("Error updating project via API:", error);
+      console.log("Updating project in localStorage instead");
+
+      // Fallback: Update in localStorage
+      const projects = JSON.parse(localStorage.getItem("projects") || "[]");
+      const index = projects.findIndex(
+        (proj) => proj.id === id || proj._id === id,
+      );
+      if (index !== -1) {
+        projects[index] = {
+          ...projects[index],
+          ...data,
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem("projects", JSON.stringify(projects));
+        return { success: true, data: projects[index] };
+      }
+      throw new Error("Project not found");
+    }
+  },
+
+  // Delete project by ID
+  deleteProjectById: async (id) => {
+    try {
+      const response = await apiService.delete(
+        `/projects/${id}`,
+        authService.getToken(),
+      );
+      return response;
+    } catch (error) {
+      console.error("Error deleting project via API:", error);
+      console.log("Deleting project from localStorage instead");
+
+      // Fallback: Delete from localStorage
+      const projects = JSON.parse(localStorage.getItem("projects") || "[]");
+      const filtered = projects.filter(
+        (proj) => proj.id !== id && proj._id !== id,
+      );
+      localStorage.setItem("projects", JSON.stringify(filtered));
+      return { success: true };
+    }
+  },
+};

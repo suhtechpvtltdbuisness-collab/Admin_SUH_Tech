@@ -1,7 +1,7 @@
 import { Calendar, Mail, Search, TrendingUp, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import Toast from "../../components/common/Toast";
-import api from "../../config/api";
+import { authService, employeeService } from "../../services";
 
 export default function NewsletterPage() {
   const [subscribers, setSubscribers] = useState([]);
@@ -10,7 +10,7 @@ export default function NewsletterPage() {
   const [toast, setToast] = useState(null);
 
   // Toast helper
-  const showToast = (message, type = 'success') => {
+  const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   };
@@ -27,7 +27,7 @@ export default function NewsletterPage() {
       setSubscribers(response.subscribers || []);
     } catch (error) {
       console.error("Error loading subscribers:", error);
-      showToast("Failed to load subscribers: " + error.message, 'error');
+      showToast("Failed to load subscribers: " + error.message, "error");
     } finally {
       setLoading(false);
     }
@@ -35,26 +35,29 @@ export default function NewsletterPage() {
 
   // Filter subscribers based on search
   const filteredSubscribers = useMemo(() => {
-    return subscribers.filter(sub =>
-      sub.email.toLowerCase().includes(searchTerm.toLowerCase())
+    return subscribers.filter((sub) =>
+      sub.email.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [subscribers, searchTerm]);
 
   // Stats
   const stats = {
     total: subscribers.length,
-    active: subscribers.filter(s => s.isActive).length,
-    thisMonth: subscribers.filter(s => {
+    active: subscribers.filter((s) => s.isActive).length,
+    thisMonth: subscribers.filter((s) => {
       const date = new Date(s.subscribedAt);
       const now = new Date();
-      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+      return (
+        date.getMonth() === now.getMonth() &&
+        date.getFullYear() === now.getFullYear()
+      );
     }).length,
-    thisWeek: subscribers.filter(s => {
+    thisWeek: subscribers.filter((s) => {
       const date = new Date(s.subscribedAt);
       const now = new Date();
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       return date >= weekAgo;
-    }).length
+    }).length,
   };
 
   const formatDate = (date) => {
@@ -64,11 +67,9 @@ export default function NewsletterPage() {
       month: "short",
       day: "numeric",
       hour: "2-digit",
-      minute: "2-digit"
+      minute: "2-digit",
     });
   };
-
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 lg:p-10">
@@ -94,7 +95,9 @@ export default function NewsletterPage() {
                 <Users size={24} className="text-white" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-1">{stats.total}</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">
+              {stats.total}
+            </h3>
             <p className="text-sm text-gray-600">Total Subscribers</p>
           </div>
 
@@ -105,7 +108,9 @@ export default function NewsletterPage() {
                 <Mail size={24} className="text-white" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-1">{stats.active}</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">
+              {stats.active}
+            </h3>
             <p className="text-sm text-gray-600">Active Subscribers</p>
           </div>
 
@@ -116,7 +121,9 @@ export default function NewsletterPage() {
                 <Calendar size={24} className="text-white" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-1">{stats.thisMonth}</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">
+              {stats.thisMonth}
+            </h3>
             <p className="text-sm text-gray-600">This Month</p>
           </div>
 
@@ -127,7 +134,9 @@ export default function NewsletterPage() {
                 <TrendingUp size={24} className="text-white" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-1">{stats.thisWeek}</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">
+              {stats.thisWeek}
+            </h3>
             <p className="text-sm text-gray-600">This Week</p>
           </div>
         </div>
@@ -156,7 +165,8 @@ export default function NewsletterPage() {
               All Subscribers
             </h2>
             <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full border border-blue-200">
-              {filteredSubscribers.length} {filteredSubscribers.length === 1 ? 'Subscriber' : 'Subscribers'}
+              {filteredSubscribers.length}{" "}
+              {filteredSubscribers.length === 1 ? "Subscriber" : "Subscribers"}
             </span>
           </div>
 
@@ -171,7 +181,9 @@ export default function NewsletterPage() {
                 <Mail size={32} className="text-gray-400" />
               </div>
               <p className="text-gray-500 text-sm">
-                {searchTerm ? "No subscribers found matching your search." : "No subscribers yet."}
+                {searchTerm
+                  ? "No subscribers found matching your search."
+                  : "No subscribers yet."}
               </p>
             </div>
           ) : (
@@ -187,26 +199,34 @@ export default function NewsletterPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filteredSubscribers.map((subscriber, index) => (
-                    <tr key={subscriber._id} className="hover:bg-blue-50/30 transition-colors duration-150">
+                    <tr
+                      key={subscriber._id}
+                      className="hover:bg-blue-50/30 transition-colors duration-150"
+                    >
                       <td className="p-4 text-gray-400 text-xs font-medium">
-                        {(index + 1).toString().padStart(2, '0')}
+                        {(index + 1).toString().padStart(2, "0")}
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
                             {subscriber.email.charAt(0).toUpperCase()}
                           </div>
-                          <span className="text-sm text-blue-600 font-medium">{subscriber.email}</span>
+                          <span className="text-sm text-blue-600 font-medium">
+                            {subscriber.email}
+                          </span>
                         </div>
                       </td>
                       <td className="p-4 text-sm text-gray-600 font-medium">
                         {formatDate(subscriber.subscribedAt)}
                       </td>
                       <td className="p-4 text-center">
-                        <span className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold ${subscriber.isActive
-                          ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200"
-                          : "bg-gradient-to-r from-gray-50 to-slate-50 text-gray-600 border border-gray-200"
-                          }`}>
+                        <span
+                          className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                            subscriber.isActive
+                              ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200"
+                              : "bg-gradient-to-r from-gray-50 to-slate-50 text-gray-600 border border-gray-200"
+                          }`}
+                        >
                           {subscriber.isActive ? "Active" : "Inactive"}
                         </span>
                       </td>
@@ -220,7 +240,13 @@ export default function NewsletterPage() {
       </div>
 
       {/* Toast Notifications */}
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

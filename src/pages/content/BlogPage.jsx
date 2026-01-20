@@ -1,7 +1,7 @@
 import { Edit2, MoreVertical, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Toast from "../../components/common/Toast";
-import api from "../../config/api";
+import { authService, employeeService } from "../../services";
 
 export default function BlogPage() {
   const [blogs, setBlogs] = useState([]);
@@ -21,7 +21,7 @@ export default function BlogPage() {
     isPublished: false,
   });
 
-  const showToast = (message, type = 'success') => {
+  const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   };
@@ -37,7 +37,7 @@ export default function BlogPage() {
       setBlogs(res.blogs || []);
     } catch (error) {
       console.error("Error loading blogs:", error);
-      showToast("Failed to load blogs: " + error.message, 'error');
+      showToast("Failed to load blogs: " + error.message, "error");
     } finally {
       setLoading(false);
     }
@@ -101,10 +101,10 @@ export default function BlogPage() {
 
       if (editingBlog) {
         await api.updateBlog(editingBlog._id || editingBlog.slug, payload);
-        showToast("Blog post updated successfully!", 'success');
+        showToast("Blog post updated successfully!", "success");
       } else {
         await api.createBlog(payload);
-        showToast("Blog post created successfully!", 'success');
+        showToast("Blog post created successfully!", "success");
       }
 
       await loadBlogs();
@@ -112,18 +112,18 @@ export default function BlogPage() {
       setEditingBlog(null);
     } catch (error) {
       console.error("Error saving blog:", error);
-      showToast("Failed to save blog: " + error.message, 'error');
+      showToast("Failed to save blog: " + error.message, "error");
     }
   };
 
   const handleDelete = async (idOrSlug) => {
     try {
       await api.deleteBlog(idOrSlug);
-      showToast("Blog post deleted successfully!", 'success');
+      showToast("Blog post deleted successfully!", "success");
       await loadBlogs();
     } catch (error) {
       console.error("Error deleting blog:", error);
-      showToast("Failed to delete blog: " + error.message, 'error');
+      showToast("Failed to delete blog: " + error.message, "error");
     }
     setActiveMenuId(null);
   };
@@ -197,7 +197,10 @@ export default function BlogPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {blogs.map((blog) => (
-                    <tr key={blog._id || blog.slug} className="hover:bg-blue-50/30 transition-colors duration-150">
+                    <tr
+                      key={blog._id || blog.slug}
+                      className="hover:bg-blue-50/30 transition-colors duration-150"
+                    >
                       <td className="p-4">
                         <div className="flex flex-col">
                           <span className="font-medium text-sm text-gray-900">
@@ -213,10 +216,11 @@ export default function BlogPage() {
                       </td>
                       <td className="p-4">
                         <span
-                          className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold ${blog.isPublished
-                            ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200"
-                            : "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200"
-                            }`}
+                          className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                            blog.isPublished
+                              ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200"
+                              : "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200"
+                          }`}
                         >
                           {blog.isPublished ? "Published" : "Draft"}
                         </span>
@@ -229,7 +233,7 @@ export default function BlogPage() {
                           <button
                             onClick={() =>
                               setActiveMenuId(
-                                activeMenuId === blog._id ? null : blog._id
+                                activeMenuId === blog._id ? null : blog._id,
                               )
                             }
                             className="p-2.5 rounded-xl hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-all duration-200"
@@ -275,7 +279,9 @@ export default function BlogPage() {
                   <h2 className="text-xl font-bold text-gray-900">
                     {editingBlog ? "Edit Blog Post" : "New Blog Post"}
                   </h2>
-                  <p className="text-xs text-gray-500 mt-1">Fill in the details below</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Fill in the details below
+                  </p>
                 </div>
                 <button
                   onClick={() => {
@@ -288,7 +294,10 @@ export default function BlogPage() {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto max-h-[calc(90vh-140px)]">
+              <form
+                onSubmit={handleSubmit}
+                className="p-6 space-y-5 overflow-y-auto max-h-[calc(90vh-140px)]"
+              >
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Title
@@ -413,10 +422,14 @@ export default function BlogPage() {
         )}
 
         {/* Toast Notifications */}
-        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
       </div>
     </div>
   );
 }
-
-

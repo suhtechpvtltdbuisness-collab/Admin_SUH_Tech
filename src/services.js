@@ -1,23 +1,21 @@
 // API Service for handling server calls
 class ApiService {
   constructor() {
-    this.baseURL = import.meta.env.VITE_BACKEND_BASE_URL || "https://suh-tech-main-backend.vercel.app";
+    this.baseURL =
+      import.meta.env.VITE_BACKEND_BASE_URL ||
+      "https://suh-tech-main-backend.vercel.app";
   }
 
   // Generic method for making API requests
   async makeRequest(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
 
-    const defaultOptions = {
+    const requestOptions = {
+      ...options,
       headers: {
         "Content-Type": "application/json",
         ...options.headers,
       },
-    };
-
-    const requestOptions = {
-      ...defaultOptions,
-      ...options,
     };
 
     try {
@@ -25,7 +23,9 @@ class ApiService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        throw new Error(
+          `HTTP error! status: ${response.status}, message: ${errorText}`,
+        );
       }
 
       const data = await response.json();
@@ -64,7 +64,10 @@ class ApiService {
     const headers = token ? this.getAuthHeaders(token) : {};
     return this.makeRequest(endpoint, {
       method: "POST",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+      },
       body: JSON.stringify(data),
     });
   }
@@ -74,6 +77,16 @@ class ApiService {
     const headers = token ? this.getAuthHeaders(token) : {};
     return this.makeRequest(endpoint, {
       method: "PUT",
+      headers,
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Generic PATCH request
+  async patch(endpoint, data, token = null) {
+    const headers = token ? this.getAuthHeaders(token) : {};
+    return this.makeRequest(endpoint, {
+      method: "PATCH",
       headers,
       body: JSON.stringify(data),
     });
@@ -151,13 +164,13 @@ export const employeeService = {
     try {
       const response = await apiService.get(
         "/employee",
-        authService.getToken()
+        authService.getToken(),
       );
 
       // Return only real database employees with enriched data
       if (response.success && response.data) {
         // Filter out admin users (admin=true should not show on UI)
-        const employees = response.data.filter(emp => !emp.admin);
+        const employees = response.data.filter((emp) => !emp.admin);
 
         // Fetch departments and designations to map IDs to names
         let departments = [];
@@ -167,22 +180,24 @@ export const employeeService = {
           departments = await departmentService.getAllDepartments();
           designations = await designationService.getAllDesignations();
         } catch (error) {
-          console.error('Error fetching departments/designations:', error);
+          console.error("Error fetching departments/designations:", error);
         }
 
         // Enrich each employee with department and designation names
-        const enrichedEmployees = employees.map(emp => {
-          const department = departments.find(d => d.id === emp.departmentId);
-          const designation = designations.find(d => d.id === emp.designationId);
+        const enrichedEmployees = employees.map((emp) => {
+          const department = departments.find((d) => d.id === emp.departmentId);
+          const designation = designations.find(
+            (d) => d.id === emp.designationId,
+          );
 
           return {
             ...emp,
-            department: department?.name || 'Unknown',
-            designation: designation?.title || 'Unknown',
+            department: department?.name || "Unknown",
+            designation: designation?.title || "Unknown",
             // Map joinedDate to joiningDate for consistency
             joiningDate: emp.joinedDate || emp.joiningDate,
             // Map active status to readable status
-            status: emp.active ? 'Active' : 'Inactive',
+            status: emp.active ? "Active" : "Inactive",
             // Use employeeId or empId
             employeeId: emp.employeeId || emp.empId || `EMP${emp.id}`,
           };
@@ -192,7 +207,7 @@ export const employeeService = {
       }
       return [];
     } catch (error) {
-      console.error('Error fetching employees from API:', error);
+      console.error("Error fetching employees from API:", error);
       // Return empty array instead of localStorage fallback
       return [];
     }
@@ -200,7 +215,10 @@ export const employeeService = {
 
   getEmployee: async (id) => {
     try {
-      const response = await apiService.get(`/employee/${id}`, authService.getToken());
+      const response = await apiService.get(
+        `/employee/${id}`,
+        authService.getToken(),
+      );
 
       // Enrich employee data with department and designation names
       if (response.success && response.data) {
@@ -214,18 +232,20 @@ export const employeeService = {
           departments = await departmentService.getAllDepartments();
           designations = await designationService.getAllDesignations();
         } catch (error) {
-          console.error('Error fetching departments/designations:', error);
+          console.error("Error fetching departments/designations:", error);
         }
 
-        const department = departments.find(d => d.id === emp.departmentId);
-        const designation = designations.find(d => d.id === emp.designationId);
+        const department = departments.find((d) => d.id === emp.departmentId);
+        const designation = designations.find(
+          (d) => d.id === emp.designationId,
+        );
 
         const enrichedEmployee = {
           ...emp,
-          department: department?.name || 'Unknown',
-          designation: designation?.title || 'Unknown',
+          department: department?.name || "Unknown",
+          designation: designation?.title || "Unknown",
           joiningDate: emp.joinedDate || emp.joiningDate,
-          status: emp.active ? 'Active' : 'Inactive',
+          status: emp.active ? "Active" : "Inactive",
           employeeId: emp.employeeId || emp.empId || `EMP${emp.id}`,
         };
 
@@ -234,24 +254,57 @@ export const employeeService = {
 
       return response;
     } catch (error) {
-      console.error('Error fetching employee from API:', error);
+      console.error("Error fetching employee from API:", error);
       throw error;
     }
   },
 
   createEmployee: async (data) => {
     try {
-      const response = await apiService.post("/employee", data, authService.getToken());
+      // Build payload with only required fields and non-empty optional fields
+      const payload = {
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+      };
+
+      // Add optional fields only if they have values
+      if (data.phoneNumber) payload.phoneNumber = data.phoneNumber;
+      if (data.address) payload.address = data.address;
+      if (data.departmentId) payload.departmentId = data.departmentId;
+      if (data.designationId) payload.designationId = data.designationId;
+      if (data.joinedDate) payload.joinedDate = data.joinedDate;
+      if (data.skills) payload.skills = data.skills;
+      if (data.empType) payload.empType = data.empType;
+
+      // Add boolean fields
+      payload.admin = data.admin || false;
+      payload.active = data.active !== undefined ? data.active : true;
+
+      console.log(
+        "Creating employee with payload:",
+        JSON.stringify(payload, null, 2),
+      );
+
+      const response = await apiService.post(
+        "/employee",
+        payload,
+        authService.getToken(),
+      );
       return response;
     } catch (error) {
-      console.error('Error creating employee via API:', error);
+      console.error("Error creating employee via API:", error);
       throw error;
     }
   },
 
   updateEmployee: async (id, data) => {
     try {
-      return await apiService.put(`/employee/${id}`, data, authService.getToken());
+      return await apiService.put(
+        `/employee/${id}`,
+        data,
+        authService.getToken(),
+      );
     } catch (error) {
       console.error("Error updating employee via API:", error);
       throw error;
@@ -274,7 +327,7 @@ export const departmentService = {
     try {
       const response = await apiService.get(
         "/departments",
-        authService.getToken()
+        authService.getToken(),
       );
       // Handle nested response structure
       return response.success && response.data ? response.data : response || [];
@@ -299,7 +352,7 @@ export const designationService = {
     try {
       const response = await apiService.get(
         "/designations",
-        authService.getToken()
+        authService.getToken(),
       );
       // Handle nested response structure
       return response.success && response.data ? response.data : response || [];
@@ -325,14 +378,14 @@ export const attendanceService = {
     try {
       const response = await apiService.get(
         "/attendances/",
-        authService.getToken()
+        authService.getToken(),
       );
       // Handle nested response structure
       return response.success && response.data ? response.data : response || [];
     } catch (error) {
       console.error("Error fetching attendance:", error);
       // Fallback to localStorage
-      const cached = localStorage.getItem('attendance');
+      const cached = localStorage.getItem("attendance");
       return cached ? JSON.parse(cached) : [];
     }
   },
@@ -342,14 +395,14 @@ export const attendanceService = {
     try {
       const response = await apiService.get(
         `/attendances/${id}`,
-        authService.getToken()
+        authService.getToken(),
       );
       return response.success && response.data ? response.data : response;
     } catch (error) {
       console.error("Error fetching attendance by ID:", error);
       // Fallback to localStorage
-      const attendance = JSON.parse(localStorage.getItem('attendance') || '[]');
-      return attendance.find(att => att.id === id || att._id === id);
+      const attendance = JSON.parse(localStorage.getItem("attendance") || "[]");
+      return attendance.find((att) => att.id === id || att._id === id);
     }
   },
 
@@ -358,14 +411,14 @@ export const attendanceService = {
     try {
       const response = await apiService.get(
         `/attendances/user/${userId}`,
-        authService.getToken()
+        authService.getToken(),
       );
       return response.success && response.data ? response.data : response || [];
     } catch (error) {
       console.error("Error fetching attendance by user ID:", error);
       // Fallback to localStorage
-      const attendance = JSON.parse(localStorage.getItem('attendance') || '[]');
-      return attendance.filter(att => att.userId === userId);
+      const attendance = JSON.parse(localStorage.getItem("attendance") || "[]");
+      return attendance.filter((att) => att.userId === userId);
     }
   },
 
@@ -375,7 +428,7 @@ export const attendanceService = {
       const response = await apiService.post(
         "/attendances/",
         data,
-        authService.getToken()
+        authService.getToken(),
       );
       return response;
     } catch (error) {
@@ -383,7 +436,7 @@ export const attendanceService = {
       console.log("Saving attendance to localStorage instead");
 
       // Fallback: Save to localStorage
-      const attendance = JSON.parse(localStorage.getItem('attendance') || '[]');
+      const attendance = JSON.parse(localStorage.getItem("attendance") || "[]");
       const newAttendance = {
         ...data,
         id: Date.now(),
@@ -392,7 +445,7 @@ export const attendanceService = {
       };
 
       attendance.push(newAttendance);
-      localStorage.setItem('attendance', JSON.stringify(attendance));
+      localStorage.setItem("attendance", JSON.stringify(attendance));
 
       return { success: true, data: newAttendance };
     }
@@ -401,10 +454,10 @@ export const attendanceService = {
   // Update attendance by ID
   updateAttendanceById: async (id, data) => {
     try {
-      const response = await apiService.put(
+      const response = await apiService.patch(
         `/attendances/${id}`,
         data,
-        authService.getToken()
+        authService.getToken(),
       );
       return response;
     } catch (error) {
@@ -412,14 +465,20 @@ export const attendanceService = {
       console.log("Updating attendance in localStorage instead");
 
       // Fallback: Update in localStorage
-      const attendance = JSON.parse(localStorage.getItem('attendance') || '[]');
-      const index = attendance.findIndex(att => att.id === id || att._id === id);
+      const attendance = JSON.parse(localStorage.getItem("attendance") || "[]");
+      const index = attendance.findIndex(
+        (att) => att.id === id || att._id === id,
+      );
       if (index !== -1) {
-        attendance[index] = { ...attendance[index], ...data, updatedAt: new Date().toISOString() };
-        localStorage.setItem('attendance', JSON.stringify(attendance));
+        attendance[index] = {
+          ...attendance[index],
+          ...data,
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem("attendance", JSON.stringify(attendance));
         return { success: true, data: attendance[index] };
       }
-      throw new Error('Attendance record not found');
+      throw new Error("Attendance record not found");
     }
   },
 
@@ -428,7 +487,7 @@ export const attendanceService = {
     try {
       const response = await apiService.delete(
         `/attendances/${id}`,
-        authService.getToken()
+        authService.getToken(),
       );
       return response;
     } catch (error) {
@@ -436,9 +495,11 @@ export const attendanceService = {
       console.log("Deleting attendance from localStorage instead");
 
       // Fallback: Delete from localStorage
-      const attendance = JSON.parse(localStorage.getItem('attendance') || '[]');
-      const filtered = attendance.filter(att => att.id !== id && att._id !== id);
-      localStorage.setItem('attendance', JSON.stringify(filtered));
+      const attendance = JSON.parse(localStorage.getItem("attendance") || "[]");
+      const filtered = attendance.filter(
+        (att) => att.id !== id && att._id !== id,
+      );
+      localStorage.setItem("attendance", JSON.stringify(filtered));
       return { success: true };
     }
   },

@@ -1,8 +1,7 @@
 import { Mail, MessageSquare, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import Toast from "../../components/common/Toast";
-import api from "../../config/api";
-import { employeeService } from "../../services";
+import { authService, employeeService } from "../../services";
 
 export default function MessagesPage() {
   const [activeTab, setActiveTab] = useState("contacts");
@@ -14,7 +13,7 @@ export default function MessagesPage() {
   const [loadingEmployees, setLoadingEmployees] = useState(true);
   const [toast, setToast] = useState(null);
 
-  const showToast = (message, type = 'success') => {
+  const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   };
@@ -27,7 +26,7 @@ export default function MessagesPage() {
         setContacts(res.contacts || []);
       } catch (error) {
         console.error("Error loading contacts:", error);
-        showToast("Failed to load contact messages: " + error.message, 'error');
+        showToast("Failed to load contact messages: " + error.message, "error");
       } finally {
         setLoadingContacts(false);
       }
@@ -40,7 +39,7 @@ export default function MessagesPage() {
         setInfos(res.infos || []);
       } catch (error) {
         console.error("Error loading user infos:", error);
-        showToast("Failed to load project leads: " + error.message, 'error');
+        showToast("Failed to load project leads: " + error.message, "error");
       } finally {
         setLoadingInfos(false);
       }
@@ -51,11 +50,13 @@ export default function MessagesPage() {
         setLoadingEmployees(true);
         const employees = await employeeService.getAllEmployees();
         // Filter out the specific employee with email john.doe@example.com
-        const filteredEmployees = (employees || []).filter(emp => emp.email !== 'john.doe@example.com');
+        const filteredEmployees = (employees || []).filter(
+          (emp) => emp.email !== "john.doe@example.com",
+        );
         setEmployees(filteredEmployees);
       } catch (error) {
         console.error("Error loading employees:", error);
-        showToast("Failed to load employees: " + error.message, 'error');
+        showToast("Failed to load employees: " + error.message, "error");
       } finally {
         setLoadingEmployees(false);
       }
@@ -76,7 +77,8 @@ export default function MessagesPage() {
               Messages & Inquiries
             </h1>
             <p className="text-gray-600 text-sm">
-              All contact form messages and project interest inquiries from the main website.
+              All contact form messages and project interest inquiries from the
+              main website.
             </p>
           </div>
         </div>
@@ -85,10 +87,11 @@ export default function MessagesPage() {
         <div className="flex gap-3 mb-6 bg-white rounded-xl p-1.5 shadow-sm border border-gray-100 w-fit">
           <button
             onClick={() => setActiveTab("contacts")}
-            className={`px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${activeTab === "contacts"
-              ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
-              : "text-gray-600 hover:bg-gray-50"
-              }`}
+            className={`px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
+              activeTab === "contacts"
+                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
           >
             <span className="inline-flex items-center gap-2">
               <Mail size={18} /> Contact Messages ({contacts.length})
@@ -96,10 +99,11 @@ export default function MessagesPage() {
           </button>
           <button
             onClick={() => setActiveTab("infos")}
-            className={`px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${activeTab === "infos"
-              ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
-              : "text-gray-600 hover:bg-gray-50"
-              }`}
+            className={`px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
+              activeTab === "infos"
+                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
           >
             <span className="inline-flex items-center gap-2">
               <Users size={18} /> Project Leads ({infos.length})
@@ -107,10 +111,11 @@ export default function MessagesPage() {
           </button>
           <button
             onClick={() => setActiveTab("employees")}
-            className={`px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${activeTab === "employees"
-              ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
-              : "text-gray-600 hover:bg-gray-50"
-              }`}
+            className={`px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
+              activeTab === "employees"
+                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
           >
             <span className="inline-flex items-center gap-2">
               <Users size={18} /> Employees ({employees.length})
@@ -154,13 +159,18 @@ export default function MessagesPage() {
                   >
                     <div className="flex items-start gap-4 flex-1">
                       <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-sm font-bold shadow-md flex-shrink-0">
-                        {c.name?.split(" ").map((n) => n[0]).join("")}
+                        {c.name
+                          ?.split(" ")
+                          .map((n) => n[0])
+                          .join("")}
                       </div>
                       <div className="flex-1">
                         <p className="font-semibold text-gray-900 text-base">
                           {c.name}
                         </p>
-                        <p className="text-sm text-blue-600 font-medium">{c.email}</p>
+                        <p className="text-sm text-blue-600 font-medium">
+                          {c.email}
+                        </p>
                         <p className="mt-2 text-sm text-gray-700 leading-relaxed">
                           {c.message}
                         </p>
@@ -201,9 +211,7 @@ export default function MessagesPage() {
                   <div className="w-16 h-16 bg-gray-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
                     <Users size={32} className="text-gray-400" />
                   </div>
-                  <p className="text-gray-500 text-sm">
-                    No employees found.
-                  </p>
+                  <p className="text-gray-500 text-sm">No employees found.</p>
                 </div>
               ) : (
                 employees.map((emp) => (
@@ -302,9 +310,14 @@ export default function MessagesPage() {
         )}
 
         {/* Toast Notifications */}
-        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
       </div>
     </div>
   );
 }
-

@@ -3,9 +3,7 @@ import {
   Check,
   Clock,
   Download,
-  Edit2,
   Filter,
-  Plus,
   Search,
   Trash2,
   UserCheck,
@@ -15,32 +13,26 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Toast from "../../components/common/Toast";
-import { attendanceService, employeeService } from "../../services";
+import {
+  attendanceService,
+  employeeService,
+  authService,
+} from "../../services";
 import jsPDF from "jspdf";
 
 const EmployeeAttendance = () => {
   const [employees, setEmployees] = useState([]);
-  const [attendance, setAttendance] = useState({});
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All Status");
   const [toast, setToast] = useState(null);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [openStatusDropdown, setOpenStatusDropdown] = useState(null);
   const [openExportDropdown, setOpenExportDropdown] = useState(false);
-  const [newEmployee, setNewEmployee] = useState({
-    name: "",
-    employeeId: "",
-    department: "",
-
-    status: "",
-    hours: "",
-  });
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -64,9 +56,10 @@ const EmployeeAttendance = () => {
 
   useEffect(() => {
     loadEmployees();
+    loadAttendance();
   }, []);
 
-  // Load attendance from local storage whenever date changes
+  // Load attendance from API whenever date changes
   useEffect(() => {
     loadAttendance();
   }, [selectedDate]);
@@ -75,9 +68,7 @@ const EmployeeAttendance = () => {
     try {
       setLoading(true);
       const employees = await employeeService.getAllEmployees();
-      // Filter out the specific employee with email john.doe@example.com
-      const filteredEmployees = (employees || []).filter(emp => emp.email !== 'john.doe@example.com');
-      setEmployees(filteredEmployees);
+      setEmployees(employees || []);
     } catch (error) {
       console.error("Error loading employees:", error);
       showToast("Failed to load employees", "error");
@@ -86,183 +77,137 @@ const EmployeeAttendance = () => {
     }
   };
 
-  const loadAttendance = () => {
+  const loadAttendance = async () => {
     try {
-      const storedAttendance = JSON.parse(
-        localStorage.getItem("attendance_records") || "{}"
-      );
-      const dateRecords = storedAttendance[selectedDate] || {};
-      setAttendance(dateRecords);
+      setLoading(true);
+      const response = await attendanceService.getAllAttendance();
+      setAttendanceRecords(response || []);
     } catch (error) {
       console.error("Error loading attendance:", error);
+      showToast("Failed to load attendance", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const saveAttendance = (newAttendance) => {
+  const handleCheckIn = async (employeeId) => {
     try {
-      const storedAttendance = JSON.parse(
-        localStorage.getItem("attendance_records") || "{}"
-      );
-      storedAttendance[selectedDate] = newAttendance;
-      localStorage.setItem(
-        "attendance_records",
-        JSON.stringify(storedAttendance)
-      );
-      setAttendance(newAttendance);
-    } catch (error) {
-      console.error("Error saving attendance:", error);
-    }
-  };
+      const now = new Date();
+      const currentUser = authService.getUser();
 
-  const handleCheckIn = (employeeId) => {
-    const now = new Date();
-    const time = now.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
+      // Format dates for API
+      const todayDate = new Date().toISOString().split("T")[0];
+      const clockInTime = now.toISOString();
 
-    const updatedRecord = {
-      ...attendance[employeeId],
-      checkIn: time,
-      status: "Present",
-      hours: "In Progress",
-    };
+      // Prepare attendance data for API - only send clockIn
+      const attendanceData = {
+        userId: employeeId,
+        date: todayDate,
+        status: "present",
+        clockIn: clockInTime,
+        clockOut: clockInTime, // Keep same as clockIn for backend requirement
+        marked_By: currentUser?.id || 1,
+      };
 
-    const newAttendance = {
-      ...attendance,
-      [employeeId]: updatedRecord,
-    };
+      // Call API to create attendance
+      const response = await attendanceService.createAttendance(attendanceData);
 
-    saveAttendance(newAttendance);
-    showToast("Check-in recorded successfully!", "success");
-  };
-
-  const handleCheckOut = (employeeId) => {
-    const now = new Date();
-    const time = now.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-
-    const updatedRecord = {
-      ...attendance[employeeId],
-      checkOut: time,
-      status: "Present",
-      hours: "9h 0m", // Default hours, normally calculated or edited
-    };
-
-    const newAttendance = {
-      ...attendance,
-      [employeeId]: updatedRecord,
-    };
-
-    saveAttendance(newAttendance);
-    showToast("Check-out recorded successfully!", "success");
-  };
-
-  const handleAddEmployee = async (e) => {
-    e.preventDefault();
-
-    // Validate Employee ID starts with EMP
-    if (!newEmployee.employeeId.toUpperCase().startsWith("EMP")) {
-      showToast('Employee ID must start with "EMP"', "error");
-      return;
-    }
-
-    try {
-      if (editingEmployee) {
-        // Update existing employee
-        await employeeService.updateEmployee(editingEmployee._id, newEmployee);
-
-        // Also update the attendance record for the current date if status/hours changed
-        const updatedRecord = {
-          ...attendance[editingEmployee._id],
-          status: newEmployee.status,
-          hours: newEmployee.hours,
-        };
-
-        const newAttendance = {
-          ...attendance,
-          [editingEmployee._id]: updatedRecord,
-        };
-        saveAttendance(newAttendance);
-
-        showToast("Employee updated successfully!", "success");
+      if (response.success) {
+        showToast("Check-in recorded successfully!", "success");
+        await loadAttendance(); // Reload attendance from API
       } else {
-        // Add new employee
-        const res = await employeeService.createEmployee(newEmployee);
+        throw new Error(response.message || "Failed to record attendance");
+      }
+    } catch (error) {
+      console.error("Error recording check-in:", error);
+      showToast(
+        "Failed to record check-in: " + (error.message || "Unknown error"),
+        "error",
+      );
+    }
+  };
 
-        // Initialize attendance for new employee
-        if (res.employee && res.employee._id) {
-          const newRecord = {
-            checkIn: "-",
-            checkOut: "-",
-            status: newEmployee.status,
-            hours: "0h",
-          };
-          const newAttendance = {
-            ...attendance,
-            [res.employee._id]: newRecord,
-          };
-          saveAttendance(newAttendance);
-        }
+  const handleCheckOut = async (employeeId) => {
+    try {
+      const now = new Date();
+      const currentUser = authService.getUser();
+      const todayDate = new Date().toISOString().split("T")[0];
 
-        showToast("Employee added successfully!", "success");
+      // Find existing attendance record for this employee
+      const existingRecord = attendanceRecords.find(
+        (att) =>
+          att.userId === employeeId && att.date.split("T")[0] === todayDate,
+      );
+
+      if (!existingRecord) {
+        showToast("No check-in found for today", "error");
+        return;
       }
 
-      await loadEmployees();
-      setIsAddModalOpen(false);
-      setEditingEmployee(null);
-      // setNewEmployee({
-      //     name: '',
-      //     employeeId: '',
-      //     department: 'Engineering',
-      //     avatar: '👨‍💼',
-      //     status: 'Present',
-      //     hours: '0h'
-      // });
+      // Update attendance with checkout time
+      const attendanceData = {
+        userId: employeeId,
+        date: todayDate,
+        status: existingRecord.status || "present",
+        clockIn: existingRecord.clockIn,
+        clockOut: now.toISOString(),
+        marked_By: currentUser?.id || 1,
+      };
+
+      const response = await attendanceService.updateAttendanceById(
+        existingRecord.id,
+        attendanceData,
+      );
+
+      if (response.success) {
+        showToast("Check-out recorded successfully!", "success");
+        await loadAttendance(); // Reload attendance from API
+      } else {
+        throw new Error(response.message || "Failed to record checkout");
+      }
     } catch (error) {
-      console.error("Error saving employee:", error);
-      showToast("Failed to save employee", "error");
+      console.error("Error recording check-out:", error);
+      showToast(
+        "Failed to record check-out: " + (error.message || "Unknown error"),
+        "error",
+      );
     }
   };
 
-  const handleEdit = (emp) => {
-    const empAttendance = attendance[emp._id] || {};
-    setEditingEmployee(emp);
 
-    // Ensure ID starts with EMP
-    let currentId = emp.employeeId || emp.empId || "";
-    if (currentId && !currentId.toUpperCase().startsWith("EMP")) {
-      currentId = `EMP-${currentId}`;
+
+  const handleStatusChange = async (empId, newStatus) => {
+    try {
+      const currentUser = authService.getUser();
+      const now = new Date();
+      const todayDate = new Date().toISOString().split("T")[0];
+      setOpenStatusDropdown(null);
+      const currentTime = now.toISOString();
+
+      const attendanceData = {
+        userId: empId,
+        date: todayDate,
+        status: newStatus.toLowerCase(),
+        clockIn: currentTime,
+        clockOut: currentTime,
+        marked_By: currentUser?.id || 1,
+      };
+
+      const response = await attendanceService.createAttendance(attendanceData);
+
+      if (response.success) {
+        showToast(`Status updated to ${newStatus}`, "success");
+        await loadAttendance();
+      } else {
+        throw new Error(response.message || "Failed to update status");
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      showToast(
+        "Failed to update status: " + (error.message || "Unknown error"),
+        "error",
+      );
     }
-
-    setNewEmployee({
-      name: emp.name || emp.fullName || emp.employeeName || "",
-      employeeId: currentId,
-      department: emp.department || "Engineering",
-      status: empAttendance.status || "Present",
-      hours: empAttendance.hours || "0h",
-    });
-    setIsAddModalOpen(true);
-  };
-
-  const handleStatusChange = (empId, newStatus) => {
-    const updatedRecord = {
-      ...attendance[empId],
-      status: newStatus,
-    };
-
-    const newAttendance = {
-      ...attendance,
-      [empId]: updatedRecord,
-    };
-
-    saveAttendance(newAttendance);
-    setOpenStatusDropdown(null);
-    showToast(`Status updated to ${newStatus}`, "success");
   };
 
   const handleDelete = (id) => {
@@ -277,10 +222,6 @@ const EmployeeAttendance = () => {
       await loadEmployees();
 
       // Optional: Remove attendance records for this employee?
-      // For now, keeping history is safer, but UI won't show it if employee is gone.
-
-      showToast("Employee deleted successfully!", "success");
-      setDeleteConfirmId(null);
     } catch (error) {
       console.error("Error deleting employee:", error);
       showToast("Failed to delete employee", "error");
@@ -290,11 +231,11 @@ const EmployeeAttendance = () => {
 
   const handleDownloadIndividualPDF = (emp) => {
     try {
-      const att = attendance[emp._id] || {};
+      const att = getEmployeeAttendance(emp.id);
       const employeeName =
         emp.firstName && emp.lastName
           ? `${emp.firstName} ${emp.lastName}`
-          : emp.name || emp.fullName || emp.employeeName || "Unknown";
+          : emp.employeeName || "Unknown";
       const employeeId = emp.employeeId || emp.empId || "N/A";
 
       // Create PDF
@@ -320,7 +261,7 @@ const EmployeeAttendance = () => {
         "D-8, 4th Floor, Habitech Crystal Mall, Knowledge Park III, Greater Noida,",
         pageWidth / 2,
         30,
-        { align: "center" }
+        { align: "center" },
       );
       doc.text("Uttar Pradesh - 201310", pageWidth / 2, 36, {
         align: "center",
@@ -332,7 +273,7 @@ const EmployeeAttendance = () => {
         "Email: info@suhtech.top | Phone: +91 9211056355 (WhatsApp) | Tel: +91 1204086567",
         pageWidth / 2,
         44,
-        { align: "center" }
+        { align: "center" },
       );
 
       // Document Title
@@ -358,7 +299,7 @@ const EmployeeAttendance = () => {
       doc.setTextColor(
         att.status === "Present" ? 34 : att.status === "Absent" ? 220 : 234,
         att.status === "Present" ? 197 : att.status === "Absent" ? 38 : 179,
-        att.status === "Present" ? 94 : att.status === "Absent" ? 38 : 8
+        att.status === "Present" ? 94 : att.status === "Absent" ? 38 : 8,
       );
       doc.text(att.status || "Absent", 150, 85);
 
@@ -435,7 +376,7 @@ const EmployeeAttendance = () => {
         "This is a computer-generated document. No signature required.",
         pageWidth / 2,
         280,
-        { align: "center" }
+        { align: "center" },
       );
 
       // Save PDF
@@ -461,7 +402,12 @@ const EmployeeAttendance = () => {
           "Status",
         ],
         ...filteredEmployees.map((emp) => {
-          const att = attendance[emp._id] || {};
+          const att = getEmployeeAttendance(emp.id) || {
+            checkIn: "-",
+            checkOut: "-",
+            hours: "0h 0m",
+            status: "Absent",
+          };
           const employeeName =
             emp.firstName && emp.lastName
               ? `${emp.firstName} ${emp.lastName}`
@@ -472,7 +418,7 @@ const EmployeeAttendance = () => {
             emp.department || "",
             att.checkIn || "-",
             att.checkOut || "-",
-            att.hours || "0h",
+            att.hours || "0h 0m",
             att.status || "Absent",
           ];
         }),
@@ -522,8 +468,9 @@ const EmployeeAttendance = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `attendance-last-7-days-${new Date().toISOString().split("T")[0]
-        }.csv`;
+      a.download = `attendance-last-7-days-${
+        new Date().toISOString().split("T")[0]
+      }.csv`;
       a.click();
       URL.revokeObjectURL(url);
 
@@ -561,8 +508,9 @@ const EmployeeAttendance = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `attendance-last-30-days-${new Date().toISOString().split("T")[0]
-        }.csv`;
+      a.download = `attendance-last-30-days-${
+        new Date().toISOString().split("T")[0]
+      }.csv`;
       a.click();
       URL.revokeObjectURL(url);
 
@@ -578,22 +526,21 @@ const EmployeeAttendance = () => {
     const data = [];
     const currentDate = new Date(startDate);
 
-    // Get all attendance records from localStorage
-    const storedAttendance = JSON.parse(
-      localStorage.getItem("attendance_records") || "{}"
-    );
-
     while (currentDate <= endDate) {
       const dateStr = currentDate.toISOString().split("T")[0];
-      const dayAttendance = storedAttendance[dateStr] || {};
+
+      // Get attendance records for this date from API data
+      const dayAttendance = attendanceRecords.filter(
+        (record) => record.date.split("T")[0] === dateStr,
+      );
 
       // Only include data if there are attendance records for this date
-      if (Object.keys(dayAttendance).length > 0) {
-        employees.forEach((emp) => {
-          const att = dayAttendance[emp._id];
+      if (dayAttendance.length > 0) {
+        dayAttendance.forEach((record) => {
+          // Find the employee for this record
+          const emp = employees.find((e) => e.id === record.userId);
 
-          // Only include employee if they have attendance data for this date
-          if (att) {
+          if (emp) {
             const employeeName =
               emp.firstName && emp.lastName
                 ? `${emp.firstName} ${emp.lastName}`
@@ -603,15 +550,34 @@ const EmployeeAttendance = () => {
             const [year, month, day] = dateStr.split("-");
             const formattedDate = `\t${day}/${month}/${year}`;
 
+            // Format times
+            const formatTime = (isoTime) => {
+              if (!isoTime) return "-";
+              const date = new Date(isoTime);
+              return date.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              });
+            };
+
+            // Format hours
+            const formatHours = (totalHours) => {
+              if (!totalHours || totalHours === 0) return "0h 0m";
+              const hours = Math.floor(totalHours);
+              const minutes = Math.round((totalHours - hours) * 60);
+              return `${hours}h ${minutes}m`;
+            };
+
             data.push([
               formattedDate,
               employeeName,
               emp.employeeId || emp.empId || "",
               emp.department || "",
-              att.checkIn || "-",
-              att.checkOut || "-",
-              att.hours || "0h",
-              att.status || "Absent",
+              formatTime(record.clockIn),
+              formatTime(record.clockOut),
+              formatHours(record.totalHours),
+              record.status.charAt(0).toUpperCase() + record.status.slice(1),
             ]);
           }
         });
@@ -638,11 +604,50 @@ const EmployeeAttendance = () => {
     }
   };
 
+  // Helper function to get attendance for an employee on selected date
+  const getEmployeeAttendance = (employeeId) => {
+    const record = attendanceRecords.find(
+      (att) =>
+        att.userId === employeeId && att.date.split("T")[0] === selectedDate,
+    );
+
+    if (!record) return null;
+
+    // Format times for display
+    const formatTime = (isoTime) => {
+      if (!isoTime) return "-";
+      const date = new Date(isoTime);
+      return date.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    };
+
+    // Format hours for display
+    const formatHours = (totalHours) => {
+      if (!totalHours || totalHours === 0) return "0h 0m";
+      const hours = Math.floor(totalHours);
+      const minutes = Math.round((totalHours - hours) * 60);
+      return `${hours}h ${minutes}m`;
+    };
+
+    // Check if clockOut is same as clockIn (meaning not checked out yet)
+    const hasCheckedOut = record.clockOut && record.clockIn !== record.clockOut;
+
+    return {
+      checkIn: formatTime(record.clockIn),
+      checkOut: hasCheckedOut ? formatTime(record.clockOut) : "-",
+      status: record.status.charAt(0).toUpperCase() + record.status.slice(1),
+      hours: formatHours(record.totalHours),
+    };
+  };
+
   const filteredEmployees = employees.filter((emp) => {
-    const att = attendance[emp._id] || {};
+    const att = getEmployeeAttendance(emp.id);
     // If no attendance record exists for this date, default status is Absent (or 'NA'?)
     // Logic: If they are in the employee list, they are 'Absent' unless marked otherwise.
-    const currentStatus = att.status || "Absent";
+    const currentStatus = att?.status || "Absent";
 
     const matchesSearch =
       (emp.name || emp.fullName || emp.employeeName || "")
@@ -656,19 +661,7 @@ const EmployeeAttendance = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const stats = {
-    total: employees.length,
-    present: Object.values(attendance).filter((a) => a.status === "Present")
-      .length,
-    absent:
-      employees.length -
-      Object.values(attendance).filter((a) => a.status !== "Absent").length, // Rough estimate
-    leave: Object.values(attendance).filter((a) => a.status === "Leave").length,
-  };
-
-  // Correct stats calculation based on explicit records + defaults //
-  // Actually, "Absent" counts need to be smarter. //
-  // If we have 10 employees and 2 are present, 8 are absent purely by default. //
+  // Calculate real stats from API data
   const realStats = {
     total: employees.length,
     present: 0,
@@ -677,7 +670,8 @@ const EmployeeAttendance = () => {
   };
 
   employees.forEach((emp) => {
-    const status = attendance[emp._id]?.status || "Absent";
+    const att = getEmployeeAttendance(emp.id);
+    const status = att?.status || "Absent";
     if (status === "Present") realStats.present++;
     else if (status === "Leave") realStats.leave++;
     else realStats.absent++;
@@ -819,8 +813,9 @@ const EmployeeAttendance = () => {
               <span className="hidden sm:inline">Export</span>
               <ChevronDown
                 size={16}
-                className={`transition-transform ${openExportDropdown ? "rotate-180" : ""
-                  }`}
+                className={`transition-transform ${
+                  openExportDropdown ? "rotate-180" : ""
+                }`}
               />
             </button>
 
@@ -904,9 +899,14 @@ const EmployeeAttendance = () => {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredEmployees.map((emp, index) => {
-                  const att = attendance[emp._id] || {};
+                  const att = getEmployeeAttendance(emp.id) || {
+                    checkIn: "-",
+                    checkOut: "-",
+                    hours: "0h 0m",
+                    status: "Absent",
+                  };
                   // Create unique identifier for dropdown
-                  const uniqueId = emp._id || emp.employeeId || `emp-${index}`;
+                  const uniqueId = emp.id || emp.employeeId || `emp-${index}`;
 
                   return (
                     <tr
@@ -924,9 +924,9 @@ const EmployeeAttendance = () => {
                                 emp.firstName && emp.lastName
                                   ? `${emp.firstName} ${emp.lastName}`
                                   : emp.name ||
-                                  emp.fullName ||
-                                  emp.employeeName ||
-                                  "NA";
+                                    emp.fullName ||
+                                    emp.employeeName ||
+                                    "NA";
                               return fullName
                                 .split(" ")
                                 .map((n) => n[0])
@@ -938,9 +938,9 @@ const EmployeeAttendance = () => {
                               {emp.firstName && emp.lastName
                                 ? `${emp.firstName} ${emp.lastName}`
                                 : emp.name ||
-                                emp.fullName ||
-                                emp.employeeName ||
-                                "Unknown"}
+                                  emp.fullName ||
+                                  emp.employeeName ||
+                                  "Unknown"}
                             </p>
                           </div>
                         </div>
@@ -955,10 +955,11 @@ const EmployeeAttendance = () => {
                         <div className="flex items-center justify-center gap-2 text-sm text-gray-600 whitespace-nowrap">
                           <Clock size={14} className="text-gray-400" />
                           <span
-                            className={`font-medium ${att.checkIn && att.checkIn !== "-"
-                              ? "text-gray-900"
-                              : "text-gray-400"
-                              }`}
+                            className={`font-medium ${
+                              att.checkIn && att.checkIn !== "-"
+                                ? "text-gray-900"
+                                : "text-gray-400"
+                            }`}
                           >
                             {att.checkIn || "-"}
                           </span>
@@ -968,10 +969,11 @@ const EmployeeAttendance = () => {
                         <div className="flex items-center justify-center gap-2 text-sm text-gray-600 whitespace-nowrap">
                           <Clock size={14} className="text-gray-400" />
                           <span
-                            className={`font-medium ${att.checkOut && att.checkOut !== "-"
-                              ? "text-gray-900"
-                              : "text-gray-400"
-                              }`}
+                            className={`font-medium ${
+                              att.checkOut && att.checkOut !== "-"
+                                ? "text-gray-900"
+                                : "text-gray-400"
+                            }`}
                           >
                             {att.checkOut || "-"}
                           </span>
@@ -983,7 +985,7 @@ const EmployeeAttendance = () => {
                       <td className="p-4 align-middle text-center">
                         <span
                           className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${getStatusColor(
-                            att.status || "Absent"
+                            att.status || "Absent",
                           )}`}
                         >
                           {att.status || "Absent"}
@@ -997,9 +999,7 @@ const EmployeeAttendance = () => {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setOpenStatusDropdown(
-                                  openStatusDropdown === emp._id
-                                    ? null
-                                    : emp._id
+                                  openStatusDropdown === emp.id ? null : emp.id,
                                 );
                               }}
                               className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors border border-blue-100 text-sm font-medium"
@@ -1011,19 +1011,20 @@ const EmployeeAttendance = () => {
                               </span>
                               <ChevronDown
                                 size={14}
-                                className={`transition-transform ${openStatusDropdown === emp._id
-                                  ? "rotate-180"
-                                  : ""
-                                  }`}
+                                className={`transition-transform ${
+                                  openStatusDropdown === emp.id
+                                    ? "rotate-180"
+                                    : ""
+                                }`}
                               />
                             </button>
 
                             {/* Dropdown Menu */}
-                            {openStatusDropdown === emp._id && (
+                            {openStatusDropdown === emp.id && (
                               <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                                 <button
                                   onClick={() =>
-                                    handleStatusChange(emp._id, "Present")
+                                    handleStatusChange(emp.id, "Present")
                                   }
                                   className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 flex items-center gap-2 text-green-600 font-medium"
                                 >
@@ -1032,7 +1033,7 @@ const EmployeeAttendance = () => {
                                 </button>
                                 <button
                                   onClick={() =>
-                                    handleStatusChange(emp._id, "Absent")
+                                    handleStatusChange(emp.id, "Absent")
                                   }
                                   className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 flex items-center gap-2 text-red-600 font-medium"
                                 >
@@ -1041,7 +1042,7 @@ const EmployeeAttendance = () => {
                                 </button>
                                 <button
                                   onClick={() =>
-                                    handleStatusChange(emp._id, "Late")
+                                    handleStatusChange(emp.id, "Late")
                                   }
                                   className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 flex items-center gap-2 text-pink-600 font-medium"
                                 >
@@ -1050,7 +1051,7 @@ const EmployeeAttendance = () => {
                                 </button>
                                 <button
                                   onClick={() =>
-                                    handleStatusChange(emp._id, "Leave")
+                                    handleStatusChange(emp.id, "Leave")
                                   }
                                   className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 flex items-center gap-2 text-blue-600 font-medium"
                                 >
@@ -1061,7 +1062,7 @@ const EmployeeAttendance = () => {
                             )}
                           </div>
                           <button
-                            onClick={() => handleDelete(emp._id)}
+                            onClick={() => handleDelete(emp.id)}
                             className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
                             title="Delete"
                           >
@@ -1078,14 +1079,14 @@ const EmployeeAttendance = () => {
                           {/* Check In / Out Button Logic */}
                           {!att.checkIn || att.checkIn === "-" ? (
                             <button
-                              onClick={() => handleCheckIn(emp._id)}
+                              onClick={() => handleCheckIn(emp.id)}
                               className="px-3 py-1.5 text-xs font-semibold bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors whitespace-nowrap"
                             >
                               Check In
                             </button>
                           ) : !att.checkOut || att.checkOut === "-" ? (
                             <button
-                              onClick={() => handleCheckOut(emp._id)}
+                              onClick={() => handleCheckOut(emp.id)}
                               className="px-3 py-1.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors whitespace-nowrap"
                             >
                               Check Out
@@ -1115,155 +1116,6 @@ const EmployeeAttendance = () => {
           </div>
         )}
       </div>
-
-      {/* Add/Edit Employee Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md rounded-xl shadow-2xl animate-fadeIn">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100">
-              <h2 className="text-xl font-bold text-gray-800">
-                {editingEmployee ? "Edit Employee" : "Add New Employee"}
-              </h2>
-              <button
-                onClick={() => {
-                  setIsAddModalOpen(false);
-                  setEditingEmployee(null);
-                }}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleAddEmployee} className="p-6 space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Employee Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={newEmployee.name}
-                    onChange={(e) =>
-                      setNewEmployee({ ...newEmployee, name: e.target.value })
-                    }
-                    required
-                    className="w-full p-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all font-medium"
-                    placeholder=""
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Employee ID *
-                  </label>
-                  <input
-                    type="text"
-                    value={newEmployee.employeeId}
-                    onChange={(e) =>
-                      setNewEmployee({
-                        ...newEmployee,
-                        employeeId: e.target.value,
-                      })
-                    }
-                    required
-                    className="w-full p-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all font-medium uppercase"
-                    placeholder="EMP-001"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Department *
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={newEmployee.department}
-                      onChange={(e) =>
-                        setNewEmployee({
-                          ...newEmployee,
-                          department: e.target.value,
-                        })
-                      }
-                      className="w-full p-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all font-medium appearance-none bg-white"
-                    >
-                      <option>Engineering</option>
-                      <option>Development</option>
-                      <option>Design</option>
-                      <option>Marketing</option>
-                      <option>HR</option>
-                      <option>Sales</option>
-                    </select>
-                    <ChevronDown
-                      size={16}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Status
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={newEmployee.status}
-                      onChange={(e) =>
-                        setNewEmployee({
-                          ...newEmployee,
-                          status: e.target.value,
-                        })
-                      }
-                      className="w-full p-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all font-medium appearance-none bg-white"
-                    >
-                      <option>Present</option>
-                      <option>Absent</option>
-                      <option>Late</option>
-                      <option>Leave</option>
-                    </select>
-                    <ChevronDown
-                      size={16}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Hours
-                  </label>
-                  <input
-                    type="text"
-                    value={newEmployee.hours}
-                    onChange={(e) =>
-                      setNewEmployee({ ...newEmployee, hours: e.target.value })
-                    }
-                    className="w-full p-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all font-medium"
-                    placeholder="e.g. 8h 30m"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4 border-t border-gray-100 mt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsAddModalOpen(false);
-                    setEditingEmployee(null);
-                  }}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-semibold shadow-md hover:shadow-lg"
-                >
-                  {editingEmployee ? "Update Changes" : "Add Employee"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmId && (

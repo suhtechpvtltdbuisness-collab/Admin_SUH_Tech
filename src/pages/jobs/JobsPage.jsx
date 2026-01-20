@@ -2,7 +2,7 @@ import { Edit2, MoreVertical, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Toast from "../../components/common/Toast";
 import JobOpeningModal from "../../components/features/jobs/JobOpeningModal";
-import api from "../../config/api";
+import { authService, employeeService } from "../../services";
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState([]);
@@ -22,7 +22,7 @@ export default function JobsPage() {
     isActive: true,
   });
 
-  const showToast = (message, type = 'success') => {
+  const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   };
@@ -38,7 +38,7 @@ export default function JobsPage() {
       setJobs(res.jobs || []);
     } catch (error) {
       console.error("Error loading jobs:", error);
-      showToast("Failed to load jobs: " + error.message, 'error');
+      showToast("Failed to load jobs: " + error.message, "error");
     } finally {
       setLoading(false);
     }
@@ -102,10 +102,10 @@ export default function JobsPage() {
 
       if (editingJob) {
         await api.updateJob(editingJob._id, payload);
-        showToast("Job updated successfully!", 'success');
+        showToast("Job updated successfully!", "success");
       } else {
         await api.createJob(payload);
-        showToast("Job created successfully!", 'success');
+        showToast("Job created successfully!", "success");
       }
 
       await loadJobs();
@@ -113,18 +113,18 @@ export default function JobsPage() {
       setEditingJob(null);
     } catch (error) {
       console.error("Error saving job:", error);
-      showToast("Failed to save job: " + error.message, 'error');
+      showToast("Failed to save job: " + error.message, "error");
     }
   };
 
   const handleDelete = async (id) => {
     try {
       await api.deleteJob(id);
-      showToast("Job deleted successfully!", 'success');
+      showToast("Job deleted successfully!", "success");
       await loadJobs();
     } catch (error) {
       console.error("Error deleting job:", error);
-      showToast("Failed to delete job: " + error.message, 'error');
+      showToast("Failed to delete job: " + error.message, "error");
     }
     setActiveMenuId(null);
   };
@@ -164,7 +164,9 @@ export default function JobsPage() {
               <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
               All Jobs
             </h2>
-            <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full border border-blue-200">{jobs.length} Total</span>
+            <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full border border-blue-200">
+              {jobs.length} Total
+            </span>
           </div>
 
           {loading ? (
@@ -196,7 +198,10 @@ export default function JobsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {jobs.map((job) => (
-                    <tr key={job._id} className="hover:bg-blue-50/30 transition-colors duration-150">
+                    <tr
+                      key={job._id}
+                      className="hover:bg-blue-50/30 transition-colors duration-150"
+                    >
                       <td className="p-4 text-sm text-gray-900 font-medium">
                         {job.title}
                       </td>
@@ -208,10 +213,11 @@ export default function JobsPage() {
                       </td>
                       <td className="p-4">
                         <span
-                          className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold ${job.isActive
+                          className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                            job.isActive
                               ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200"
                               : "bg-gradient-to-r from-gray-50 to-slate-50 text-gray-600 border border-gray-200"
-                            }`}
+                          }`}
                         >
                           {job.isActive ? "Active" : "Closed"}
                         </span>
@@ -224,7 +230,7 @@ export default function JobsPage() {
                           <button
                             onClick={() =>
                               setActiveMenuId(
-                                activeMenuId === job._id ? null : job._id
+                                activeMenuId === job._id ? null : job._id,
                               )
                             }
                             className="p-2.5 rounded-xl hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-all duration-200 cursor-pointer"
@@ -264,10 +270,8 @@ export default function JobsPage() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             {/* Outer container → handles rounded corners */}
             <div className="bg-white w-full max-w-2xl mx-4 rounded-xl shadow-lg overflow-hidden">
-
               {/* Inner container → handles scrolling */}
               <div className="max-h-[90vh] overflow-y-auto">
-
                 <div className="flex justify-between items-center p-4 border-b border-gray-100">
                   <h2 className="text-lg font-semibold">
                     {editingJob ? "Edit Job" : "New Job"}
@@ -405,9 +409,14 @@ export default function JobsPage() {
         )}
 
         {/* Toast Notifications */}
-        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
       </div>
     </div>
   );
 }
-

@@ -60,7 +60,9 @@ export default function AddEmployeeModal({ onClose, onSave }) {
     try {
       // Validate required fields
       if (!form.email || !form.firstName || !form.lastName) {
-        alert("Please fill in all required fields: Email, First Name, and Last Name");
+        alert(
+          "Please fill in all required fields: Email, First Name, and Last Name",
+        );
         setLoading(false);
         return;
       }
@@ -71,28 +73,34 @@ export default function AddEmployeeModal({ onClose, onSave }) {
         return;
       }
 
-      // Prepare data for API
+      // Prepare data for API - only include fields with values
       const dataToSave = {
         email: form.email.trim(),
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
-        phoneNumber: form.phoneNumber,
-        address: form.address,
         admin: form.admin,
-        departmentId: parseInt(form.departmentId),
-        designationId: parseInt(form.designationId),
-        joinedDate: form.joinedDate,
-        skills: form.skills,
         active: form.active,
-        empType: form.empType,
       };
 
-      // Validate parsed IDs
-      if (isNaN(dataToSave.departmentId) || isNaN(dataToSave.designationId)) {
-        alert("Invalid department or designation selected");
-        setLoading(false);
-        return;
+      // Add optional fields only if they have values
+      if (form.phoneNumber?.trim())
+        dataToSave.phoneNumber = form.phoneNumber.trim();
+      if (form.address?.trim()) dataToSave.address = form.address.trim();
+      if (form.skills?.trim()) dataToSave.skills = form.skills.trim();
+      if (form.joinedDate) dataToSave.joinedDate = form.joinedDate;
+      if (form.empType) dataToSave.empType = form.empType;
+
+      // Add IDs if selected
+      if (form.departmentId) {
+        const deptId = parseInt(form.departmentId);
+        if (!isNaN(deptId)) dataToSave.departmentId = deptId;
       }
+      if (form.designationId) {
+        const desigId = parseInt(form.designationId);
+        if (!isNaN(desigId)) dataToSave.designationId = desigId;
+      }
+
+      console.log("Form data before API call:", dataToSave);
 
       // Call API to create employee
       const response = await employeeService.createEmployee(dataToSave);
@@ -203,7 +211,9 @@ export default function AddEmployeeModal({ onClose, onSave }) {
                 disabled={loadingData}
               >
                 <option value="">
-                  {loadingData ? "Loading designations..." : "Select Designation"}
+                  {loadingData
+                    ? "Loading designations..."
+                    : "Select Designation"}
                 </option>
                 {designations.map((designation) => (
                   <option key={designation.id} value={designation.id}>

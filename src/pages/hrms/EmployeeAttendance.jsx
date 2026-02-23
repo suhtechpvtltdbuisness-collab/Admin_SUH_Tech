@@ -174,8 +174,6 @@ const EmployeeAttendance = () => {
     }
   };
 
-
-
   const handleStatusChange = async (empId, newStatus) => {
     try {
       const currentUser = authService.getUser();
@@ -1051,7 +1049,7 @@ const EmployeeAttendance = () => {
                                 </button>
                                 <button
                                   onClick={() =>
-                                    handleStatusChange(emp.id, "Leave")
+                                    handleStatusChange(emp.id, "on leave")
                                   }
                                   className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 flex items-center gap-2 text-blue-600 font-medium"
                                 >

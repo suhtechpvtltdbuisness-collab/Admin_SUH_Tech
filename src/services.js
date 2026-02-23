@@ -374,12 +374,10 @@ export const designationService = {
 // Attendance service
 export const attendanceService = {
   // Get all attendance records
-  getAllAttendance: async () => {
+  getAllAttendance: async (date = null) => {
     try {
-      const response = await apiService.get(
-        "/attendances/",
-        authService.getToken(),
-      );
+      const endpoint = date ? `/attendances/?date=${date}` : "/attendances/";
+      const response = await apiService.get(endpoint, authService.getToken());
       // Handle nested response structure
       return response.success && response.data ? response.data : response || [];
     } catch (error) {

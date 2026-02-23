@@ -80,7 +80,7 @@ const EmployeeAttendance = () => {
   const loadAttendance = async () => {
     try {
       setLoading(true);
-      const response = await attendanceService.getAllAttendance();
+      const response = await attendanceService.getAllAttendance(selectedDate);
       setAttendanceRecords(response || []);
     } catch (error) {
       console.error("Error loading attendance:", error);
@@ -96,13 +96,12 @@ const EmployeeAttendance = () => {
       const currentUser = authService.getUser();
 
       // Format dates for API
-      const todayDate = new Date().toISOString().split("T")[0];
       const clockInTime = now.toISOString();
 
       // Prepare attendance data for API - only send clockIn
       const attendanceData = {
         userId: employeeId,
-        date: todayDate,
+        date: selectedDate,
         status: "present",
         clockIn: clockInTime,
         clockOut: clockInTime, // Keep same as clockIn for backend requirement
@@ -131,23 +130,22 @@ const EmployeeAttendance = () => {
     try {
       const now = new Date();
       const currentUser = authService.getUser();
-      const todayDate = new Date().toISOString().split("T")[0];
 
       // Find existing attendance record for this employee
       const existingRecord = attendanceRecords.find(
         (att) =>
-          att.userId === employeeId && att.date.split("T")[0] === todayDate,
+          att.userId === employeeId && att.date.split("T")[0] === selectedDate,
       );
 
       if (!existingRecord) {
-        showToast("No check-in found for today", "error");
+        showToast("No check-in found for this date", "error");
         return;
       }
 
       // Update attendance with checkout time
       const attendanceData = {
         userId: employeeId,
-        date: todayDate,
+        date: selectedDate,
         status: existingRecord.status || "present",
         clockIn: existingRecord.clockIn,
         clockOut: now.toISOString(),
@@ -178,13 +176,12 @@ const EmployeeAttendance = () => {
     try {
       const currentUser = authService.getUser();
       const now = new Date();
-      const todayDate = new Date().toISOString().split("T")[0];
       setOpenStatusDropdown(null);
       const currentTime = now.toISOString();
 
       const attendanceData = {
         userId: empId,
-        date: todayDate,
+        date: selectedDate,
         status: newStatus.toLowerCase(),
         clockIn: currentTime,
         clockOut: currentTime,

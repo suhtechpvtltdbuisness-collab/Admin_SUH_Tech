@@ -1,7 +1,7 @@
 import { Bell, Menu, Sparkles, User, LogOut } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { userService } from '../../services';
+import { authService, userService } from '../../services';
 import Sidebar from './Sidebar';
 
 const Layout = () => {
@@ -331,6 +331,7 @@ const Layout = () => {
                                         <button
                                             onClick={() => {
                                                 setIsProfileOpen(false);
+                                                authService.logout();
                                                 navigate('/login');
                                             }}
                                             className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-red-50 transition-colors text-left"

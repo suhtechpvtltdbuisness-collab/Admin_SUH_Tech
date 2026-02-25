@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from "react";
-import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 
 const ComingSoon = ({ title }) => (
   <div className="p-10">
@@ -13,6 +13,15 @@ const PageLoader = () => (
     <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
   </div>
 );
+
+// Guard: redirect to /login if no auth token is present
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
 
 import Layout from "./components/layout/Layout";
 
@@ -47,7 +56,7 @@ export default function App() {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* MAIN LAYOUT ROUTES (incoming file) */}
-          <Route path="/" element={<Layout />}>
+          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
             <Route path="home" element={<Home />} />
 

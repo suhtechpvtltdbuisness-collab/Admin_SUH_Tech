@@ -21,6 +21,17 @@ class ApiService {
     try {
       const response = await fetch(url, requestOptions);
 
+      // Handle token expiry: 401 Unauthorized → auto logout
+      if (response.status === 401) {
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("user");
+        // Redirect to login page
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
+        throw new Error("Session expired. Please log in again.");
+      }
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(

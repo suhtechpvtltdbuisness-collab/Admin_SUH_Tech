@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import Toast from "../../components/common/Toast";
-import { authService, employeeService } from "../../services";
+import { authService, employeeService, clientExpenseService } from "../../services";
 
 const CompanySales = () => {
   const [sales, setSales] = useState([]);
@@ -90,8 +90,8 @@ const CompanySales = () => {
   const loadSales = async () => {
     try {
       setLoading(true);
-      const res = await api.getSales();
-      setSales(res.sales || []);
+      const res = await clientExpenseService.getAllClientExpenses();
+      setSales(res.sales || res.data || res || []);
     } catch (error) {
       console.error("Error loading sales:", error);
       showToast("Failed to load sales: " + error.message, "error");
@@ -201,10 +201,10 @@ const CompanySales = () => {
       };
 
       if (editingSale) {
-        await api.updateSale(editingSale._id, payload);
+        await clientExpenseService.updateClientExpenseById(editingSale._id, payload);
         showToast("Sale entry updated successfully!", "success");
       } else {
-        await api.createSale(payload);
+        await clientExpenseService.createClientExpense(payload);
         showToast("Sale entry created successfully!", "success");
       }
 
@@ -239,7 +239,7 @@ const CompanySales = () => {
     if (!deleteConfirmId) return;
 
     try {
-      await api.deleteSale(deleteConfirmId);
+      await clientExpenseService.deleteClientExpenseById(deleteConfirmId);
       showToast("Sale entry deleted successfully!", "success");
       await loadSales();
       setActiveMenuId(null);

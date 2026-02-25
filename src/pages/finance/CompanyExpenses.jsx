@@ -15,7 +15,7 @@ import {
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import Toast from "../../components/common/Toast";
-import { authService, employeeService } from "../../services";
+import { authService, employeeService, personalExpenseService } from "../../services";
 
 const CompanyExpenses = () => {
   const [expenses, setExpenses] = useState([]);
@@ -88,8 +88,8 @@ const CompanyExpenses = () => {
   const loadExpenses = async () => {
     try {
       setLoading(true);
-      const response = await api.getExpenses();
-      setExpenses(response.expenses || []);
+      const response = await personalExpenseService.getAllPersonalExpenses();
+      setExpenses(response.expenses || response.data || response || []);
       const total = (response.expenses || []).reduce(
         (sum, exp) => sum + (exp.amount || 0),
         0,
@@ -169,10 +169,10 @@ const CompanyExpenses = () => {
       };
 
       if (editingExpense) {
-        await api.updateExpense(editingExpense._id, expenseData);
+        await personalExpenseService.updatePersonalExpenseById(editingExpense._id, expenseData);
         showToast("Expense updated successfully!", "success");
       } else {
-        await api.createExpense(expenseData);
+        await personalExpenseService.createPersonalExpense(expenseData);
         showToast("Expense created successfully!", "success");
       }
 
@@ -219,7 +219,7 @@ const CompanyExpenses = () => {
     if (!deleteConfirmId) return;
 
     try {
-      await api.deleteExpense(deleteConfirmId);
+      await personalExpenseService.deletePersonalExpenseById(deleteConfirmId);
       await loadExpenses();
       showToast("Successfully deleted this expense", "success");
       setActiveMenuId(null);

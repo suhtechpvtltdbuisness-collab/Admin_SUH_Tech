@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import Toast from "../../components/common/Toast";
-import { authService, employeeService } from "../../services";
+import { authService, employeeService, employeeExpenseService } from "../../services";
 
 // Import logo, icons, and stamp from public folder
 const suhTechLogo = "/suh-tech-logo.png";
@@ -113,7 +113,7 @@ const EmployeeSalary = () => {
       // Fetch both employees and salary records
       const [employees, salariesRes] = await Promise.all([
         employeeService.getAllEmployees(),
-        api.getEmployeeSalaries(),
+        employeeExpenseService.getAllEmployeeExpenses(),
       ]);
 
       // Filter out the specific employee with email john.doe@example.com
@@ -286,11 +286,11 @@ const EmployeeSalary = () => {
 
       if (hasExistingSalary) {
         // Update existing salary record
-        await api.updateEmployeeSalary(editingEmployee._id, payload);
+        await employeeExpenseService.updateEmployeeExpenseById(editingEmployee._id, payload);
         showToast("Salary entry updated successfully!", "success");
       } else {
         // Create new salary entry
-        await api.createEmployeeSalary(payload);
+        await employeeExpenseService.createEmployeeExpense(payload);
         showToast("Salary entry added successfully!", "success");
       }
 
@@ -351,7 +351,7 @@ const EmployeeSalary = () => {
     if (!deleteConfirmId) return;
 
     try {
-      await api.deleteEmployeeSalary(deleteConfirmId);
+      await employeeExpenseService.deleteEmployeeExpenseById(deleteConfirmId);
       await loadEmployeeSalaries();
       setActiveMenuId(null);
       setDeleteConfirmId(null);

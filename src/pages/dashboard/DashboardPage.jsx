@@ -20,6 +20,7 @@ import RecentList from "../../components/dashboard/RecentList";
 import StatCard from "../../components/common/StatCard";
 import Toast from "../../components/common/Toast";
 import { authService, employeeService } from "../../services";
+import apiService from "../../services";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -35,8 +36,12 @@ export default function Dashboard() {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const response = await api.getStats();
-        setStats(response.stats);
+        const response = await apiService.get("/dashboard/stats", authService.getToken());
+        if (response.success && response.data) {
+          setStats(response.data);
+        } else {
+          setStats(response.stats); // fallback just in case
+        }
       } catch (error) {
         console.error("Error loading stats:", error);
         showToast("Failed to load dashboard stats: " + error.message, "error");

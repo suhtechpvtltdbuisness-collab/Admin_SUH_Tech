@@ -175,6 +175,9 @@ export const userService = {
     const response = await apiService.get(`/employee/${id}`, authService.getToken());
     // Map response.data to response.user for compatibility with SettingsPage
     if (response.success && response.data) {
+      if (response.data.phoneNumber) {
+        response.data.phone = response.data.phoneNumber;
+      }
       return { ...response, user: response.data };
     }
     return response;
@@ -183,13 +186,23 @@ export const userService = {
     const user = authService.getUser();
     const id = user?.id || user?._id;
     if (!id) throw new Error("User ID not found");
+
+    // Map phone to phoneNumber for API
+    const payload = { ...data };
+    if (payload.phone) {
+      payload.phoneNumber = payload.phone;
+    }
+
     const response = await apiService.put(
       `/employee/${id}`,
-      data,
+      payload,
       authService.getToken()
     );
     // Map response.data to response.user for compatibility
     if (response.success && response.data) {
+      if (response.data.phoneNumber) {
+        response.data.phone = response.data.phoneNumber;
+      }
       return { ...response, user: response.data };
     }
     return response;

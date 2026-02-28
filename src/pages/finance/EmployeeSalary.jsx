@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import Toast from "../../components/common/Toast";
-import { authService, employeeService, employeeExpenseService } from "../../services";
+import { authService, employeeService, expenseService } from "../../services";
 
 // Import logo, icons, and stamp from public folder
 const suhTechLogo = "/suh-tech-logo.png";
@@ -26,7 +26,8 @@ const phoneIcon = "/phone-icon.png";
 const companyStamp = "/company-stamp.png";
 
 const EmployeeSalary = () => {
-  const [employees, setEmployees] = useState([]);
+  const [employees, setEmployees] = useState([]);          // only those WITH salary records
+  const [allEmployeesList, setAllEmployeesList] = useState([]); // ALL employees for the dropdown
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeMenuId, setActiveMenuId] = useState(null);
@@ -53,16 +54,19 @@ const EmployeeSalary = () => {
   };
 
   const [newSalary, setNewSalary] = useState({
+    userId: "",
     employeeName: "",
     role: "",
-    department: "",
+    department: "",      // display name (shown in form)
+    departmentId: "",   // numeric ID (sent in API payload)
     phone: "",
     email: "",
-    status: "Pending",
-    paymentMode: "Bank Transfer",
+    status: "pending",
+    paymentMode: "cash",
     paymentDate: "",
     basic: 0,
     hra: 0,
+    conveyance: 0,
     special: 0,
     pf: 0,
     tax: 0,
@@ -91,10 +95,9 @@ const EmployeeSalary = () => {
     const handleClickOutside = (event) => {
       if (activeMenuId !== null) {
         const target = event.target;
-        const isMenuButton = target.closest("button[data-action-menu-button]");
-        const isMenuContent = target.closest("[data-action-menu-content]");
-
-        if (!isMenuButton && !isMenuContent) {
+        // Use closest on a wrapper div — works even when clicking SVG icons inside the button
+        const isInsideMenu = target.closest("[data-action-menu-wrap]");
+        if (!isInsideMenu) {
           setActiveMenuId(null);
         }
       }
@@ -106,86 +109,142 @@ const EmployeeSalary = () => {
     };
   }, [activeMenuId]);
 
+  // helper — stable toggle that won't race with the close-outside handler
+  const handleMenuToggle = (e, menuId) => {
+    e.stopPropagation();
+    setActiveMenuId((prev) => (prev === menuId ? null : menuId));
+  };
+
   const loadEmployeeSalaries = async () => {
     try {
       setLoading(true);
 
-      // Fetch both employees and salary records
-      const [employees, salariesRes] = await Promise.all([
+      // Fetch both employees and salary records in parallel
+      const [employeesRes, salariesRes] = await Promise.all([
         employeeService.getAllEmployees(),
-        employeeExpenseService.getAllEmployeeExpenses(),
+        expenseService.getEmployeeSalaries(),
       ]);
 
-      // Filter out the specific employee with email john.doe@example.com
-      const allEmployees = (employees || []).filter(
+      // Filter out test/placeholder employees
+      const allEmployees = (employeesRes || []).filter(
         (emp) => emp.email !== "john.doe@example.com",
       );
-      const salaryRecords =
-        salariesRes.salaries || salariesRes.employeeSalaries || [];
 
-      // Create a map of salary records by employee ID for quick lookup
+      // Normalise salary records — the DB returns snake_case field names
+      // (user_id, basic_salary, payment_mode, etc.), so we map them to camelCase
+      const rawRecords = Array.isArray(salariesRes)
+        ? salariesRes
+        : salariesRes?.data
+        ?? salariesRes?.records
+        ?? salariesRes?.salaries
+        ?? salariesRes?.employeeSalaries
+        ?? [];
+
+      const salaryRecords = rawRecords.map((r) => ({
+        // The expense record's own primary key — used for PATCH /expenses/employee/:id and DELETE
+        expenseId: r.id ?? r._id,
+        userId: r.user_id ?? r.userId,
+        amount: r.amount,
+        phone: r.phone,
+        status: r.status,
+        role: r.role,
+        // department is stored as numeric ID in DB
+        departmentId: r.department ?? r.departmentId,
+        paymentMode: r.payment_mode ?? r.paymentMode,
+        basicSalary: r.basic_salary ?? r.basicSalary ?? 0,
+        hra: r.hra ?? 0,
+        conveyance: r.conveyance ?? 0,
+        specialAllowance: r.special_allowance ?? r.specialAllowance ?? 0,
+        pfDeductions: r.pf_deductions ?? r.pfDeductions ?? 0,
+        taxDeductions: r.tax_deductions ?? r.taxDeductions ?? 0,
+        paymentDate: r.date ?? r.paymentDate,
+        createdAt: r.created_at ?? r.createdAt,
+      }));
+
+      // Salary map keyed by userId for quick lookup
       const salaryMap = {};
-      salaryRecords.forEach((salary) => {
-        // Try to match by employeeId or _id
-        const empId = salary.employeeId || salary._id;
-        if (empId) {
-          salaryMap[empId] = salary;
-        }
+      salaryRecords.forEach((s) => {
+        if (s.userId != null) salaryMap[String(s.userId)] = s;
       });
 
-      // Merge employee data with salary records
+      // Merge employee data with their salary record
       const mergedData = allEmployees.map((emp) => {
-        const empId = emp.employeeId || emp.empId || emp._id;
-        const salaryRecord = salaryMap[empId];
+        const empId = emp.id ?? emp.employeeId ?? emp.empId ?? emp._id;
+        const salary = empId != null ? salaryMap[String(empId)] : undefined;
 
-        if (salaryRecord) {
-          // Employee has salary record - merge the data
+        const basicSalary = salary?.basicSalary ?? 0;
+        const hraAmt = salary?.hra ?? 0;
+        const conveyance = salary?.conveyance ?? 0;
+        const specialAmt = salary?.specialAllowance ?? 0;
+        const pfDed = salary?.pfDeductions ?? 0;
+        const taxDed = salary?.taxDeductions ?? 0;
+        const netSalary = basicSalary + hraAmt + conveyance + specialAmt - pfDed - taxDed;
+
+        const fullName = emp.firstName && emp.lastName
+          ? `${emp.firstName} ${emp.lastName}`
+          : emp.name || emp.fullName || "N/A";
+
+        if (salary) {
           return {
-            ...salaryRecord,
-            // Ensure employee details are from main employee database
-            employeeName:
-              emp.firstName && emp.lastName
-                ? `${emp.firstName} ${emp.lastName}`
-                : emp.name || emp.fullName || salaryRecord.employeeName,
+            // Use the expense record's ID for PATCH/DELETE calls
+            _id: salary.expenseId,
+            expenseId: salary.expenseId,
+            employeeName: fullName,
             employeeId: empId,
-            role: salaryRecord.role || emp.role || emp.designation || "N/A",
-            department: salaryRecord.department || emp.department || "N/A",
-            email: salaryRecord.email || emp.email || "N/A",
-            phone: salaryRecord.phone || emp.phone || emp.mobile || "",
+            userId: salary.userId ?? empId,
+            departmentId: emp.departmentId ?? salary.departmentId,
+            role: salary.role || emp.role || emp.designation || "N/A",
+            department: emp.department || "N/A",
+            email: emp.email || "N/A",
+            phone: salary.phone || emp.phone || emp.mobile || "",
+            status: salary.status || "pending",
+            paymentMode: salary.paymentMode || "cash",
+            paymentDate: salary.paymentDate || null,
+            amount: salary.amount || 0,
+            basicSalary: basicSalary,
+            hra: hraAmt,
+            conveyance: conveyance,
+            specialAllowance: specialAmt,
+            pfDeductions: pfDed,
+            taxDeductions: taxDed,
+            breakdown: {
+              basic: basicSalary,
+              allowances: { HRA: hraAmt, Special: specialAmt, Conveyance: conveyance },
+              deductions: { PF: pfDed, Tax: taxDed },
+              net: netSalary,
+            },
           };
         } else {
-          // Employee doesn't have salary record yet - show with default values
+          // Employee has no salary record yet
           return {
-            _id: emp._id,
-            employeeName:
-              emp.firstName && emp.lastName
-                ? `${emp.firstName} ${emp.lastName}`
-                : emp.name || emp.fullName || "N/A",
+            _id: null,            // no expense record yet
+            expenseId: null,
+            employeeName: fullName,
             employeeId: empId,
+            userId: empId,
+            departmentId: emp.departmentId,
             role: emp.role || emp.designation || "N/A",
             department: emp.department || "N/A",
             email: emp.email || "N/A",
             phone: emp.phone || emp.mobile || "",
-            status: "Pending",
-            paymentMode: "Bank Transfer",
+            status: "pending",
+            paymentMode: "cash",
             paymentDate: null,
             breakdown: {
               basic: 0,
-              allowances: {
-                HRA: 0,
-                Special: 0,
-              },
-              deductions: {
-                PF: 0,
-                Tax: 0,
-              },
+              allowances: { HRA: 0, Special: 0, Conveyance: 0 },
+              deductions: { PF: 0, Tax: 0 },
               net: 0,
             },
           };
         }
       });
 
-      setEmployees(mergedData);
+      // All employees go into the dropdown list
+      setAllEmployeesList(mergedData);
+
+      // Only show employees who have an actual salary record in the DB
+      setEmployees(mergedData.filter((emp) => emp.expenseId != null));
     } catch (error) {
       console.error("Error loading employee salaries:", error);
       showToast("Failed to load employee salaries: " + error.message, "error");
@@ -246,51 +305,56 @@ const EmployeeSalary = () => {
   const handleAddSalary = async (e) => {
     e.preventDefault();
     try {
+      const basicSalary = parseFloat(newSalary.basic) || 0;
+      const hra = parseFloat(newSalary.hra) || 0;
+      const conveyance = parseFloat(newSalary.conveyance) || 0;
+      const specialAllowance = parseFloat(newSalary.special) || 0;
+      const pfDeductions = parseFloat(newSalary.pf) || 0;
+      const taxDeductions = parseFloat(newSalary.tax) || 0;
+      const amount = basicSalary + hra + conveyance + specialAllowance - pfDeductions - taxDeductions;
+
+      // userId — must be a valid number
+      const rawUserId = editingEmployee?.userId ?? editingEmployee?.employeeId ?? newSalary.userId;
+      const userId = parseInt(rawUserId, 10);
+      if (!userId || isNaN(userId)) {
+        showToast("Please select an employee before saving.", "error");
+        return;
+      }
+
+      // departmentId — must be a valid number (numeric dept ID, e.g. 1)
+      const departmentId = parseInt(newSalary.departmentId, 10);
+      if (isNaN(departmentId)) {
+        showToast("Could not resolve Department ID. Please re-select the employee.", "error");
+        return;
+      }
+
+      // Build payload — all type coercion is done inside expenseService._buildPayload
       const payload = {
-        name: newSalary.employeeName, // Backend expects 'name'
-        employeeId: editingEmployee?.employeeId || `EMP-${Date.now()}`, // Use existing ID or generate new
-        employeeName: newSalary.employeeName,
-        role: newSalary.role,
-        department: newSalary.department,
-        phone: newSalary.phone ? `+91${newSalary.phone}` : "",
-        email: newSalary.email,
-        paymentDate: newSalary.paymentDate,
-        paymentMode: newSalary.paymentMode,
-        status: newSalary.status,
-        breakdown: {
-          basic: parseFloat(newSalary.basic) || 0,
-          allowances: {
-            HRA: parseFloat(newSalary.hra) || 0,
-            Special: parseFloat(newSalary.special) || 0,
-          },
-          deductions: {
-            PF: parseFloat(newSalary.pf) || 0,
-            Tax: parseFloat(newSalary.tax) || 0,
-          },
-        },
+        userId,
+        amount,
+        phone: newSalary.phone || "",
+        status: newSalary.status || "pending",
+        role: newSalary.role || "",
+        department: departmentId,
+        paymentMode: newSalary.paymentMode || "cash",
+        basicSalary,
+        hra,
+        conveyance,
+        specialAllowance,
+        pfDeductions,
+        taxDeductions,
+        date: newSalary.paymentDate,
       };
 
-      // Calculate net
-      const total =
-        payload.breakdown.basic +
-        payload.breakdown.allowances.HRA +
-        payload.breakdown.allowances.Special;
-      const deductions =
-        payload.breakdown.deductions.PF + payload.breakdown.deductions.Tax;
-      payload.breakdown.net = total - deductions;
-
-      // Check if this is an actual update (employee has existing salary record)
-      // or a new entry (employee exists but no salary assigned yet)
-      const hasExistingSalary =
-        editingEmployee && editingEmployee.breakdown?.net > 0;
+      const hasExistingSalary = editingEmployee && editingEmployee.expenseId != null;
 
       if (hasExistingSalary) {
-        // Update existing salary record
-        await employeeExpenseService.updateEmployeeExpenseById(editingEmployee._id, payload);
+        // PATCH /expenses/employee/:expenseId
+        await expenseService.updateEmployeeSalary(editingEmployee.expenseId, payload);
         showToast("Salary entry updated successfully!", "success");
       } else {
-        // Create new salary entry
-        await employeeExpenseService.createEmployeeExpense(payload);
+        // POST /expenses/employee
+        await expenseService.addEmployeeSalary(payload);
         showToast("Salary entry added successfully!", "success");
       }
 
@@ -300,16 +364,19 @@ const EmployeeSalary = () => {
 
       // Reset form
       setNewSalary({
+        userId: "",
         employeeName: "",
         role: "",
         department: "",
+        departmentId: "",
         phone: "",
         email: "",
-        status: "Pending",
-        paymentMode: "Bank Transfer",
+        status: "pending",
+        paymentMode: "cash",
         paymentDate: "",
         basic: 0,
         hra: 0,
+        conveyance: 0,
         special: 0,
         pf: 0,
         tax: 0,
@@ -321,37 +388,46 @@ const EmployeeSalary = () => {
   };
 
   const handleEdit = (emp) => {
+    // Guard: can only edit if a salary record exists
+    if (!emp.expenseId) {
+      showToast("No salary record exists yet. Use 'Add Salary Entry' to create one.", "info");
+      return;
+    }
     setEditingEmployee(emp);
     setNewSalary({
+      userId: String(emp.userId ?? emp.employeeId ?? ""),
       employeeName: emp.employeeName || emp.name || "",
       role: emp.role || "",
       department: emp.department || "",
-      phone: emp.phone ? emp.phone.replace(/^\+91/, "") : "",
+      departmentId: String(emp.departmentId ?? ""),
+      phone: emp.phone ? String(emp.phone).replace(/^\+91/, "") : "",
       email: emp.email || "",
-      status: emp.status || "Pending",
-      paymentMode: emp.paymentMode || "Bank Transfer",
+      status: (emp.status || "pending").toLowerCase(),
+      paymentMode: (emp.paymentMode || "cash").toLowerCase(),
       paymentDate: emp.paymentDate
         ? new Date(emp.paymentDate).toISOString().split("T")[0]
         : "",
-      basic: emp.breakdown?.basic || 0,
-      hra: emp.breakdown?.allowances?.HRA || 0,
-      special: emp.breakdown?.allowances?.Special || 0,
-      pf: emp.breakdown?.deductions?.PF || 0,
-      tax: emp.breakdown?.deductions?.Tax || 0,
+      // Prefer flat fields (normalised from DB) over breakdown object
+      basic: Number(emp.basicSalary) || emp.breakdown?.basic || 0,
+      hra: Number(emp.hra) || emp.breakdown?.allowances?.HRA || 0,
+      conveyance: Number(emp.conveyance) || emp.breakdown?.allowances?.Conveyance || 0,
+      special: Number(emp.specialAllowance) || emp.breakdown?.allowances?.Special || 0,
+      pf: Number(emp.pfDeductions) || emp.breakdown?.deductions?.PF || 0,
+      tax: Number(emp.taxDeductions) || emp.breakdown?.deductions?.Tax || 0,
     });
     setIsAddModalOpen(true);
     setActiveMenuId(null);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     setDeleteConfirmId(id);
   };
 
   const confirmDelete = async () => {
     if (!deleteConfirmId) return;
-
     try {
-      await employeeExpenseService.deleteEmployeeExpenseById(deleteConfirmId);
+      // DELETE /expenses/employee/:expenseId
+      await expenseService.deleteEmployeeSalary(deleteConfirmId);
       await loadEmployeeSalaries();
       setActiveMenuId(null);
       setDeleteConfirmId(null);
@@ -488,9 +564,9 @@ const EmployeeSalary = () => {
       doc.setTextColor(0, 0, 0);
       const payPeriod = emp.paymentDate
         ? new Date(emp.paymentDate).toLocaleDateString("en-US", {
-            month: "long",
-            year: "numeric",
-          })
+          month: "long",
+          year: "numeric",
+        })
         : "December 2025";
       doc.text(payPeriod, pageWidth - 15, 30, { align: "right" });
 
@@ -838,7 +914,7 @@ const EmployeeSalary = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6 min-w-0 overflow-hidden">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Employee Salary</h1>
@@ -978,526 +1054,650 @@ const EmployeeSalary = () => {
       </div>
 
       {/* Table */}
-      <div
-        className="bg-white rounded-xl shadow-sm border border-gray-100"
-        style={{ overflow: "visible" }}
-      >
-        {loading ? (
-          <div className="p-8 flex flex-col items-center justify-center">
-            <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-500 text-sm">
-              Loading employee salaries...
-            </p>
-          </div>
-        ) : filteredEmployees.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
-              <AlertCircle size={32} className="text-gray-400" />
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          {loading ? (
+            <div className="p-8 flex flex-col items-center justify-center">
+              <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+              <p className="text-gray-500 text-sm">
+                Loading employee salaries...
+              </p>
             </div>
-            <p className="text-gray-500 text-sm">
-              {searchTerm
-                ? "No employees found matching your search."
-                : "No salary entries found. Add your first entry!"}
-            </p>
-          </div>
-        ) : (
-          <div>
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="p-4 font-semibold text-gray-600 text-sm">
-                    Slip No
-                  </th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">
-                    Employee Name
-                  </th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">
-                    Role
-                  </th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">
-                    Department
-                  </th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">
-                    Email
-                  </th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">
-                    Payment Mode
-                  </th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">
-                    Payment Date
-                  </th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">
-                    Net Salary
-                  </th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm">
-                    Status
-                  </th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm text-right">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredEmployees.map((emp) => (
-                  <tr
-                    key={emp._id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="p-4">
-                      <p className="text-sm text-gray-600 font-mono">
-                        {emp._id?.slice(-6) || "N/A"}
-                      </p>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
-                          {(emp.employeeName || emp.name)
-                            ?.split(" ")
-                            .map((n) => n[0])
-                            .join("") || "N/A"}
-                        </div>
-                        <p className="font-medium text-gray-900">
-                          {emp.employeeName || emp.name || "N/A"}
+          ) : filteredEmployees.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+                <AlertCircle size={32} className="text-gray-400" />
+              </div>
+              <p className="text-gray-500 text-sm">
+                {searchTerm
+                  ? "No employees found matching your search."
+                  : "No salary entries found. Add your first entry!"}
+              </p>
+            </div>
+          ) : (
+            <div>
+              <table className="w-full text-left border-collapse" style={{ minWidth: '900px' }}>
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    <th className="p-4 font-semibold text-gray-600 text-sm" style={{ minWidth: '80px' }}>
+                      Slip No
+                    </th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm" style={{ minWidth: '160px' }}>
+                      Employee Name
+                    </th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm" style={{ minWidth: '120px' }}>
+                      Role
+                    </th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm" style={{ minWidth: '110px' }}>
+                      Department
+                    </th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm" style={{ minWidth: '180px' }}>
+                      Email
+                    </th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm" style={{ minWidth: '100px' }}>
+                      Pay Mode
+                    </th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm" style={{ minWidth: '110px' }}>
+                      Pay Date
+                    </th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm" style={{ minWidth: '110px' }}>
+                      Net Salary
+                    </th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm" style={{ minWidth: '90px' }}>
+                      Status
+                    </th>
+                    <th className="p-4 font-semibold text-gray-600 text-sm text-right" style={{ minWidth: '130px' }}>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredEmployees.map((emp) => (
+                    <tr
+                      key={emp._id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      {/* Slip No */}
+                      <td className="p-4">
+                        <p className="text-sm text-gray-600 font-mono">
+                          {emp._id != null ? String(emp._id).slice(-6) : "N/A"}
                         </p>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <p className="text-sm text-gray-800">
-                        {emp.role || "N/A"}
-                      </p>
-                    </td>
-                    <td className="p-4">
-                      <p className="text-sm text-gray-700">
-                        {emp.department || "N/A"}
-                      </p>
-                    </td>
-                    <td className="p-4">
-                      <p className="text-sm text-gray-600">
-                        {emp.email || "N/A"}
-                      </p>
-                    </td>
-                    <td className="p-4">
-                      <p className="text-xs text-gray-500">
-                        {emp.paymentMode || "N/A"}
-                      </p>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Calendar size={14} />
-                        {formatDate(emp.paymentDate)}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      {emp.breakdown?.net > 0 ? (
-                        <span className="font-bold text-gray-900">
-                          ₹{emp.breakdown.net.toLocaleString("en-IN")}
+                      </td>
+                      {/* Employee Name */}
+                      <td className="p-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 flex-shrink-0 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
+                            {(emp.employeeName || emp.name)
+                              ?.split(" ")
+                              .map((n) => n[0])
+                              .join("") || "?"}
+                          </div>
+                          <p
+                            className="font-medium text-gray-900 text-sm truncate max-w-[110px]"
+                            title={emp.employeeName || emp.name || "N/A"}
+                          >
+                            {emp.employeeName || emp.name || "N/A"}
+                          </p>
+                        </div>
+                      </td>
+                      {/* Role */}
+                      <td className="p-4">
+                        <p
+                          className="text-sm text-gray-800 truncate max-w-[110px]"
+                          title={emp.role || "N/A"}
+                        >
+                          {emp.role || "N/A"}
+                        </p>
+                      </td>
+                      {/* Department */}
+                      <td className="p-4">
+                        <p
+                          className="text-sm text-gray-700 truncate max-w-[100px]"
+                          title={emp.department || "N/A"}
+                        >
+                          {emp.department || "N/A"}
+                        </p>
+                      </td>
+                      {/* Email with tooltip */}
+                      <td className="p-4">
+                        <div className="flex items-center gap-1.5 group relative">
+                          <Mail size={13} className="text-gray-400 flex-shrink-0" />
+                          <span
+                            className="text-sm text-gray-600 truncate max-w-[140px] cursor-default"
+                            title={emp.email || "N/A"}
+                          >
+                            {emp.email || "N/A"}
+                          </span>
+                        </div>
+                      </td>
+                      {/* Payment Mode */}
+                      <td className="p-4">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-xs font-medium text-gray-600 capitalize">
+                          {emp.paymentMode || "N/A"}
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
-                          Not Assigned
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          emp.status === "Paid"
+                      </td>
+                      {/* Payment Date */}
+                      <td className="p-4">
+                        <div className="flex items-center gap-1.5 text-sm text-gray-600 whitespace-nowrap">
+                          <Calendar size={13} className="flex-shrink-0" />
+                          {formatDate(emp.paymentDate)}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        {(() => {
+                          // Prefer emp.amount (direct from API), fallback to breakdown.net
+                          const net = emp.amount || emp.breakdown?.net || 0;
+                          return net > 0 ? (
+                            <span className="font-bold text-gray-900">
+                              ₹{Number(net).toLocaleString("en-IN")}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+                              Not Assigned
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td className="p-4">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${emp.status === "paid" || emp.status === "Paid"
                             ? "bg-green-100 text-green-700"
                             : "bg-yellow-100 text-yellow-700"
-                        }`}
-                      >
-                        {emp.status || "Pending"}
-                      </span>
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2 relative">
-                        <button
-                          onClick={() => handlePreviewClick(emp)}
-                          className="p-2 border border-blue-200 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-2 group"
-                          title="Preview Invoice"
+                            }`}
                         >
-                          <Eye size={16} />
-                          <span className="text-xs font-medium">Preview</span>
-                        </button>
-                        <div className="relative">
+                          {emp.status || "Pending"}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right">
+                        <div className="flex items-center justify-end gap-2 relative">
                           <button
-                            data-action-menu-button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              console.log(
-                                "Clicked employee ID:",
-                                emp._id,
-                                "Current activeMenuId:",
-                                activeMenuId,
-                              );
-                              setActiveMenuId(
-                                activeMenuId === emp._id ? null : emp._id,
-                              );
-                            }}
-                            className="p-2 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors"
+                            onClick={() => handlePreviewClick(emp)}
+                            className="p-2 border border-blue-200 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-2 group"
+                            title="Preview Invoice"
                           >
-                            <MoreVertical size={18} />
+                            <Eye size={16} />
+                            <span className="text-xs font-medium">Preview</span>
                           </button>
-
-                          {activeMenuId === emp._id && (
-                            <div
-                              data-action-menu-content
-                              className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1"
-                              style={{
-                                bottom: "auto",
-                                top: "100%",
-                              }}
+                          <div className="relative" data-action-menu-wrap>
+                            <button
+                              data-action-menu-button
+                              onClick={(e) => handleMenuToggle(e, emp.expenseId)}
+                              className="p-2 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors"
                             >
-                              <button
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEdit(emp);
-                                  setActiveMenuId(null);
+                              <MoreVertical size={18} />
+                            </button>
+
+                            {activeMenuId === emp.expenseId && (
+                              <div
+                                data-action-menu-content
+                                className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1"
+                                style={{
+                                  bottom: "auto",
+                                  top: "100%",
                                 }}
                               >
-                                <Edit2 size={16} />
-                                Edit
-                              </button>
-                              <button
-                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDelete(emp._id);
-                                  setActiveMenuId(null);
-                                }}
-                              >
-                                <X size={16} />
-                                Delete
-                              </button>
-                            </div>
-                          )}
+                                <button
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEdit(emp);
+                                    setActiveMenuId(null);
+                                  }}
+                                >
+                                  <Edit2 size={16} />
+                                  Edit
+                                </button>
+                                <button
+                                  className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${emp.expenseId
+                                    ? "text-red-600 hover:bg-red-50"
+                                    : "text-gray-300 cursor-not-allowed"
+                                    }`}
+                                  disabled={!emp.expenseId}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (emp.expenseId) {
+                                      handleDelete(emp.expenseId);
+                                      setActiveMenuId(null);
+                                    }
+                                  }}
+                                >
+                                  <X size={16} />
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Add Salary Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white w-full max-w-2xl mx-4 rounded-xl shadow-lg overflow-y-auto max-h-[90vh]">
-            <div className="flex justify-between items-center p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold">
-                {editingEmployee ? "Edit Salary Details" : "Add Salary Details"}
-              </h2>
-              <button
-                onClick={() => {
-                  setIsAddModalOpen(false);
-                  setEditingEmployee(null);
-                }}
-                className="p-2 hover:bg-gray-100 rounded-full"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <form
-              onSubmit={handleAddSalary}
-              className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4"
-            >
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Employee Name
-                </label>
-                <input
-                  type="text"
-                  name="employeeName"
-                  value={newSalary.employeeName}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Role
-                </label>
-                <input
-                  type="text"
-                  name="role"
-                  value={newSalary.role}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Department
-                </label>
-                <input
-                  type="text"
-                  name="department"
-                  value={newSalary.department}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone
-                </label>
-                <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                  <span className="px-3 py-2 bg-gray-100 text-gray-700 font-medium border-r border-gray-300">
-                    +91
-                  </span>
-                  <input
-                    type="number"
-                    name="phone"
-                    value={newSalary.phone}
-                    onChange={handleInputChange}
-                    placeholder="Enter 10 digit mobile number"
-                    required
-                    className="flex-1 p-2 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    maxLength="10"
-                    onInput={(e) => {
-                      if (e.target.value.length > 10) {
-                        e.target.value = e.target.value.slice(0, 10);
-                      }
-                    }}
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Enter exactly 10 digits
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={newSalary.email}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Payment Date
-                </label>
-                <input
-                  type="date"
-                  name="paymentDate"
-                  value={newSalary.paymentDate}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  value={newSalary.status}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="Pending">Pending</option>
-                  <option value="Paid">Paid</option>
-                  <option value="Processing">Processing</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Payment Mode
-                </label>
-                <select
-                  name="paymentMode"
-                  value={newSalary.paymentMode}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="Bank Transfer">Bank Transfer</option>
-                  <option value="Cash">Cash</option>
-                  <option value="Cheque">Cheque</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Basic Salary
-                </label>
-                <input
-                  type="number"
-                  name="basic"
-                  value={newSalary.basic}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  HRA
-                </label>
-                <input
-                  type="number"
-                  name="hra"
-                  value={newSalary.hra}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Special Allowance
-                </label>
-                <input
-                  type="number"
-                  name="special"
-                  value={newSalary.special}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  PF Deduction
-                </label>
-                <input
-                  type="number"
-                  name="pf"
-                  value={newSalary.pf}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tax Deduction
-                </label>
-                <input
-                  type="number"
-                  name="tax"
-                  value={newSalary.tax}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full p-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-
-              <div className="md:col-span-2 mt-4 pt-4 border-t">
+      {
+        isAddModalOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white w-full max-w-2xl mx-4 rounded-xl shadow-lg overflow-y-auto max-h-[90vh]">
+              <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold">
+                  {editingEmployee ? "Edit Salary Details" : "Add Salary Details"}
+                </h2>
                 <button
-                  type="submit"
-                  className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  onClick={() => {
+                    setIsAddModalOpen(false);
+                    setEditingEmployee(null);
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-full"
                 >
-                  Add Salary Entry
+                  <X size={20} />
                 </button>
               </div>
-            </form>
+              <form
+                onSubmit={handleAddSalary}
+                className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4"
+              >
+                {/* Employee Selector - spans full width */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Select Employee <span className="text-red-500">*</span>
+                  </label>
+                  {editingEmployee ? (
+                    // When editing, show the employee name as read-only
+                    <div className="w-full p-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 text-sm">
+                      {newSalary.employeeName || "—"}
+                      <span className="ml-2 text-xs text-gray-400">(Employee ID: {newSalary.userId})</span>
+                    </div>
+                  ) : (
+                    <select
+                      required
+                      value={newSalary.userId}
+                      onChange={(e) => {
+                        const selectedId = e.target.value;
+                        // Find the employee from our already-loaded list
+                        const emp = allEmployeesList.find(
+                          (emp) => String(emp.userId ?? emp.employeeId ?? emp.id ?? emp._id) === selectedId
+                        );
+                        if (emp) {
+                          const empId = emp.id ?? emp.employeeId ?? emp.empId ?? emp._id;
+                          const fullName = emp.firstName && emp.lastName
+                            ? `${emp.firstName} ${emp.lastName}`
+                            : emp.name || emp.fullName || emp.employeeName || "";
+                          const rawPhone = emp.phone || emp.mobile || emp.phoneNumber || "";
+                          setNewSalary((prev) => ({
+                            ...prev,
+                            userId: String(empId),
+                            employeeName: fullName,
+                            role: emp.role || emp.designation || prev.role,
+                            department: emp.department || prev.department,
+                            departmentId: String(emp.departmentId ?? ""),
+                            phone: rawPhone.replace(/^\+91/, ""),
+                            email: emp.email || prev.email,
+                          }));
+                        } else {
+                          setNewSalary((prev) => ({ ...prev, userId: selectedId }));
+                        }
+                      }}
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 bg-white"
+                    >
+                      <option value="">— Choose an employee —</option>
+                      {allEmployeesList.map((emp) => {
+                        // Use same field priority as the find() in onChange
+                        const empId = emp.userId ?? emp.employeeId ?? emp.id ?? emp._id;
+                        const fullName = emp.employeeName ||
+                          (emp.firstName && emp.lastName
+                            ? `${emp.firstName} ${emp.lastName}`
+                            : emp.name || emp.fullName || "Unknown");
+                        return (
+                          <option key={empId} value={String(empId)}>
+                            {fullName} {emp.email && emp.email !== "N/A" ? `(${emp.email})` : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Role
+                  </label>
+                  <input
+                    type="text"
+                    name="role"
+                    value={newSalary.role}
+                    onChange={handleInputChange}
+                    placeholder="e.g. Frontend Developer"
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Department
+                  </label>
+                  <input
+                    type="text"
+                    name="department"
+                    value={newSalary.department}
+                    onChange={handleInputChange}
+                    placeholder="e.g. Engineering"
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone
+                  </label>
+                  <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                    <span className="px-3 py-2 bg-gray-100 text-gray-700 font-medium border-r border-gray-300">
+                      +91
+                    </span>
+                    <input
+                      type="number"
+                      name="phone"
+                      value={newSalary.phone}
+                      onChange={handleInputChange}
+                      placeholder="Enter 10 digit mobile number"
+                      required
+                      className="flex-1 p-2 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      maxLength="10"
+                      onInput={(e) => {
+                        if (e.target.value.length > 10) {
+                          e.target.value = e.target.value.slice(0, 10);
+                        }
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Enter exactly 10 digits
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={newSalary.email}
+                    onChange={handleInputChange}
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Date
+                  </label>
+                  <input
+                    type="date"
+                    name="paymentDate"
+                    value={newSalary.paymentDate}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <select
+                    name="status"
+                    value={newSalary.status}
+                    onChange={handleInputChange}
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="paid">Paid</option>
+                    <option value="processing">Processing</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Mode
+                  </label>
+                  <select
+                    name="paymentMode"
+                    value={newSalary.paymentMode}
+                    onChange={handleInputChange}
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="bank transfer">Bank Transfer</option>
+                    <option value="cash">Cash</option>
+                    <option value="cheque">Cheque</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Basic Salary
+                  </label>
+                  <input
+                    type="number"
+                    name="basic"
+                    value={newSalary.basic}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    HRA
+                  </label>
+                  <input
+                    type="number"
+                    name="hra"
+                    value={newSalary.hra}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Conveyance
+                  </label>
+                  <input
+                    type="number"
+                    name="conveyance"
+                    value={newSalary.conveyance}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Special Allowance
+                  </label>
+                  <input
+                    type="number"
+                    name="special"
+                    value={newSalary.special}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    PF Deduction
+                  </label>
+                  <input
+                    type="number"
+                    name="pf"
+                    value={newSalary.pf}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tax Deduction
+                  </label>
+                  <input
+                    type="number"
+                    name="tax"
+                    value={newSalary.tax}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+
+                {/* ── Live Net Salary Preview ── */}
+                <div className="md:col-span-2 mt-2">
+                  {(() => {
+                    const basic = parseFloat(newSalary.basic) || 0;
+                    const hra = parseFloat(newSalary.hra) || 0;
+                    const conv = parseFloat(newSalary.conveyance) || 0;
+                    const special = parseFloat(newSalary.special) || 0;
+                    const pf = parseFloat(newSalary.pf) || 0;
+                    const tax = parseFloat(newSalary.tax) || 0;
+                    const gross = basic + hra + conv + special;
+                    const deduct = pf + tax;
+                    const net = gross - deduct;
+                    return (
+                      <div className="rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 to-purple-50 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div className="flex items-center gap-6 text-sm">
+                          <div className="text-center">
+                            <p className="text-gray-500 text-xs mb-0.5">Gross Earnings</p>
+                            <p className="font-semibold text-gray-800">₹{gross.toLocaleString("en-IN")}</p>
+                          </div>
+                          <div className="text-gray-300 text-lg">−</div>
+                          <div className="text-center">
+                            <p className="text-gray-500 text-xs mb-0.5">Deductions</p>
+                            <p className="font-semibold text-red-500">₹{deduct.toLocaleString("en-IN")}</p>
+                          </div>
+                          <div className="text-gray-300 text-lg">=</div>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs text-blue-600 font-medium mb-0.5">Net Salary</p>
+                          <p className="text-2xl font-bold text-blue-700">₹{net.toLocaleString("en-IN")}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div className="md:col-span-2 mt-4 pt-4 border-t">
+                  <button
+                    type="submit"
+                    className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    {editingEmployee?.expenseId
+                      ? "Update Salary Entry"
+                      : "Add Salary Entry"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Preview Modal */}
-      {isPreviewModalOpen && previewData && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-white w-full max-w-4xl h-[90vh] mx-4 rounded-xl shadow-2xl flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <FileText className="text-blue-600" />
-                Invoice Preview - {previewData.employee.employeeName}
-              </h2>
-              <button
-                onClick={() => setIsPreviewModalOpen(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
+      {
+        isPreviewModalOpen && previewData && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+            <div className="bg-white w-full max-w-4xl h-[90vh] mx-4 rounded-xl shadow-2xl flex flex-col">
+              <div className="flex justify-between items-center p-4 border-b border-gray-200">
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <FileText className="text-blue-600" />
+                  Invoice Preview - {previewData.employee.employeeName}
+                </h2>
+                <button
+                  onClick={() => setIsPreviewModalOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
 
-            <div className="flex-1 bg-gray-100 p-4 overflow-hidden">
-              <iframe
-                src={previewData.url}
-                className="w-full h-full rounded-lg border border-gray-300 shadow-sm bg-white"
-                title="PDF Preview"
-              ></iframe>
-            </div>
+              <div className="flex-1 bg-gray-100 p-4 overflow-hidden">
+                <iframe
+                  src={previewData.url}
+                  className="w-full h-full rounded-lg border border-gray-300 shadow-sm bg-white"
+                  title="PDF Preview"
+                ></iframe>
+              </div>
 
-            <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
-              <button
-                onClick={() => setIsPreviewModalOpen(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors text-gray-700 font-medium"
-              >
-                Close
-              </button>
-              <button
-                onClick={handleDownload}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium shadow-sm"
-              >
-                <Download size={18} />
-                Download Invoice
-              </button>
+              <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 rounded-b-xl">
+                <button
+                  onClick={() => setIsPreviewModalOpen(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors text-gray-700 font-medium"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handleDownload}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium shadow-sm"
+                >
+                  <Download size={18} />
+                  Download Invoice
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirmId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white w-full max-w-md mx-4 rounded-xl shadow-lg p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <X size={24} className="text-red-600" />
+      {
+        deleteConfirmId && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white w-full max-w-md mx-4 rounded-xl shadow-lg p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <X size={24} className="text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Delete Salary Entry
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    This action cannot be undone
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Delete Salary Entry
-                </h3>
-                <p className="text-sm text-gray-500">
-                  This action cannot be undone
-                </p>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete this salary entry? All data
+                associated with this entry will be permanently removed.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                >
+                  Delete
+                </button>
               </div>
-            </div>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete this salary entry? All data
-              associated with this entry will be permanently removed.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteConfirmId(null)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
-              >
-                Delete
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Toast Notifications */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-    </div>
+      {
+        toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )
+      }
+    </div >
   );
 };
 

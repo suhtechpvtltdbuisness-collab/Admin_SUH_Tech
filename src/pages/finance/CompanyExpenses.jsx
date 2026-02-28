@@ -15,20 +15,19 @@ import {
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import Toast from "../../components/common/Toast";
-import { authService, employeeService, personalExpenseService } from "../../services";
+import { authService, personalExpenseService } from "../../services";
 
 const CompanyExpenses = () => {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newExpense, setNewExpense] = useState({
-    title: "",
-    category: "Misc",
+    expenseName: "",
+    category: "",
     amount: "",
     date: new Date().toISOString().split("T")[0],
-    paymentMethod: "Bank Transfer",
-    status: "Pending",
-    description: "",
+    paymentMode: "cash",
+    status: "pending",
   });
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [editingExpense, setEditingExpense] = useState(null);
@@ -69,32 +68,40 @@ const CompanyExpenses = () => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (activeMenuId !== null) {
-        const target = event.target;
-        const isMenuButton = target.closest("button[data-action-menu-button]");
-        const isMenuContent = target.closest("[data-action-menu-content]");
-
-        if (!isMenuButton && !isMenuContent) {
-          setActiveMenuId(null);
-        }
+        const isInsideMenu = event.target.closest("[data-action-menu-wrap]");
+        if (!isInsideMenu) setActiveMenuId(null);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [activeMenuId]);
+
+  const handleMenuToggle = (e, id) => {
+    e.stopPropagation();
+    setActiveMenuId((prev) => (prev === id ? null : id));
+  };
+
+  const normaliseExpense = (r) => ({
+    _id: r.id ?? r._id,
+    expenseName: r.expenseName ?? r.expense_name ?? r.title ?? "",
+    category: r.category ?? "",
+    amount: r.amount ?? 0,
+    date: r.date ? String(r.date).split("T")[0] : "",
+    paymentMode: (r.paymentMode ?? r.payment_mode ?? "cash").toLowerCase(),
+    status: (r.status ?? "pending").toLowerCase(),
+  });
 
   const loadExpenses = async () => {
     try {
       setLoading(true);
-      const response = await personalExpenseService.getAllPersonalExpenses();
-      setExpenses(response.expenses || response.data || response || []);
-      const total = (response.expenses || []).reduce(
-        (sum, exp) => sum + (exp.amount || 0),
-        0,
-      );
-      setTotalExpenses(total);
+      const res = await personalExpenseService.getAll();
+      // Handle: array | { data } | { expenses } | { records }
+      const list = Array.isArray(res)
+        ? res
+        : res?.data ?? res?.expenses ?? res?.records ?? [];
+      const normalised = list.map(normaliseExpense);
+      setExpenses(normalised);
+      setTotalExpenses(normalised.reduce((sum, e) => sum + (e.amount || 0), 0));
     } catch (error) {
       console.error("Error loading expenses:", error);
       showToast("Failed to load expenses: " + error.message, "error");
@@ -140,14 +147,13 @@ const CompanyExpenses = () => {
   // Filter expenses based on search and filters
   const filteredExpenses = expenses.filter((expense) => {
     const matchesSearch =
-      expense.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      expense.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      expense.expenseName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       expense.category?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory =
       filterCategory === "All" || expense.category === filterCategory;
     const matchesPaymentMethod =
       filterPaymentMethod === "All" ||
-      expense.paymentMethod === filterPaymentMethod;
+      expense.paymentMode === filterPaymentMethod;
     return matchesSearch && matchesCategory && matchesPaymentMethod;
   });
 
@@ -162,31 +168,26 @@ const CompanyExpenses = () => {
   const handleAddExpense = async (e) => {
     e.preventDefault();
     try {
-      const expenseData = {
-        ...newExpense,
-        amount: parseFloat(newExpense.amount),
-        date: newExpense.date ? new Date(newExpense.date) : new Date(),
-      };
-
       if (editingExpense) {
-        await personalExpenseService.updatePersonalExpenseById(editingExpense._id, expenseData);
+        // PATCH /expenses/personal/:id
+        await personalExpenseService.update(editingExpense._id, newExpense);
         showToast("Expense updated successfully!", "success");
       } else {
-        await personalExpenseService.createPersonalExpense(expenseData);
+        // POST /expenses/personal
+        await personalExpenseService.create(newExpense);
         showToast("Expense created successfully!", "success");
       }
 
-      await loadExpenses(); // Reload expenses
+      await loadExpenses();
       setIsAddModalOpen(false);
       setEditingExpense(null);
       setNewExpense({
-        title: "",
-        category: "Misc",
+        expenseName: "",
+        category: "",
         amount: "",
         date: new Date().toISOString().split("T")[0],
-        paymentMethod: "Bank Transfer",
-        status: "Pending",
-        description: "",
+        paymentMode: "cash",
+        status: "pending",
       });
     } catch (error) {
       console.error("Error saving expense:", error);
@@ -196,16 +197,14 @@ const CompanyExpenses = () => {
 
   const handleEditExpense = (expense) => {
     setEditingExpense(expense);
+    // expense is already normalised by normaliseExpense()
     setNewExpense({
-      title: expense.title || "",
-      category: expense.category || "Misc",
+      expenseName: expense.expenseName || "",
+      category: expense.category || "",
       amount: expense.amount || "",
-      date: expense.date
-        ? new Date(expense.date).toISOString().split("T")[0]
-        : new Date().toISOString().split("T")[0],
-      paymentMethod: expense.paymentMethod || "Bank Transfer",
-      status: expense.status || "Pending",
-      description: expense.description || "",
+      date: expense.date || new Date().toISOString().split("T")[0],
+      paymentMode: expense.paymentMode || "cash",
+      status: expense.status || "pending",
     });
     setIsAddModalOpen(true);
     setActiveMenuId(null);
@@ -217,11 +216,11 @@ const CompanyExpenses = () => {
 
   const confirmDelete = async () => {
     if (!deleteConfirmId) return;
-
     try {
-      await personalExpenseService.deletePersonalExpenseById(deleteConfirmId);
+      // DELETE /expenses/personal/:id
+      await personalExpenseService.delete(deleteConfirmId);
       await loadExpenses();
-      showToast("Successfully deleted this expense", "success");
+      showToast("Expense deleted successfully", "success");
       setActiveMenuId(null);
       setDeleteConfirmId(null);
     } catch (error) {
@@ -470,10 +469,7 @@ const CompanyExpenses = () => {
                     <td className="p-4">
                       <div className="flex flex-col">
                         <span className="font-medium text-gray-900">
-                          {expense.title}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {expense.description || ""}
+                          {expense.expenseName || "—"}
                         </span>
                       </div>
                     </td>
@@ -493,7 +489,7 @@ const CompanyExpenses = () => {
                     <td className="p-4">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <CreditCard size={14} />
-                        {expense.paymentMethod}
+                        {expense.paymentMode || "—"}
                       </div>
                     </td>
                     <td className="p-4">
@@ -503,15 +499,10 @@ const CompanyExpenses = () => {
                       </div>
                     </td>
                     <td className="p-4 text-right">
-                      <div className="relative">
+                      <div className="relative" data-action-menu-wrap>
                         <button
                           data-action-menu-button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveMenuId(
-                              activeMenuId === expense._id ? null : expense._id,
-                            );
-                          }}
+                          onClick={(e) => handleMenuToggle(e, expense._id)}
                           className="p-2 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                         >
                           <MoreVertical size={18} />
@@ -571,13 +562,12 @@ const CompanyExpenses = () => {
                     setIsAddModalOpen(false);
                     setEditingExpense(null);
                     setNewExpense({
-                      title: "",
-                      category: "Misc",
+                      expenseName: "",
+                      category: "",
                       amount: "",
                       date: new Date().toISOString().split("T")[0],
-                      paymentMethod: "Bank Transfer",
-                      status: "Pending",
-                      description: "",
+                      paymentMode: "cash",
+                      status: "pending",
                     });
                   }}
                   className="p-2 hover:bg-gray-100 rounded-full cursor-pointer"
@@ -592,14 +582,15 @@ const CompanyExpenses = () => {
               >
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Expense Title
+                    Expense Name
                   </label>
                   <input
                     type="text"
-                    name="title"
-                    value={newExpense.title}
+                    name="expenseName"
+                    value={newExpense.expenseName}
                     onChange={handleInputChange}
                     required
+                    placeholder="e.g. Office Rent"
                     className="w-full p-2 border border-gray-300 rounded-lg"
                   />
                 </div>
@@ -637,18 +628,18 @@ const CompanyExpenses = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Payment Method
+                    Payment Mode
                   </label>
                   <select
-                    name="paymentMethod"
-                    value={newExpense.paymentMethod}
+                    name="paymentMode"
+                    value={newExpense.paymentMode}
                     onChange={handleInputChange}
                     required
                     className="w-full p-2 border border-gray-300 rounded-lg"
                   >
-                    <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Cheque">Cheque</option>
+                    <option value="cash">Cash</option>
+                    <option value="bank transfer">Bank Transfer</option>
+                    <option value="cheque">Cheque</option>
                   </select>
                 </div>
                 <div>
@@ -674,28 +665,16 @@ const CompanyExpenses = () => {
                     onChange={handleInputChange}
                     className="w-full p-2 border border-gray-300 rounded-lg"
                   >
-                    <option value="Pending">Pending</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Paid">Paid</option>
+                    <option value="pending">Pending</option>
+                    <option value="processing">Processing</option>
+                    <option value="paid">Paid</option>
                   </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    name="description"
-                    value={newExpense.description}
-                    onChange={handleInputChange}
-                    rows="3"
-                    className="w-full p-2 border border-gray-300 rounded-lg"
-                  ></textarea>
                 </div>
 
                 <div className="md:col-span-2 mt-4 pt-4">
                   <button
                     type="submit"
-                    className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+                    className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer font-medium"
                   >
                     {editingExpense ? "Update Expense" : "Add Expense"}
                   </button>

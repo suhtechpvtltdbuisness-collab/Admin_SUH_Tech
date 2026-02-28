@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { userService } from '../../services';
+
 
 /* SIDEBAR ITEM */
 function Item({
@@ -95,13 +95,18 @@ export default function Sidebar({ className = "", onClose }) {
     if (isProjectsActive) setProjectsOpen(true);
   }, [isProjectsActive]);
 
-  // Load user profile
+  // Load user profile from localStorage (set during login)
   useEffect(() => {
-    const loadUserProfile = async () => {
+    const loadUserProfile = () => {
       try {
-        const res = await userService.getProfile();
-        if (res.user) {
-          setUserProfile(res.user);
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          setUserProfile({
+            firstName: user.firstName || user.first_name || user.name?.split(' ')[0] || '',
+            lastName: user.lastName || user.last_name || user.name?.split(' ').slice(1).join(' ') || '',
+            role: user.role || user.designation || 'User',
+          });
         }
       } catch (error) {
         console.error('Error loading user profile:', error);
@@ -109,6 +114,7 @@ export default function Sidebar({ className = "", onClose }) {
     };
     loadUserProfile();
   }, []);
+
 
   // Listen for profile updates from Settings page
   useEffect(() => {

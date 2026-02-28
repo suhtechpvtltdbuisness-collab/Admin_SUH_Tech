@@ -1,7 +1,7 @@
 import { Bell, Menu, Sparkles, User, LogOut } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { authService, userService } from '../../services';
+import { authService } from '../../services';
 import Sidebar from './Sidebar';
 
 const Layout = () => {
@@ -47,11 +47,16 @@ const Layout = () => {
         }
     };
 
-    const loadUserProfile = async () => {
+    const loadUserProfile = () => {
         try {
-            const res = await userService.getProfile();
-            if (res.user) {
-                setUserProfile(res.user);
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                setUserProfile({
+                    firstName: user.firstName || user.first_name || user.name?.split(' ')[0] || '',
+                    lastName: user.lastName || user.last_name || user.name?.split(' ').slice(1).join(' ') || '',
+                    role: user.role || user.designation || 'User',
+                });
             }
         } catch (error) {
             console.error('Error loading user profile:', error);

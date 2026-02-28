@@ -1,7 +1,7 @@
 import { Edit2, MoreVertical, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Toast from "../../components/common/Toast";
-import { authService, employeeService } from "../../services";
+import { authService, projectService } from "../../services";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState([]);
@@ -10,19 +10,20 @@ export default function ProjectsPage() {
   const [editingProject, setEditingProject] = useState(null);
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [toast, setToast] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  // Form state — field names match the API payload
   const [form, setForm] = useState({
     projectName: "",
     clientName: "",
-    clientEmail: "",
-    clientPhone: "",
-    clientAddress: "",
+    email: "",
+    phone: "",
     description: "",
-    serviceType: "Web Development",
+    servicesType: "web development",
     startDate: "",
     endDate: "",
-    status: "Planning",
+    status: "in progress",
     budget: "",
-    technologies: "",
+    technologyStack: "",   // comma-separated in UI, converted to array on submit
   });
 
   const showToast = (message, type = "success") => {
@@ -34,11 +35,60 @@ export default function ProjectsPage() {
     loadProjects();
   }, []);
 
+  // Click-outside handler for action menu
+  const menuRef = useRef(null);
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (activeMenuId !== null) {
+        const isInsideMenu = e.target.closest("[data-action-menu-wrap]");
+        if (!isInsideMenu) setActiveMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [activeMenuId]);
+
+  const handleMenuToggle = (e, id) => {
+    e.stopPropagation();
+    setActiveMenuId((prev) => (prev === id ? null : id));
+  };
+
+  // Normalise one record from API (handles snake_case / alternate field names)
+  const normaliseProject = (p) => {
+    // ID priority: MongoDB _id string > projectCode > numeric id
+    // The PATCH/DELETE endpoint uses this as :id in the URL
+    const resolvedId = p._id ?? p.projectCode ?? p.project_code ?? p.id;
+    return {
+      _id: resolvedId,
+      projectCode: p.projectCode ?? p.project_code ?? "",
+      numericId: p.id,   // keep numeric id for reference
+      projectName: p.projectName ?? p.project_name ?? "",
+      clientName: p.clientName ?? p.client_name ?? "",
+      email: p.email ?? p.clientEmail ?? p.client_email ?? "",
+      phone: String(p.phone ?? p.clientPhone ?? p.client_phone ?? ""),
+      description: p.description ?? "",
+      servicesType: p.servicesType ?? p.services_type ?? p.serviceType ?? "",
+      startDate: p.startDate ? String(p.startDate).split("T")[0] : "",
+      endDate: p.endDate ? String(p.endDate).split("T")[0] : "",
+      status: p.status ?? "in progress",
+      budget: p.budget ?? 0,
+      technologyStack: Array.isArray(p.technologyStack)
+        ? p.technologyStack
+        : Array.isArray(p.technologies)
+          ? p.technologies
+          : [],
+    };
+  };
+
   const loadProjects = async () => {
     try {
       setLoading(true);
-      const res = await api.getProjects();
-      setProjects(res.projects || []);
+      const res = await projectService.getAll();
+      // Handle: array | { data } | { projects } | { records }
+      const list = Array.isArray(res)
+        ? res
+        : res?.data ?? res?.projects ?? res?.records ?? [];
+      setProjects(list.map(normaliseProject));
     } catch (error) {
       console.error("Error loading projects:", error);
       showToast("Failed to load projects: " + error.message, "error");
@@ -60,39 +110,34 @@ export default function ProjectsPage() {
     setForm({
       projectName: "",
       clientName: "",
-      clientEmail: "",
-      clientPhone: "",
-      clientAddress: "",
+      email: "",
+      phone: "",
       description: "",
-      serviceType: "Web Development",
+      servicesType: "web development",
       startDate: "",
       endDate: "",
-      status: "Planning",
+      status: "in progress",
       budget: "",
-      technologies: "",
+      technologyStack: "",
     });
     setIsModalOpen(true);
   };
 
   const openEditModal = (project) => {
     setEditingProject(project);
+    // project is already normalised by normaliseProject()
     setForm({
       projectName: project.projectName || "",
       clientName: project.clientName || "",
-      clientEmail: project.clientEmail || "",
-      clientPhone: project.clientPhone || "",
-      clientAddress: project.clientAddress || "",
+      email: project.email || "",
+      phone: project.phone || "",
       description: project.description || "",
-      serviceType: project.serviceType || "Web Development",
-      startDate: project.startDate
-        ? new Date(project.startDate).toISOString().split("T")[0]
-        : "",
-      endDate: project.endDate
-        ? new Date(project.endDate).toISOString().split("T")[0]
-        : "",
-      status: project.status || "Planning",
+      servicesType: project.servicesType || "web development",
+      startDate: project.startDate || "",
+      endDate: project.endDate || "",
+      status: project.status || "in progress",
       budget: project.budget || "",
-      technologies: (project.technologies || []).join(", "),
+      technologyStack: (project.technologyStack || []).join(", "),
     });
     setIsModalOpen(true);
     setActiveMenuId(null);
@@ -101,35 +146,15 @@ export default function ProjectsPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const payload = {
-        projectName: form.projectName,
-        clientName: form.clientName,
-        clientEmail: form.clientEmail,
-        clientPhone: form.clientPhone,
-        clientAddress: form.clientAddress,
-        description: form.description,
-        serviceType: form.serviceType,
-        startDate: form.startDate ? new Date(form.startDate) : undefined,
-        endDate: form.endDate ? new Date(form.endDate) : undefined,
-        status: form.status,
-        budget: parseFloat(form.budget) || 0,
-        technologies: form.technologies
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
-      };
-
       if (editingProject) {
-        await api.updateProject(
-          editingProject._id || editingProject.projectCode,
-          payload,
-        );
+        // PATCH /projects/:id
+        await projectService.update(editingProject._id, form);
         showToast("Project updated successfully!", "success");
       } else {
-        await api.createProject(payload);
+        // POST /projects
+        await projectService.create(form);
         showToast("Project created successfully!", "success");
       }
-
       await loadProjects();
       setIsModalOpen(false);
       setEditingProject(null);
@@ -139,19 +164,23 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleDelete = async (idOrCode) => {
-    if (!window.confirm("Are you sure you want to delete this project?")) {
-      return;
-    }
+  const handleDelete = (id) => {
+    setDeleteConfirmId(id);
+    setActiveMenuId(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
     try {
-      await api.deleteProject(idOrCode);
+      // DELETE /projects/:id
+      await projectService.delete(deleteConfirmId);
       showToast("Project deleted successfully!", "success");
       await loadProjects();
     } catch (error) {
       console.error("Error deleting project:", error);
       showToast("Failed to delete project: " + error.message, "error");
     }
-    setActiveMenuId(null);
+    setDeleteConfirmId(null);
   };
 
   const formatDate = (date) => {
@@ -220,7 +249,6 @@ export default function ProjectsPage() {
                 <thead>
                   <tr className="bg-gradient-to-r from-gray-50 to-transparent border-b border-gray-200 text-xs text-gray-600 uppercase tracking-wider font-semibold">
                     <th className="p-4">Project Name</th>
-                    <th className="p-4">Project ID</th>
                     <th className="p-4">Client Name</th>
                     <th className="p-4">Email</th>
                     <th className="p-4">Service Type</th>
@@ -242,34 +270,29 @@ export default function ProjectsPage() {
                           {p.projectName}
                         </span>
                       </td>
-                      <td className="p-4">
-                        <span className="text-xs text-gray-500">
-                          {p.projectCode}
-                        </span>
-                      </td>
+
                       <td className="p-4 text-sm text-gray-700">
                         {p.clientName}
                       </td>
                       <td className="p-4 text-sm text-blue-600">
-                        {p.clientEmail}
+                        {p.email || "—"}
                       </td>
                       <td className="p-4 text-sm text-gray-700">
-                        {p.serviceType}
+                        {p.servicesType || "—"}
                       </td>
                       <td className="p-4 text-sm text-gray-900 font-semibold">
                         {formatCurrency(p.budget)}
                       </td>
                       <td className="p-4">
                         <span
-                          className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold ${
-                            p.status === "Completed"
-                              ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200"
-                              : p.status === "In Progress"
-                                ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200"
-                                : p.status === "On Hold"
-                                  ? "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200"
-                                  : "bg-gradient-to-r from-gray-50 to-slate-50 text-gray-600 border border-gray-200"
-                          }`}
+                          className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold ${(p.status || "").toLowerCase() === "completed"
+                            ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200"
+                            : (p.status || "").toLowerCase() === "in progress"
+                              ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200"
+                              : (p.status || "").toLowerCase() === "on hold"
+                                ? "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200"
+                                : "bg-gradient-to-r from-gray-50 to-slate-50 text-gray-600 border border-gray-200"
+                            }`}
                         >
                           {p.status}
                         </span>
@@ -281,19 +304,15 @@ export default function ProjectsPage() {
                         {formatDate(p.endDate)}
                       </td>
                       <td className="p-4 text-right">
-                        <div className="relative inline-block text-left">
+                        <div className="relative inline-block text-left" data-action-menu-wrap>
                           <button
-                            onClick={() =>
-                              setActiveMenuId(
-                                activeMenuId === p._id ? null : p._id,
-                              )
-                            }
+                            onClick={(e) => handleMenuToggle(e, p._id)}
                             className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700 cursor-pointer"
                           >
                             <MoreVertical size={16} />
                           </button>
                           {activeMenuId === p._id && (
-                            <div className="origin-top-right absolute right-0 mt-1 w-40 rounded-md shadow-lg bg-white z-10">
+                            <div className="origin-top-right absolute right-0 mt-1 w-40 rounded-md shadow-lg bg-white z-10 border border-gray-100">
                               <div className="py-1 text-sm">
                                 <button
                                   onClick={() => openEditModal(p)}
@@ -302,9 +321,7 @@ export default function ProjectsPage() {
                                   <Edit2 size={14} /> Edit
                                 </button>
                                 <button
-                                  onClick={() =>
-                                    handleDelete(p._id || p.projectCode)
-                                  }
+                                  onClick={() => handleDelete(p._id)}
                                   className="w-full px-3 py-2 flex items-center gap-2 text-red-600 hover:bg-red-50 cursor-pointer"
                                 >
                                   <Trash2 size={14} /> Delete
@@ -363,19 +380,18 @@ export default function ProjectsPage() {
                         Service Type
                       </label>
                       <select
-                        name="serviceType"
-                        value={form.serviceType}
+                        name="servicesType"
+                        value={form.servicesType}
                         onChange={handleChange}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm cursor-pointer"
                       >
-                        <option>Web Development</option>
-                        <option>Mobile Development</option>
-                        <option>Cloud Services</option>
-                        <option>DevOps</option>
-                        <option>Consulting</option>
-                        <option>Maintenance</option>
-                        <option>Custom Software</option>
-                        <option>Other</option>
+                        <option value="web development">Web Development</option>
+                        <option value="mobile app development">Mobile App Development</option>
+                        <option value="Devops">DevOps</option>
+                        <option value="custom software">Custom Software</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="consulting">Consulting</option>
+                        <option value="other">Other</option>
                       </select>
                     </div>
                   </div>
@@ -400,8 +416,8 @@ export default function ProjectsPage() {
                       </label>
                       <input
                         type="email"
-                        name="clientEmail"
-                        value={form.clientEmail}
+                        name="email"
+                        value={form.email}
                         onChange={handleChange}
                         required
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
@@ -416,8 +432,8 @@ export default function ProjectsPage() {
                       </label>
                       <input
                         type="text"
-                        name="clientPhone"
-                        value={form.clientPhone}
+                        name="phone"
+                        value={form.phone}
                         onChange={handleChange}
                         required
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
@@ -438,18 +454,7 @@ export default function ProjectsPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Client Address
-                    </label>
-                    <input
-                      type="text"
-                      name="clientAddress"
-                      value={form.clientAddress}
-                      onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                    />
-                  </div>
+                  {/* Remove clientAddress — not in API payload, so we skip it */}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -493,13 +498,14 @@ export default function ProjectsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Technologies (comma separated)
+                      Technology Stack (comma separated)
                     </label>
                     <input
                       type="text"
-                      name="technologies"
-                      value={form.technologies}
+                      name="technologyStack"
+                      value={form.technologyStack}
                       onChange={handleChange}
+                      placeholder="e.g. JavaScript, React, Node.js"
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                     />
                   </div>
@@ -515,11 +521,11 @@ export default function ProjectsPage() {
                         onChange={handleChange}
                         className="border border-gray-300 rounded-lg px-3 py-2 text-sm cursor-pointer"
                       >
-                        <option>Planning</option>
-                        <option>In Progress</option>
-                        <option>On Hold</option>
-                        <option>Completed</option>
-                        <option>Cancelled</option>
+                        <option value="in progress">In Progress</option>
+                        <option value="planning">Planning</option>
+                        <option value="on hold">On Hold</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
                       </select>
                     </div>
 
@@ -543,6 +549,40 @@ export default function ProjectsPage() {
                     </div>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteConfirmId && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white w-full max-w-md mx-4 rounded-xl shadow-lg p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <Trash2 size={22} className="text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Delete Project</h3>
+                  <p className="text-sm text-gray-500">This action cannot be undone</p>
+                </div>
+              </div>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete this project? All data associated with it will be permanently removed.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium cursor-pointer"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           </div>

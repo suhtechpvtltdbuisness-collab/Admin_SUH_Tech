@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import Toast from "../../components/common/Toast";
-import { authService, employeeService } from "../../services";
+import { authService, clientSaleService } from "../../services";
 
 const CompanySales = () => {
   const [sales, setSales] = useState([]);
@@ -44,7 +44,7 @@ const CompanySales = () => {
     projectTitle: "",
     amount: "",
     date: "",
-    status: "Pending",
+    status: "pending",
     link: "",
     paymentMethod: "Bank Transfer",
   });
@@ -71,27 +71,44 @@ const CompanySales = () => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (activeMenuId !== null) {
-        const target = event.target;
-        const isMenuButton = target.closest("button[data-action-menu-button]");
-        const isMenuContent = target.closest("[data-action-menu-content]");
-
-        if (!isMenuButton && !isMenuContent) {
-          setActiveMenuId(null);
-        }
+        const isInsideMenu = event.target.closest("[data-action-menu-wrap]");
+        if (!isInsideMenu) setActiveMenuId(null);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [activeMenuId]);
+
+  const handleMenuToggle = (e, id) => {
+    e.stopPropagation();
+    setActiveMenuId((prev) => (prev === id ? null : id));
+  };
+
+  const normaliseRecord = (r) => ({
+    // Primary key
+    _id: r.id ?? r._id,
+    // camelCase — handle both camelCase and snake_case from API
+    clientName: r.clientName ?? r.client_name ?? "",
+    contactPerson: r.contactPerson ?? r.contact_person ?? "",
+    email: r.email ?? "",
+    phone: String(r.phone ?? ""),
+    projectTitle: r.projectTitle ?? r.project_title ?? r.projectName ?? r.project_name ?? "",
+    amount: r.amount ?? 0,
+    date: r.date ? r.date.split("T")[0] : "",   // strip time from ISO string
+    status: (r.status ?? "pending").toLowerCase(),
+    link: r.link ?? "",
+    paymentMethod: r.paymentMethod ?? r.payment_method ?? r.paymentMode ?? r.payment_mode ?? "Bank Transfer",
+  });
 
   const loadSales = async () => {
     try {
       setLoading(true);
-      const res = await api.getSales();
-      setSales(res.sales || []);
+      const res = await clientSaleService.getAll();
+      // Handle: array | { data } | { clients } | { sales } | { records }
+      const list = Array.isArray(res)
+        ? res
+        : res?.data ?? res?.clients ?? res?.records ?? res?.sales ?? [];
+      setSales(list.map(normaliseRecord));
     } catch (error) {
       console.error("Error loading sales:", error);
       showToast("Failed to load sales: " + error.message, "error");
@@ -123,10 +140,10 @@ const CompanySales = () => {
       0,
     );
     const pendingPayments = sales
-      .filter((s) => s.status === "Pending")
+      .filter((s) => s.status === "pending")
       .reduce((sum, sale) => sum + (parseFloat(sale.amount) || 0), 0);
     const activeProjects = sales.filter(
-      (s) => s.status === "In Progress",
+      (s) => s.status === "processing",
     ).length;
 
     return {
@@ -137,12 +154,12 @@ const CompanySales = () => {
   }, [sales]);
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case "Completed":
+    switch ((status || "").toLowerCase()) {
+      case "paid":
         return "bg-green-100 text-green-700 border-green-200";
-      case "In Progress":
+      case "processing":
         return "bg-blue-100 text-blue-700 border-blue-200";
-      case "Pending":
+      case "pending":
         return "bg-yellow-100 text-yellow-700 border-yellow-200";
       default:
         return "bg-gray-100 text-gray-700";
@@ -167,7 +184,7 @@ const CompanySales = () => {
       projectTitle: "",
       amount: "",
       date: "",
-      status: "Pending",
+      status: "pending",
       link: "",
       paymentMethod: "Bank Transfer",
     });
@@ -176,6 +193,7 @@ const CompanySales = () => {
 
   const openEditModal = (sale) => {
     setEditingSale(sale);
+    // sale is already normalised by normaliseRecord(), so all fields are camelCase
     setNewSale({
       clientName: sale.clientName || "",
       contactPerson: sale.contactPerson || "",
@@ -184,7 +202,7 @@ const CompanySales = () => {
       projectTitle: sale.projectTitle || "",
       amount: sale.amount || "",
       date: sale.date || "",
-      status: sale.status || "Pending",
+      status: (sale.status || "pending").toLowerCase(),
       link: sale.link || "",
       paymentMethod: sale.paymentMethod || "Bank Transfer",
     });
@@ -201,10 +219,12 @@ const CompanySales = () => {
       };
 
       if (editingSale) {
-        await api.updateSale(editingSale._id, payload);
+        // PATCH /expenses/client/:id
+        await clientSaleService.update(editingSale._id, payload);
         showToast("Sale entry updated successfully!", "success");
       } else {
-        await api.createSale(payload);
+        // POST /expenses/client
+        await clientSaleService.create(payload);
         showToast("Sale entry created successfully!", "success");
       }
 
@@ -212,7 +232,6 @@ const CompanySales = () => {
       setIsAddModalOpen(false);
       setEditingSale(null);
 
-      // Reset form
       setNewSale({
         clientName: "",
         contactPerson: "",
@@ -237,9 +256,9 @@ const CompanySales = () => {
 
   const confirmDelete = async () => {
     if (!deleteConfirmId) return;
-
     try {
-      await api.deleteSale(deleteConfirmId);
+      // DELETE /expenses/client/:id
+      await clientSaleService.delete(deleteConfirmId);
       showToast("Sale entry deleted successfully!", "success");
       await loadSales();
       setActiveMenuId(null);
@@ -360,9 +379,9 @@ const CompanySales = () => {
                   className="w-full p-2 border border-gray-300 rounded-lg text-sm"
                 >
                   <option value="All">All Status</option>
-                  <option value="Pending">Pending</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
+                  <option value="pending">Pending</option>
+                  <option value="processing">Processing</option>
+                  <option value="paid">Paid</option>
                 </select>
               </div>
               <div className="mb-3">
@@ -515,21 +534,19 @@ const CompanySales = () => {
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(sale.status)}`}
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${sale.status === "Completed" ? "bg-green-500" : sale.status === "In Progress" ? "bg-blue-500" : "bg-yellow-500"}`}
+                          className={`w-1.5 h-1.5 rounded-full ${(sale.status || "").toLowerCase() === "paid" ? "bg-green-500"
+                            : (sale.status || "").toLowerCase() === "processing" ? "bg-blue-500"
+                              : "bg-yellow-500"
+                            }`}
                         ></span>
                         {sale.status || "Pending"}
                       </span>
                     </td>
                     <td className="p-3 text-right">
-                      <div className="relative inline-block text-left">
+                      <div className="relative inline-block text-left" data-action-menu-wrap>
                         <button
                           data-action-menu-button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveMenuId(
-                              activeMenuId === sale._id ? null : sale._id,
-                            );
-                          }}
+                          onClick={(e) => handleMenuToggle(e, sale._id)}
                           className="p-1.5 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-700 transition-colors"
                         >
                           <MoreVertical size={16} />
@@ -717,9 +734,9 @@ const CompanySales = () => {
                   onChange={handleInputChange}
                   className="w-full p-2 border border-gray-300 rounded-lg"
                 >
-                  <option value="Pending">Pending</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
+                  <option value="pending">Pending</option>
+                  <option value="processing">Processing</option>
+                  <option value="paid">Paid</option>
                 </select>
               </div>
               <div className="md:col-span-2">

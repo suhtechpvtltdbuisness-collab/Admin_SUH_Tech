@@ -19,7 +19,13 @@ import MessageList from "../../components/dashboard/MessageList";
 import RecentList from "../../components/dashboard/RecentList";
 import StatCard from "../../components/common/StatCard";
 import Toast from "../../components/common/Toast";
-import { authService, employeeService } from "../../services";
+import {
+  authService,
+  employeeService,
+  projectService,
+  expenseService,
+  clientSaleService,
+} from "../../services";
 import apiService from "../../services";
 
 export default function Dashboard() {
@@ -36,12 +42,71 @@ export default function Dashboard() {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const response = await apiService.get("/dashboard/stats", authService.getToken());
-        if (response.success && response.data) {
-          setStats(response.data);
-        } else {
-          setStats(response.stats); // fallback just in case
+        const token = authService.getToken();
+
+        // Fetch all data in parallel from existing working endpoints
+        const [empResponse, projectResponse, clientResponse, salaryResponse] =
+          await Promise.allSettled([
+            apiService.get("/employee", token),
+            projectService.getAll(),
+            clientSaleService.getAll(),
+            expenseService.getEmployeeSalaries(),
+          ]);
+
+        // ── Employees ──────────────────────────────────────────────────────
+        let totalEmployeesCount = 0;
+        let activeEmployeesCount = 0;
+        if (empResponse.status === "fulfilled" && empResponse.value?.success) {
+          const emps = empResponse.value.data || [];
+          const nonAdmins = emps.filter((e) => !e.admin);
+          totalEmployeesCount = nonAdmins.length;
+          activeEmployeesCount = nonAdmins.filter((e) => e.active).length;
         }
+
+        // ── Projects ───────────────────────────────────────────────────────
+        let totalProjects = 0;
+        let activeProjects = 0;
+        if (projectResponse.status === "fulfilled" && projectResponse.value?.success) {
+          const projects = projectResponse.value.data || [];
+          totalProjects = projects.length;
+          activeProjects = projects.filter(
+            (p) => p.status?.toLowerCase() === "in progress" || p.status?.toLowerCase() === "active"
+          ).length;
+        }
+
+        // ── Revenue (client sales) ─────────────────────────────────────────
+        let totalRevenue = 0;
+        let totalInvoices = 0;
+        let pendingInvoices = 0;
+        if (clientResponse.status === "fulfilled" && clientResponse.value?.success) {
+          const sales = clientResponse.value.data || [];
+          totalInvoices = sales.length;
+          pendingInvoices = sales.filter(
+            (s) => s.status?.toLowerCase() === "pending"
+          ).length;
+          totalRevenue = sales.reduce((sum, s) => sum + (Number(s.amount) || 0), 0);
+        }
+
+        // ── Expenses (employee salaries) ───────────────────────────────────
+        let totalExpenseAmount = 0;
+        if (salaryResponse.status === "fulfilled" && salaryResponse.value?.success) {
+          const salaries = salaryResponse.value.data || [];
+          totalExpenseAmount = salaries.reduce(
+            (sum, s) => sum + (Number(s.amount) || 0),
+            0
+          );
+        }
+
+        setStats({
+          totalEmployeesCount,
+          activeEmployeesCount,
+          totalProjects,
+          activeProjects,
+          totalRevenue,
+          totalExpenseAmount,
+          totalInvoices,
+          pendingInvoices,
+        });
       } catch (error) {
         console.error("Error loading stats:", error);
         showToast("Failed to load dashboard stats: " + error.message, "error");
@@ -52,6 +117,7 @@ export default function Dashboard() {
 
     loadStats();
   }, []);
+
 
   const formatCurrency = (amount) => {
     return `₹${(amount || 0).toLocaleString("en-IN")}`;

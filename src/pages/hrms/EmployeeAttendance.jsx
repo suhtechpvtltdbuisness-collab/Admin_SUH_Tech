@@ -33,6 +33,7 @@ const EmployeeAttendance = () => {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [openStatusDropdown, setOpenStatusDropdown] = useState(null);
   const [openExportDropdown, setOpenExportDropdown] = useState(false);
+  const [employeeNotes, setEmployeeNotes] = useState({});
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -1070,6 +1071,15 @@ const EmployeeAttendance = () => {
                           >
                             <Download size={16} />
                           </button>
+
+                          {/* Note Input */}
+                          <input
+                            type="text"
+                            placeholder="Note..."
+                            className="w-24 md:w-32 px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all placeholder-gray-400"
+                            value={employeeNotes[emp.id] || ""}
+                            onChange={(e) => setEmployeeNotes((prev) => ({ ...prev, [emp.id]: e.target.value }))}
+                          />
 
                           {/* Check In / Out Button Logic */}
                           {!att.checkIn || att.checkIn === "-" ? (

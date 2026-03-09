@@ -5,6 +5,7 @@ import {
   Calendar,
   Download,
   Edit2,
+  ExternalLink,
   Eye,
   FileText,
   Filter,
@@ -522,21 +523,23 @@ const EmployeeSalary = () => {
       const lightGreen = [220, 252, 231];
 
       // ===== HEADER SECTION =====
-      // Add SUH Tech Logo (240x240 scaled to fit)
+      // Add SUH Tech Logo - Commented out temporarily to ensure stable generation
+      /*
       try {
-        // Logo sized proportionally from 240x240, positioned on the left
-        const logoSize = 20; // Scaled down from 240x240 to fit header
+        const logoSize = 20; 
         doc.addImage(suhTechLogo, "PNG", 15, 15, logoSize, logoSize);
       } catch (error) {
         console.log("Logo loading error:", error);
-        // Fallback to colored box if logo fails to load
-        doc.setFillColor(124, 58, 237);
-        doc.rect(15, 15, 20, 20, "F");
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "bold");
-        doc.text("ST", 25, 27, { align: "center" });
       }
+      */
+
+      // Simple fallback for logo space
+      doc.setFillColor(59, 130, 246);
+      doc.rect(15, 15, 20, 20, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("SUH", 25, 27, { align: "center" });
 
       // Company Name and Address (aligned with logo)
       doc.setTextColor(0, 0, 0);
@@ -597,7 +600,7 @@ const EmployeeSalary = () => {
       doc.text("Employee ID", 15, summaryY + 5);
       doc.text(":", 55, summaryY + 5);
       doc.setTextColor(0, 0, 0);
-      doc.text(emp.employeeId || emp._id?.slice(-6) || "N/A", 60, summaryY + 5);
+      doc.text(String(emp.employeeId || emp._id?.slice(-6) || "N/A"), 60, summaryY + 5);
 
       doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
       doc.text("Pay Period", 15, summaryY + 10);
@@ -884,6 +887,7 @@ const EmployeeSalary = () => {
   const handlePreviewClick = (emp) => {
     const doc = createPDFDoc(emp);
     if (doc) {
+      // Reverting to blob URL as data URI might be too large/unsupported by the browser
       const pdfBlob = doc.output("blob");
       const pdfUrl = URL.createObjectURL(pdfBlob);
       setPreviewData({
@@ -1618,12 +1622,30 @@ const EmployeeSalary = () => {
                 </button>
               </div>
 
-              <div className="flex-1 bg-gray-100 p-4 overflow-hidden">
-                <iframe
-                  src={previewData.url}
-                  className="w-full h-full rounded-lg border border-gray-300 shadow-sm bg-white"
-                  title="PDF Preview"
-                ></iframe>
+              <div className="flex-1 bg-gray-100 p-4 overflow-hidden flex flex-col items-center justify-center relative">
+                {previewData.url ? (
+                  <>
+                    <iframe
+                      src={previewData.url}
+                      className="w-full h-full rounded-lg border border-gray-300 shadow-sm bg-white"
+                      title="PDF Preview"
+                    ></iframe>
+                    <div className="absolute bottom-8 right-8">
+                      <button
+                        onClick={() => window.open(previewData.url, '_blank')}
+                        className="bg-white/90 hover:bg-white text-blue-600 px-4 py-2 rounded-lg shadow-lg border border-blue-100 flex items-center gap-2 text-sm font-semibold transition-all"
+                      >
+                        <ExternalLink size={16} />
+                        Open in New Tab
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4 mx-auto"></div>
+                    <p className="text-gray-500">Generating preview...</p>
+                  </div>
+                )}
               </div>
 
               <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 rounded-b-xl">

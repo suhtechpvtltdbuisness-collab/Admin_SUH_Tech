@@ -387,7 +387,7 @@ const EmployeeAttendance = () => {
 
   const handleExport = () => {
     try {
-      const csv = [
+      const csvRows = [
         [
           "Employee Name",
           "Employee ID",
@@ -396,29 +396,41 @@ const EmployeeAttendance = () => {
           "Check Out",
           "Working Hours",
           "Status",
-        ],
-        ...filteredEmployees.map((emp) => {
-          const att = getEmployeeAttendance(emp.id) || {
-            checkIn: "-",
-            checkOut: "-",
-            hours: "0h 0m",
-            status: "Absent",
-          };
-          const employeeName =
-            emp.firstName && emp.lastName
-              ? `${emp.firstName} ${emp.lastName}`
-              : emp.name || emp.fullName || emp.employeeName || "";
-          return [
-            employeeName,
-            emp.employeeId || emp.empId || "",
-            emp.department || "",
-            att.checkIn || "-",
-            att.checkOut || "-",
-            att.hours || "0h 0m",
-            att.status || "Absent",
-          ];
-        }),
-      ]
+        ]
+      ];
+
+      filteredEmployees.forEach((emp) => {
+        const att = getEmployeeAttendance(emp.id) || {
+          checkIn: "-",
+          checkOut: "-",
+          hours: "0h 0m",
+          status: "Absent",
+        };
+
+        const currentStatus = att.status;
+
+        // Apply filterStatus to today's export as well
+        if (filterStatus !== "All Status" && currentStatus !== filterStatus) {
+            return;
+        }
+
+        const employeeName =
+          emp.firstName && emp.lastName
+            ? `${emp.firstName} ${emp.lastName}`
+            : emp.name || emp.fullName || emp.employeeName || "";
+
+        csvRows.push([
+          employeeName,
+          emp.employeeId || emp.empId || "",
+          emp.department || "",
+          att.checkIn || "-",
+          att.checkOut || "-",
+          att.hours || "0h 0m",
+          currentStatus,
+        ]);
+      });
+
+      const csv = csvRows
         .map((row) => row.map((cell) => `"${cell}"`).join(","))
         .join("\n");
 
@@ -438,11 +450,15 @@ const EmployeeAttendance = () => {
     }
   };
 
-  const handleExportWeek = () => {
+  const handleExportWeek = async () => {
     try {
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 6); // Last 7 days including today
+
+      setLoading(true);
+      const allAttendance = await attendanceService.getAllAttendance();
+      setLoading(false);
 
       const csv = [
         [
@@ -455,7 +471,7 @@ const EmployeeAttendance = () => {
           "Working Hours",
           "Status",
         ],
-        ...generateDateRangeData(startDate, endDate),
+        ...generateDateRangeData(startDate, endDate, allAttendance),
       ]
         .map((row) => row.map((cell) => `"${cell}"`).join(","))
         .join("\n");
@@ -474,15 +490,20 @@ const EmployeeAttendance = () => {
       showToast("Last 7 days attendance exported successfully!", "success");
     } catch (error) {
       console.error("Error exporting:", error);
+      setLoading(false);
       showToast("Failed to export attendance", "error");
     }
   };
 
-  const handleExportMonth = () => {
+  const handleExportMonth = async () => {
     try {
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 29); // Last 30 days including today
+
+      setLoading(true);
+      const allAttendance = await attendanceService.getAllAttendance();
+      setLoading(false);
 
       const csv = [
         [
@@ -495,7 +516,7 @@ const EmployeeAttendance = () => {
           "Working Hours",
           "Status",
         ],
-        ...generateDateRangeData(startDate, endDate),
+        ...generateDateRangeData(startDate, endDate, allAttendance),
       ]
         .map((row) => row.map((cell) => `"${cell}"`).join(","))
         .join("\n");
@@ -514,11 +535,12 @@ const EmployeeAttendance = () => {
       showToast("Last 30 days attendance exported successfully!", "success");
     } catch (error) {
       console.error("Error exporting:", error);
+      setLoading(false);
       showToast("Failed to export attendance", "error");
     }
   };
 
-  const generateDateRangeData = (startDate, endDate) => {
+  const generateDateRangeData = (startDate, endDate, recordsToUse = attendanceRecords) => {
     const data = [];
     const currentDate = new Date(startDate);
 
@@ -526,9 +548,17 @@ const EmployeeAttendance = () => {
       const dateStr = currentDate.toISOString().split("T")[0];
 
       // Get attendance records for this date from API data
-      const dayAttendance = attendanceRecords.filter(
+      let dayAttendance = recordsToUse.filter(
         (record) => record.date.split("T")[0] === dateStr,
       );
+
+      // Apply the filterStatus filter to the historical records
+      if (filterStatus !== "All Status") {
+        dayAttendance = dayAttendance.filter((record) => {
+          const status = formatStatusText(record.status);
+          return status === filterStatus;
+        });
+      }
 
       // Only include data if there are attendance records for this date
       if (dayAttendance.length > 0) {
@@ -537,6 +567,17 @@ const EmployeeAttendance = () => {
           const emp = employees.find((e) => e.id === record.userId);
 
           if (emp) {
+            // Apply searchTerm filter
+            const matchesSearch =
+              (emp.name || emp.fullName || emp.employeeName || "")
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase()) ||
+              (emp.employeeId || emp.empId || "")
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase());
+
+            if (!matchesSearch) return;
+
             const employeeName =
               emp.firstName && emp.lastName
                 ? `${emp.firstName} ${emp.lastName}`
@@ -573,7 +614,7 @@ const EmployeeAttendance = () => {
               formatTime(record.clockIn),
               formatTime(record.clockOut),
               formatHours(record.totalHours),
-              record.status.charAt(0).toUpperCase() + record.status.slice(1),
+              formatStatusText(record.status),
             ]);
           }
         });
@@ -583,6 +624,14 @@ const EmployeeAttendance = () => {
     }
 
     return data;
+  };
+
+  const formatStatusText = (status) => {
+    if (!status) return "Absent";
+    const str = status.toLowerCase();
+    if (str === "half day" || str === "half-day") return "Half Day";
+    if (str === "on leave" || str === "leave") return "Leave";
+    return str.charAt(0).toUpperCase() + str.slice(1);
   };
 
   const getStatusColor = (status) => {
@@ -595,6 +644,8 @@ const EmployeeAttendance = () => {
         return "bg-yellow-100 text-yellow-700";
       case "Leave":
         return "bg-blue-100 text-blue-700";
+      case "Half Day":
+        return "bg-orange-100 text-orange-700";
       default:
         return "bg-gray-100 text-gray-700";
     }
@@ -634,7 +685,7 @@ const EmployeeAttendance = () => {
     return {
       checkIn: formatTime(record.clockIn),
       checkOut: hasCheckedOut ? formatTime(record.clockOut) : "-",
-      status: record.status.charAt(0).toUpperCase() + record.status.slice(1),
+      status: formatStatusText(record.status),
       hours: formatHours(record.totalHours),
     };
   };
@@ -663,6 +714,7 @@ const EmployeeAttendance = () => {
     present: 0,
     absent: 0,
     leave: 0,
+    halfDay: 0,
   };
 
   employees.forEach((emp) => {
@@ -670,6 +722,7 @@ const EmployeeAttendance = () => {
     const status = att?.status || "Absent";
     if (status === "Present") realStats.present++;
     else if (status === "Leave") realStats.leave++;
+    else if (status === "Half Day") realStats.halfDay++;
     else realStats.absent++;
   });
 
@@ -686,11 +739,11 @@ const EmployeeAttendance = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 mb-6 md:mb-8">
         <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs md:text-sm text-gray-500 font-medium">
-              Total Employees
+              Total
             </p>
             <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-lg flex items-center justify-center">
               <Users size={20} className="text-purple-600" />
@@ -718,6 +771,20 @@ const EmployeeAttendance = () => {
         <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs md:text-sm text-gray-500 font-medium">
+              Half Day
+            </p>
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+              <Clock size={20} className="text-orange-600" />
+            </div>
+          </div>
+          <h3 className="text-2xl md:text-3xl font-bold text-orange-600">
+            {realStats.halfDay}
+          </h3>
+        </div>
+
+        <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs md:text-sm text-gray-500 font-medium">
               Absent
             </p>
             <div className="w-10 h-10 md:w-12 md:h-12 bg-red-100 rounded-lg flex items-center justify-center">
@@ -732,7 +799,7 @@ const EmployeeAttendance = () => {
         <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs md:text-sm text-gray-500 font-medium">
-              On Leave
+              Leave
             </p>
             <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <Calendar size={20} className="text-blue-600" />
@@ -796,6 +863,7 @@ const EmployeeAttendance = () => {
               <option>Absent</option>
               <option>Late</option>
               <option>Leave</option>
+              <option>Half Day</option>
             </select>
           </div>
 
@@ -1029,6 +1097,15 @@ const EmployeeAttendance = () => {
                                 </button>
                                 <button
                                   onClick={() =>
+                                    handleStatusChange(emp.id, "Half-day")
+                                  }
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 flex items-center gap-2 text-yellow-600 font-medium"
+                                >
+                                  <Clock size={14} />
+                                  Half Day
+                                </button>
+                                <button
+                                  onClick={() =>
                                     handleStatusChange(emp.id, "Absent")
                                   }
                                   className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 flex items-center gap-2 text-red-600 font-medium"
@@ -1047,7 +1124,7 @@ const EmployeeAttendance = () => {
                                 </button>
                                 <button
                                   onClick={() =>
-                                    handleStatusChange(emp.id, "on leave")
+                                    handleStatusChange(emp.id, "Leave")
                                   }
                                   className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 flex items-center gap-2 text-blue-600 font-medium"
                                 >
@@ -1072,27 +1149,36 @@ const EmployeeAttendance = () => {
                             <Download size={16} />
                           </button>
 
-                          {/* Note Input */}
                           <input
                             type="text"
                             placeholder="Note..."
                             className="w-24 md:w-32 px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all placeholder-gray-400"
-                            value={employeeNotes[emp.id] || ""}
-                            onChange={(e) => setEmployeeNotes((prev) => ({ ...prev, [emp.id]: e.target.value }))}
+                            value={employeeNotes[`${selectedDate}_${emp.id}`] || ""}
+                            onChange={(e) => setEmployeeNotes((prev) => ({ ...prev, [`${selectedDate}_${emp.id}`]: e.target.value }))}
                           />
 
                           {/* Check In / Out Button Logic */}
                           {!att.checkIn || att.checkIn === "-" ? (
                             <button
                               onClick={() => handleCheckIn(emp.id)}
-                              className="px-3 py-1.5 text-xs font-semibold bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors whitespace-nowrap"
+                              disabled={att.status === "Absent"}
+                              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+                                att.status === "Absent"
+                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                  : "bg-green-100 text-green-700 hover:bg-green-200"
+                              }`}
                             >
                               Check In
                             </button>
                           ) : !att.checkOut || att.checkOut === "-" ? (
                             <button
                               onClick={() => handleCheckOut(emp.id)}
-                              className="px-3 py-1.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors whitespace-nowrap"
+                              disabled={att.status === "Absent"}
+                              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+                                att.status === "Absent"
+                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                  : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                              }`}
                             >
                               Check Out
                             </button>

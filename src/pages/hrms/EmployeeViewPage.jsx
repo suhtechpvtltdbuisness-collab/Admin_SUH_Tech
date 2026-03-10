@@ -440,8 +440,9 @@ export default function EmployeeViewPage() {
                                     <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">Email</p>
                                     <input
                                         type="text"
-                                        value={employee.contact || "mayank@suhtech.top"}
+                                        value={employee.email || employee.contact || ""}
                                         readOnly={!isEditing}
+                                        onChange={(e) => handleFieldChange("email", e.target.value)}
                                         className={`w-full py-2 px-3 rounded-lg text-sm font-medium transition-all outline-none
                                             ${isEditing ? "bg-white border border-blue-200 focus:ring-4 focus:ring-blue-50" : "bg-transparent border-none text-gray-800 p-0"}`}
                                     />
@@ -452,8 +453,9 @@ export default function EmployeeViewPage() {
                                     <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">Mobile Phone</p>
                                     <input
                                         type="text"
-                                        value={employee.details?.emergencyPhone || "+91 98765 00000"}
+                                        value={employee.phoneNumber || employee.details?.emergencyPhone || ""}
                                         readOnly={!isEditing}
+                                        onChange={(e) => handleFieldChange("phoneNumber", e.target.value)}
                                         className={`w-full py-2 px-3 rounded-lg text-sm font-medium transition-all outline-none
                                             ${isEditing ? "bg-white border border-blue-200 focus:ring-4 focus:ring-blue-50" : "bg-transparent border-none text-gray-800 p-0"}`}
                                     />

@@ -93,7 +93,7 @@ export default function EmployeePage() {
 
   // Unique Options for Dropdowns
   const uniqueDepts = [...new Set(employees.map(e => e.department))];
-  const uniqueStatuses = ["Active", "On Leave", "Terminated", "Resigned"];
+  const uniqueStatuses = ["Active", "Terminated"];
 
   const formatDate = (date) => {
     if (!date) return "-";

@@ -431,10 +431,16 @@ export default function ProjectsPage() {
                         Client Phone
                       </label>
                       <input
-                        type="text"
+                        type="tel"
                         name="phone"
                         value={form.phone}
-                        onChange={handleChange}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                          setForm((prev) => ({ ...prev, phone: val }));
+                        }}
+                        maxLength={10}
+                        pattern="[0-9]{10}"
+                        placeholder="Enter 10-digit number"
                         required
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                       />
@@ -522,7 +528,7 @@ export default function ProjectsPage() {
                         className="border border-gray-300 rounded-lg px-3 py-2 text-sm cursor-pointer"
                       >
                         <option value="in progress">In Progress</option>
-                        <option value="planning">Planning</option>
+                        <option value="pending">Pending</option>
                         <option value="on hold">On Hold</option>
                         <option value="completed">Completed</option>
                         <option value="cancelled">Cancelled</option>

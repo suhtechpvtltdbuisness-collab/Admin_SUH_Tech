@@ -630,7 +630,7 @@ const EmployeeAttendance = () => {
     if (!status) return "Absent";
     const str = status.toLowerCase();
     if (str === "half day" || str === "half-day") return "Half Day";
-    if (str === "on leave" || str === "leave") return "Leave";
+    if (str === "on leave" || str === "leave") return "On Leave";
     return str.charAt(0).toUpperCase() + str.slice(1);
   };
 
@@ -642,7 +642,7 @@ const EmployeeAttendance = () => {
         return "bg-red-100 text-red-700";
       case "Late":
         return "bg-yellow-100 text-yellow-700";
-      case "Leave":
+      case "On Leave":
         return "bg-blue-100 text-blue-700";
       case "Half Day":
         return "bg-orange-100 text-orange-700";
@@ -721,7 +721,7 @@ const EmployeeAttendance = () => {
     const att = getEmployeeAttendance(emp.id);
     const status = att?.status || "Absent";
     if (status === "Present") realStats.present++;
-    else if (status === "Leave") realStats.leave++;
+    else if (status === "On Leave") realStats.leave++;
     else if (status === "Half Day") realStats.halfDay++;
     else realStats.absent++;
   });
@@ -799,7 +799,7 @@ const EmployeeAttendance = () => {
         <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs md:text-sm text-gray-500 font-medium">
-              Leave
+              On Leave
             </p>
             <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <Calendar size={20} className="text-blue-600" />
@@ -862,7 +862,7 @@ const EmployeeAttendance = () => {
               <option>Present</option>
               <option>Absent</option>
               <option>Late</option>
-              <option>Leave</option>
+              <option>On Leave</option>
               <option>Half Day</option>
             </select>
           </div>
@@ -982,7 +982,7 @@ const EmployeeAttendance = () => {
                       </td>
                       <td className="p-4 align-middle">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm">
+                          <div className="w-10 h-10 rounded-full bg-linear-to-br from-purple-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm">
                             {(() => {
                               const fullName =
                                 emp.firstName && emp.lastName
@@ -1124,7 +1124,7 @@ const EmployeeAttendance = () => {
                                 </button>
                                 <button
                                   onClick={() =>
-                                    handleStatusChange(emp.id, "Leave")
+                                    handleStatusChange(emp.id, "On Leave")
                                   }
                                   className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 flex items-center gap-2 text-blue-600 font-medium"
                                 >

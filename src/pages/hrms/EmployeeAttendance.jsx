@@ -10,6 +10,7 @@ import {
   Users,
   X,
   ChevronDown,
+  Home,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Toast from "../../components/common/Toast";
@@ -183,7 +184,7 @@ const EmployeeAttendance = () => {
       const attendanceData = {
         userId: empId,
         date: selectedDate,
-        status: newStatus.toLowerCase(),
+        status: newStatus.toLowerCase() === "wfh" ? "wfh" : newStatus.toLowerCase(),
         clockIn: currentTime,
         clockOut: currentTime,
         marked_By: currentUser?.id || 1,
@@ -293,9 +294,9 @@ const EmployeeAttendance = () => {
       doc.setFont("helvetica", "bold");
       doc.text("Status:", 120, 85);
       doc.setTextColor(
-        att.status === "Present" ? 34 : att.status === "Absent" ? 220 : 234,
-        att.status === "Present" ? 197 : att.status === "Absent" ? 38 : 179,
-        att.status === "Present" ? 94 : att.status === "Absent" ? 38 : 8,
+        att.status === "Present" ? 34 : att.status === "Absent" ? 220 : att.status === "WFH" ? 219 : 234,
+        att.status === "Present" ? 197 : att.status === "Absent" ? 38 : att.status === "WFH" ? 39 : 179,
+        att.status === "Present" ? 94 : att.status === "Absent" ? 38 : att.status === "WFH" ? 119 : 8,
       );
       doc.text(att.status || "Absent", 150, 85);
 
@@ -568,10 +569,12 @@ const EmployeeAttendance = () => {
 
           if (emp) {
             // Apply searchTerm filter
+            const fullName = emp.firstName && emp.lastName 
+              ? `${emp.firstName} ${emp.lastName}` 
+              : (emp.name || emp.fullName || emp.employeeName || "");
+              
             const matchesSearch =
-              (emp.name || emp.fullName || emp.employeeName || "")
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
+              fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
               (emp.employeeId || emp.empId || "")
                 .toLowerCase()
                 .includes(searchTerm.toLowerCase());
@@ -631,6 +634,7 @@ const EmployeeAttendance = () => {
     const str = status.toLowerCase();
     if (str === "half day" || str === "half-day") return "Half Day";
     if (str === "on leave" || str === "leave") return "On Leave";
+    if (str === "wfh" || str === "late") return "WFH";
     return str.charAt(0).toUpperCase() + str.slice(1);
   };
 
@@ -640,8 +644,8 @@ const EmployeeAttendance = () => {
         return "bg-green-100 text-green-700";
       case "Absent":
         return "bg-red-100 text-red-700";
-      case "Late":
-        return "bg-yellow-100 text-yellow-700";
+      case "WFH":
+        return "bg-pink-100 text-pink-700";
       case "On Leave":
         return "bg-blue-100 text-blue-700";
       case "Half Day":
@@ -696,10 +700,12 @@ const EmployeeAttendance = () => {
     // Logic: If they are in the employee list, they are 'Absent' unless marked otherwise.
     const currentStatus = att?.status || "Absent";
 
+    const fullName = emp.firstName && emp.lastName 
+      ? `${emp.firstName} ${emp.lastName}` 
+      : (emp.name || emp.fullName || emp.employeeName || "");
+
     const matchesSearch =
-      (emp.name || emp.fullName || emp.employeeName || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
+      fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (emp.employeeId || emp.empId || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
@@ -861,7 +867,7 @@ const EmployeeAttendance = () => {
               <option>All Status</option>
               <option>Present</option>
               <option>Absent</option>
-              <option>Late</option>
+              <option>WFH</option>
               <option>On Leave</option>
               <option>Half Day</option>
             </select>
@@ -1115,12 +1121,12 @@ const EmployeeAttendance = () => {
                                 </button>
                                 <button
                                   onClick={() =>
-                                    handleStatusChange(emp.id, "Late")
+                                    handleStatusChange(emp.id, "WFH")
                                   }
                                   className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 flex items-center gap-2 text-pink-600 font-medium"
                                 >
-                                  <Clock size={14} />
-                                  Late
+                                  <Home size={14} />
+                                  WFH
                                 </button>
                                 <button
                                   onClick={() =>

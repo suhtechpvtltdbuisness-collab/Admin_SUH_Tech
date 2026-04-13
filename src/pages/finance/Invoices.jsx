@@ -14,7 +14,7 @@ import {
   Download,
   ChevronDown,
 } from "lucide-react";
-import { authService, employeeService } from "../../services";
+import { authService, employeeService, manualInvoiceService } from "../../services";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import Toast from "../../components/common/Toast";
@@ -200,19 +200,34 @@ const Invoices = () => {
     try {
       setLoading(true);
 
-      const response = await api.getInvoices();
+      const response = await manualInvoiceService.getAllInvoices();
+      const rawInvoices = response.invoices || response.data || [];
 
-      const normalized = (response.invoices || []).map((inv) => ({
-        ...inv,
-        phases: Array.isArray(inv.phases)
-          ? inv.phases.filter((p) => Number(p.price) > 0)
-          : [],
-      }));
+      const normalized = rawInvoices.map((inv) => {
+        const phases = [
+          { id: 1, remarks: inv.phase1Remarks || "", price: inv.phase1Price || 0, startDate: inv.phase1StartDate || "", endDate: inv.phase1EndDate || "", serviceType: inv.serviceType || "", serviceCategory: inv.serviceCategory || "" },
+          { id: 2, remarks: inv.phase2Remarks || "", price: inv.phase2Price || 0, startDate: inv.phase2StartDate || "", endDate: inv.phase2EndDate || "", serviceType: inv.serviceType || "", serviceCategory: inv.serviceCategory || "" },
+          { id: 3, remarks: inv.phase3Remarks || "", price: inv.phase3Price || 0, startDate: inv.phase3StartDate || "", endDate: inv.phase3EndDate || "", serviceType: inv.serviceType || "", serviceCategory: inv.serviceCategory || "" },
+          { id: 4, remarks: inv.phase4Remarks || "", price: inv.phase4Price || 0, startDate: inv.phase4StartDate || "", endDate: inv.phase4EndDate || "", serviceType: inv.serviceType || "", serviceCategory: inv.serviceCategory || "" },
+        ];
+
+        return {
+          ...inv,
+          _id: inv._id || inv.id,
+          invoiceNumber: inv._id || inv.id,
+          clientPhone: inv.contactPhone,
+          clientAddress: inv.address,
+          dueDate: inv.maintenanceDueDate,
+          status: inv.status ? inv.status.charAt(0).toUpperCase() + String(inv.status).slice(1).toLowerCase() : "Sent",
+          services: [{ description: inv.serviceDescription, rate: inv.phase1Price || inv.price, amount: inv.phase1Price || inv.price }],
+          phases: phases.filter((p) => Number(p.price) > 0),
+        };
+      });
 
       setInvoices(normalized);
     } catch (error) {
       console.error("Error loading invoices:", error);
-      showToast("Failed to load invoices: " + error.message, "error");
+      showToast(getErrorMessage(error), "error");
     } finally {
       setLoading(false);
     }
@@ -237,8 +252,8 @@ const Invoices = () => {
     switch (status) {
       // case 'Paid': return 'bg-green-100 text-green-700 border-green-200';
       case "Sent":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "Pending":
+        return "bg-blue-100 text-blue-700 border-blue-200";
+      case "Draft":
         return "bg-yellow-100 text-yellow-700 border-yellow-200";
       case "Overdue":
         return "bg-red-100 text-red-700 border-red-200";
@@ -246,6 +261,20 @@ const Invoices = () => {
       default:
         return "bg-gray-100 text-gray-700";
     }
+  };
+
+  const getErrorMessage = (error) => {
+    try {
+      const msg = error.message || "";
+      if (msg.includes("HTTP error!")) {
+        const jsonStrMatch = msg.match(/message:\s*({.*})/);
+        if (jsonStrMatch && jsonStrMatch[1]) {
+          const parsed = JSON.parse(jsonStrMatch[1]);
+          return parsed.message || "An error occurred";
+        }
+      }
+    } catch (e) {}
+    return error.message || "An unexpected error occurred.";
   };
 
   const showToast = (message, type = "success") => {
@@ -342,7 +371,7 @@ const Invoices = () => {
         dueDate: extractedData.dueDate
           ? new Date(extractedData.dueDate)
           : new Date(),
-        status: "Sent",
+        status: "sent",
         invoiceDate: extractedData.invoiceDate
           ? new Date(extractedData.invoiceDate)
           : new Date(),
@@ -350,7 +379,7 @@ const Invoices = () => {
 
       // Save to backend or local state //
       try {
-        await api.createInvoice(invoiceData);
+        await manualInvoiceService.createInvoice(invoiceData);
         await loadInvoices();
         showToast("Invoice uploaded successfully", "success");
       } catch (apiError) {
@@ -360,11 +389,11 @@ const Invoices = () => {
           ...prev,
           { ...invoiceData, _id: Date.now().toString() },
         ]);
-        showToast("Invoice uploaded successfully", "success");
+        showToast(getErrorMessage(apiError), "error");
       }
     } catch (error) {
       console.error("Error parsing PDF:", error);
-      showToast("Failed to parse PDF: " + error.message, "error");
+      showToast(getErrorMessage(error), "error");
     } finally {
       setLoading(false);
       setUploadingFile(null);
@@ -481,43 +510,56 @@ const Invoices = () => {
       const taxAmount = ((subtotal - discount) * taxRate) / 100;
       const total = subtotal - discount + taxAmount;
 
+      const p1 = newInvoice.phases && newInvoice.phases[0] ? newInvoice.phases[0] : {};
+      const p2 = newInvoice.phases && newInvoice.phases[1] ? newInvoice.phases[1] : {};
+      const p3 = newInvoice.phases && newInvoice.phases[2] ? newInvoice.phases[2] : {};
+      const p4 = newInvoice.phases && newInvoice.phases[3] ? newInvoice.phases[3] : {};
+
       const invoiceData = {
-        invoiceNumber,
         clientName: newInvoice.clientName,
         clientEmail: newInvoice.clientEmail,
-        clientPhone: newInvoice.clientPhone,
-        clientAddress: newInvoice.clientAddress,
-        phaseWork: newInvoice.phaseWork,
-        phases: newInvoice.phases,
-        startDate: newInvoice.startDate,
-        endDate: newInvoice.endDate,
-
-        services: [
-          {
-            description: newInvoice.serviceDescription,
-            rate: price,
-            amount: subtotal,
-          },
-        ],
-        subtotal: subtotal,
-        taxRate: taxRate,
-        taxAmount: taxAmount,
-        discount: discount,
-        total: total,
-        dueDate: newInvoice.dueDate ? new Date(newInvoice.dueDate) : new Date(),
-        status: newInvoice.status || "Sent",
-        invoiceDate: newInvoice.invoiceDate
-          ? new Date(newInvoice.invoiceDate)
-          : new Date(),
+        contactPhone: newInvoice.clientPhone || "",
+        address: newInvoice.clientAddress || "",
+        serviceDescription: newInvoice.serviceDescription || "",
+        phaseWork: newInvoice.phaseWork || "",
+        serviceType: p1.serviceType || newInvoice.serviceType || "",
+        serviceCategory: p1.serviceCategory || newInvoice.serviceCategory || "",
+        
+        phase1Remarks: p1.remarks || "",
+        phase1Price: Number(p1.price) || (p1.remarks ? Number(newInvoice.price) || 0 : 0),
+        phase1StartDate: p1.startDate || newInvoice.startDate || "",
+        phase1EndDate: p1.endDate || newInvoice.endDate || "",
+        
+        phase2Remarks: p2.remarks || "",
+        phase2Price: Number(p2.price) || 0,
+        phase2StartDate: p2.startDate || "",
+        phase2EndDate: p2.endDate || "",
+        
+        phase3Remarks: p3.remarks || "",
+        phase3Price: Number(p3.price) || 0,
+        phase3StartDate: p3.startDate || "",
+        phase3EndDate: p3.endDate || "",
+        
+        phase4Remarks: p4.remarks || "",
+        phase4Price: Number(p4.price) || 0,
+        phase4StartDate: p4.startDate || "",
+        phase4EndDate: p4.endDate || "",
+        
+        taxRate: Number(taxRate) || 18,
+        discount: Number(discount) || 0,
+        maintenanceDueDate: newInvoice.dueDate ? new Date(newInvoice.dueDate).toISOString().split("T")[0] : "",
+        status: newInvoice.status ? String(newInvoice.status).toLowerCase() : "sent"
       };
 
       console.log("Invoice Data:", invoiceData);
 
-      if (editingInvoice && editingInvoice._id) {
-        console.log("Updating invoice with ID:", editingInvoice._id);
+      if (editingInvoice && (editingInvoice._id || editingInvoice.id)) {
+        const targetId = editingInvoice._id || editingInvoice.id;
+        console.log("Updating invoice with ID:", targetId);
         try {
-          await api.updateInvoice(editingInvoice._id, invoiceData);
+          await manualInvoiceService.updateInvoice(targetId, invoiceData);
           console.log("Invoice updated successfully via API");
+          showToast("Invoice updated successfully!", "success");
         } catch (apiError) {
           console.warn(
             "API update failed, updating locally:",
@@ -526,16 +568,16 @@ const Invoices = () => {
           // Fallback: Update invoice locally if API fails
           setInvoices((prevInvoices) =>
             prevInvoices.map((inv) =>
-              inv._id === editingInvoice._id
-                ? { ...inv, ...invoiceData, _id: editingInvoice._id }
+              (inv._id === targetId || inv.id === targetId)
+                ? { ...inv, ...invoiceData, _id: targetId }
                 : inv,
             ),
           );
-          showToast("Invoice updated successfully!", "success");
+          showToast(getErrorMessage(apiError), "error");
         }
       } else {
         console.log("Creating new invoice");
-        await api.createInvoice(invoiceData);
+        await manualInvoiceService.createInvoice(invoiceData);
         console.log("Invoice created successfully");
         await loadInvoices();
       }
@@ -560,7 +602,7 @@ const Invoices = () => {
       console.error("Error details:", error);
       console.error("Error message:", error.message);
       console.error("Error response:", error.response);
-      showToast("Failed to save invoice: " + error.message, "error");
+      showToast(getErrorMessage(error), "error");
     }
   };
 
@@ -647,7 +689,8 @@ const Invoices = () => {
     setConfirmModal({ isOpen: false, invoiceId: null });
     try {
       try {
-        await api.deleteInvoice(invoiceId);
+        await manualInvoiceService.deleteInvoice(invoiceId);
+        showToast("Invoice deleted successfully!", "success");
         await loadInvoices();
       } catch (apiError) {
         console.warn("API delete failed, deleting locally:", apiError.message);
@@ -655,11 +698,11 @@ const Invoices = () => {
         setInvoices((prevInvoices) =>
           prevInvoices.filter((inv) => inv._id !== invoiceId),
         );
-        showToast("Invoice deleted successfully!", "success");
+        showToast(getErrorMessage(apiError), "error");
       }
     } catch (error) {
       console.error("Error deleting invoice:", error);
-      showToast("Failed to delete invoice: " + error.message, "error");
+      showToast(getErrorMessage(error), "error");
     }
     setActiveMenuId(null);
   };
@@ -741,7 +784,7 @@ const Invoices = () => {
       // Status with color
       if (invoice.status === "Sent") {
         doc.setTextColor(34, 197, 94);
-      } else if (invoice.status === "Pending") {
+      } else if (invoice.status === "Draft") {
         doc.setTextColor(234, 179, 8);
       } else if (invoice.status === "Overdue") {
         doc.setTextColor(239, 68, 68);
@@ -1045,10 +1088,10 @@ const Invoices = () => {
         doc.setFont(undefined, "bold");
         doc.text("Status:", 130, yPos + 7);
         doc.setFont(undefined, "normal");
-        const status = invoice.status || "Pending";
+        const status = invoice.status || "Draft";
         if (status === "Sent") {
           doc.setTextColor(34, 197, 94);
-        } else if (status === "Pending") {
+        } else if (status === "Draft") {
           doc.setTextColor(234, 179, 8);
         } else {
           doc.setTextColor(239, 68, 68);
@@ -1481,8 +1524,8 @@ const Invoices = () => {
       const sentCount = dataToExport.filter(
         (inv) => inv.status === "Sent",
       ).length;
-      const pendingCount = dataToExport.filter(
-        (inv) => inv.status === "Pending",
+      const draftCount = dataToExport.filter(
+        (inv) => inv.status === "Draft",
       ).length;
       const overdueCount = dataToExport.filter(
         (inv) => inv.status === "Overdue",
@@ -1512,11 +1555,11 @@ const Invoices = () => {
 
       yPos += 6;
       doc.setTextColor(34, 197, 94);
-      doc.text("Sent: " + sentCount, 18, yPos);
+      doc.text("Sent: " + sentCount, 14, yPos);
       doc.setTextColor(234, 179, 8);
-      doc.text("Pending: " + pendingCount, 60, yPos);
+      doc.text("Draft: " + draftCount, 60, yPos);
       doc.setTextColor(239, 68, 68);
-      doc.text("Overdue: " + overdueCount, 102, yPos);
+      doc.text("Overdue: " + overdueCount, 106, yPos);
       doc.setTextColor(0, 0, 0);
 
       // Move past the summary box
@@ -1533,7 +1576,7 @@ const Invoices = () => {
         inv.invoiceNumber || inv._id?.substring(0, 8) || "N/A",
         inv.clientName || "N/A",
         formatDate(inv.invoiceDate || inv.date) || "N/A",
-        inv.status || "Pending",
+        inv.status || "Draft",
         "Rs. " +
           (Number(inv.total) || 0).toLocaleString("en-IN", {
             minimumFractionDigits: 2,
@@ -1580,7 +1623,7 @@ const Invoices = () => {
             if (status === "Sent") {
               data.cell.styles.textColor = [34, 197, 94];
               data.cell.styles.fontStyle = "bold";
-            } else if (status === "Pending") {
+            } else if (status === "Draft") {
               data.cell.styles.textColor = [234, 179, 8];
               data.cell.styles.fontStyle = "bold";
             } else if (status === "Overdue") {
@@ -1629,8 +1672,8 @@ const Invoices = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Invoices</h1>
-          <p className="text-gray-500 text-sm">
-            Manage pending and past invoices
+          <p className="text-gray-600 text-sm">
+            Manage draft and past invoices
           </p>
         </div>
 
@@ -1660,7 +1703,7 @@ const Invoices = () => {
               setEditingInvoice(null);
               setNewInvoice((prev) => ({
                 ...prev,
-                status: "Sent",
+                status: "Draft",
               }));
               setIsAddModalOpen(true);
             }}
@@ -1727,7 +1770,7 @@ const Invoices = () => {
                   <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
                     Status
                   </p>
-                  {["Sent", "Pending", "Overdue"].map((status) => (
+                  {["Sent", "Draft", "Overdue"].map((status) => (
                     <button
                       key={status}
                       onClick={() => handleApplyFilter("status", status)}
@@ -1898,10 +1941,11 @@ const Invoices = () => {
                     Sent Only
                   </button>
                   <button
-                    onClick={() => handleExportByStatus("Pending")}
-                    className="block w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-50 text-yellow-600"
+                    onClick={() => handleExportByStatus("Draft")}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer"
                   >
-                    Pending Only
+                    <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                    Draft Only
                   </button>
                   <button
                     onClick={() => handleExportByStatus("Overdue")}
@@ -2324,7 +2368,7 @@ const Invoices = () => {
                     taxRate: 18,
                     discount: 0,
                     dueDate: "",
-                    status: "Sent",
+                    status: "Draft",
                     invoiceDate: new Date().toISOString().split("T")[0],
                   });
                 }}
@@ -2673,9 +2717,9 @@ const Invoices = () => {
                     required
                   >
                     <option value="Sent">Sent</option>
-                    <option value="Pending">Pending</option>
+                    <option value="Draft">Draft</option>
+                    <option value="Paid">Paid</option>
                     <option value="Overdue">Overdue</option>
-                    {/* <option value="Paid">Paid</option> */}
                   </select>
                 </div>
 

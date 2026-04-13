@@ -1069,3 +1069,258 @@ export const projectService = {
   },
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Blog Service
+// API base: /blogs
+// ─────────────────────────────────────────────────────────────────────────────
+export const blogService = {
+  // ── GET all blog posts ───────────────────────────────────────────────
+  getAllBlogs: async () => {
+    try {
+      const response = await apiService.get("/blogs", authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("blogService.getAllBlogs:", error);
+      throw error;
+    }
+  },
+
+  // ── GET single blog post by ID ───────────────────────────────────────
+  getBlogById: async (id) => {
+    try {
+      const response = await apiService.get(`/blogs/${id}`, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("blogService.getBlogById:", error);
+      throw error;
+    }
+  },
+
+  // ── POST – create new blog post ──────────────────────────────────────
+  createBlog: async (data) => {
+    try {
+      console.log("[blogService] POST /blogs →", data);
+      const response = await apiService.post("/blogs", data, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("blogService.createBlog:", error);
+      throw error;
+    }
+  },
+
+  // ── PUT – update existing blog post ──────────────────────────────────
+  updateBlog: async (id, data) => {
+    try {
+      console.log(`[blogService] PUT /blogs/${id} →`, data);
+      const response = await apiService.put(`/blogs/${id}`, data, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("blogService.updateBlog:", error);
+      throw error;
+    }
+  },
+
+  // ── DELETE – remove blog post ────────────────────────────────────────
+  deleteBlog: async (id) => {
+    try {
+      console.log(`[blogService] DELETE /blogs/${id}`);
+      const response = await apiService.delete(`/blogs/${id}`, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("blogService.deleteBlog:", error);
+      throw error;
+    }
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Job Service
+// API base: /jobs
+// ─────────────────────────────────────────────────────────────────────────────
+export const jobService = {
+  // ── GET all job postings ──────────────────────────────────────────────
+  getAllJobs: async () => {
+    try {
+      const response = await apiService.get("/jobs", authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("jobService.getAllJobs:", error);
+      throw error;
+    }
+  },
+
+  // ── GET single job posting by ID ──────────────────────────────────────
+  getJobById: async (id) => {
+    try {
+      const response = await apiService.get(`/jobs/${id}`, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("jobService.getJobById:", error);
+      throw error;
+    }
+  },
+
+  // ── POST – create new job posting ─────────────────────────────────────
+  createJob: async (data) => {
+    try {
+      console.log("[jobService] POST /jobs →", data);
+      const response = await apiService.post("/jobs", data, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("jobService.createJob:", error);
+      throw error;
+    }
+  },
+
+  // ── PUT – update existing job posting ─────────────────────────────────
+  updateJob: async (id, data) => {
+    try {
+      console.log(`[jobService] PUT /jobs/${id} →`, data);
+      const response = await apiService.put(`/jobs/${id}`, data, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("jobService.updateJob:", error);
+      throw error;
+    }
+  },
+
+  // ── DELETE – remove job posting ───────────────────────────────────────
+  deleteJob: async (id) => {
+    try {
+      console.log(`[jobService] DELETE /jobs/${id}`);
+      const response = await apiService.delete(`/jobs/${id}`, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("jobService.deleteJob:", error);
+      throw error;
+    }
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Manual Invoice Service
+// API base: /manual-invoices
+// ─────────────────────────────────────────────────────────────────────────────
+export const manualInvoiceService = {
+  // ── GET all invoices ──────────────────────────────────────────────────
+  getAllInvoices: async () => {
+    try {
+      const response = await apiService.get("/manual-invoices", authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("manualInvoiceService.getAllInvoices:", error);
+      throw error;
+    }
+  },
+
+  // ── GET single invoice by ID ──────────────────────────────────────────
+  getInvoiceById: async (id) => {
+    try {
+      const response = await apiService.get(`/manual-invoices/${id}`, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("manualInvoiceService.getInvoiceById:", error);
+      throw error;
+    }
+  },
+
+  // ── POST – create new invoice ─────────────────────────────────────────
+  createInvoice: async (data) => {
+    try {
+      console.log("[manualInvoiceService] POST /manual-invoices →", data);
+      const response = await apiService.post("/manual-invoices", data, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("manualInvoiceService.createInvoice:", error);
+      throw error;
+    }
+  },
+
+  // ── PUT – update existing invoice ─────────────────────────────────────
+  updateInvoice: async (id, data) => {
+    try {
+      console.log(`[manualInvoiceService] PUT /manual-invoices/${id} →`, data);
+      const response = await apiService.put(`/manual-invoices/${id}`, data, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("manualInvoiceService.updateInvoice:", error);
+      throw error;
+    }
+  },
+
+  // ── DELETE – remove invoice ───────────────────────────────────────────
+  deleteInvoice: async (id) => {
+    try {
+      console.log(`[manualInvoiceService] DELETE /manual-invoices/${id}`);
+      const response = await apiService.delete(`/manual-invoices/${id}`, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("manualInvoiceService.deleteInvoice:", error);
+      throw error;
+    }
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Holiday Service
+// API base: /holidays
+// ─────────────────────────────────────────────────────────────────────────────
+export const holidayService = {
+  // ── GET all holidays ──────────────────────────────────────────────────
+  getAllHolidays: async () => {
+    try {
+      const response = await apiService.get("/holidays", authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("holidayService.getAllHolidays:", error);
+      throw error;
+    }
+  },
+
+  // ── GET single holiday by ID ──────────────────────────────────────────
+  getHolidayById: async (id) => {
+    try {
+      const response = await apiService.get(`/holidays/${id}`, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("holidayService.getHolidayById:", error);
+      throw error;
+    }
+  },
+
+  // ── POST – create new holiday ─────────────────────────────────────────
+  createHoliday: async (data) => {
+    try {
+      console.log("[holidayService] POST /holidays →", data);
+      const response = await apiService.post("/holidays", data, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("holidayService.createHoliday:", error);
+      throw error;
+    }
+  },
+
+  // ── PUT – update existing holiday ─────────────────────────────────────
+  updateHoliday: async (id, data) => {
+    try {
+      console.log(`[holidayService] PUT /holidays/${id} →`, data);
+      const response = await apiService.put(`/holidays/${id}`, data, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("holidayService.updateHoliday:", error);
+      throw error;
+    }
+  },
+
+  // ── DELETE – remove holiday ───────────────────────────────────────────
+  deleteHoliday: async (id) => {
+    try {
+      console.log(`[holidayService] DELETE /holidays/${id}`);
+      const response = await apiService.delete(`/holidays/${id}`, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("holidayService.deleteHoliday:", error);
+      throw error;
+    }
+  },
+};

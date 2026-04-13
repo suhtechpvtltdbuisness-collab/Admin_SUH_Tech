@@ -2,7 +2,7 @@ import { Calendar, Clock, Key, Mail, MapPin, Phone, Save, Settings as SettingsIc
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Toast from "../../components/common/Toast";
-import { userService } from '../../services';
+import { userService, holidayService } from '../../services';
 
 const Settings = () => {
     const navigate = useNavigate();
@@ -75,20 +75,17 @@ const Settings = () => {
     }, []);
 
     // Fetch holidays on mount
-    useEffect(() => {
-        const fetchHolidays = async () => {
-            try {
-                // Fetch holidays from localStorage for now
-                const cached = localStorage.getItem('holidays');
-                const response = { holidays: cached ? JSON.parse(cached) : [] };
-                if (response.holidays) {
-                    setHolidays(response.holidays);
-                }
-            } catch (error) {
-                console.error('Failed to load holidays:', error);
-            }
-        };
+    const fetchHolidays = async () => {
+        try {
+            const response = await holidayService.getAllHolidays();
+            const holidaysData = Array.isArray(response) ? response : (response.holidays || response.data || []);
+            setHolidays(holidaysData);
+        } catch (error) {
+            console.error('Failed to load holidays:', error);
+        }
+    };
 
+    useEffect(() => {
         fetchHolidays();
     }, []);
 
@@ -168,6 +165,20 @@ const Settings = () => {
         setCurrentYear(today.getFullYear());
     };
 
+    const getErrorMessage = (error) => {
+        try {
+            const msg = error.message || "";
+            if (msg.includes("HTTP error!")) {
+                const jsonStrMatch = msg.match(/message:\s*({.*})/);
+                if (jsonStrMatch && jsonStrMatch[1]) {
+                    const parsed = JSON.parse(jsonStrMatch[1]);
+                    return parsed.message || "An error occurred";
+                }
+            }
+        } catch (e) {}
+        return error.message || "An unexpected error occurred.";
+    };
+
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 4000);
@@ -243,30 +254,22 @@ const Settings = () => {
             return;
         }
         try {
-            // Save to localStorage for now
-            const holidays = JSON.parse(localStorage.getItem('holidays') || '[]');
-            const newHolidayWithId = { ...newHoliday, id: Date.now() };
-            holidays.push(newHolidayWithId);
-            localStorage.setItem('holidays', JSON.stringify(holidays));
-            const response = { holiday: newHolidayWithId };
-            setHolidays([...holidays, response.holiday]);
+            await holidayService.createHoliday(newHoliday);
+            await fetchHolidays();
             setNewHoliday({ name: '', date: '', type: 'Public' });
             showToast('Holiday added successfully!', 'success');
         } catch (error) {
-            showToast('Failed to add holiday: ' + error.message, 'error');
+            showToast('Failed to add holiday: ' + getErrorMessage(error), 'error');
         }
     };
 
     const handleDeleteHoliday = async (id) => {
         try {
-            // Delete from localStorage
-            const holidays = JSON.parse(localStorage.getItem('holidays') || '[]');
-            const filtered = holidays.filter(h => h.id !== id);
-            localStorage.setItem('holidays', JSON.stringify(filtered));
-            setHolidays(holidays.filter(h => h.id !== id));
+            await holidayService.deleteHoliday(id);
+            await fetchHolidays();
             showToast('Holiday deleted successfully!', 'success');
         } catch (error) {
-            showToast('Failed to delete holiday: ' + error.message, 'error');
+            showToast('Failed to delete holiday: ' + getErrorMessage(error), 'error');
         }
     };
 
@@ -361,7 +364,7 @@ const Settings = () => {
                             {/* Profile Header Card */}
                             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
                                 <div className="flex items-center gap-6">
-                                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                                    <div className="w-24 h-24 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
                                         <span className="text-white font-bold text-3xl">{getInitials(profileData.firstName, profileData.lastName)}</span>
                                     </div>
                                     <div>
@@ -821,7 +824,7 @@ const Settings = () => {
                             {/* Holidays List */}
                             <div className="space-y-3">
                                 {holidays.map(holiday => (
-                                    <div key={holiday.id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-shadow">
+                                    <div key={holiday._id || holiday.id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-shadow">
                                         <div className="flex items-center gap-4">
                                             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                                                 <Calendar size={24} className="text-blue-600" />
@@ -839,7 +842,7 @@ const Settings = () => {
                                                 {holiday.type}
                                             </span>
                                             <button
-                                                onClick={() => handleDeleteHoliday(holiday.id)}
+                                                onClick={() => handleDeleteHoliday(holiday._id || holiday.id)}
                                                 className="text-red-600 hover:text-red-700 text-sm font-medium"
                                             >
                                                 Delete

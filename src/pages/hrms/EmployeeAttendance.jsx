@@ -41,6 +41,20 @@ const EmployeeAttendance = () => {
     setTimeout(() => setToast(null), 4000);
   };
 
+  const getErrorMessage = (error) => {
+    try {
+      const msg = error.message || "";
+      if (msg.includes("HTTP error!")) {
+        const jsonStrMatch = msg.match(/message:\s*({.*})/);
+        if (jsonStrMatch && jsonStrMatch[1]) {
+          const parsed = JSON.parse(jsonStrMatch[1]);
+          return parsed.message || "An error occurred";
+        }
+      }
+    } catch (e) {}
+    return error.message || "An unexpected error occurred.";
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -121,10 +135,7 @@ const EmployeeAttendance = () => {
       }
     } catch (error) {
       console.error("Error recording check-in:", error);
-      showToast(
-        "Failed to record check-in: " + (error.message || "Unknown error"),
-        "error",
-      );
+      showToast(getErrorMessage(error), "error");
     }
   };
 
@@ -167,10 +178,7 @@ const EmployeeAttendance = () => {
       }
     } catch (error) {
       console.error("Error recording check-out:", error);
-      showToast(
-        "Failed to record check-out: " + (error.message || "Unknown error"),
-        "error",
-      );
+      showToast(getErrorMessage(error), "error");
     }
   };
 
@@ -200,10 +208,7 @@ const EmployeeAttendance = () => {
       }
     } catch (error) {
       console.error("Error updating status:", error);
-      showToast(
-        "Failed to update status: " + (error.message || "Unknown error"),
-        "error",
-      );
+      showToast(getErrorMessage(error), "error");
     }
   };
 

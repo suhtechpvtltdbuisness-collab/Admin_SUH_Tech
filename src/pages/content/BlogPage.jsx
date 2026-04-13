@@ -1,7 +1,7 @@
-import { Edit2, MoreVertical, Plus, Trash2 } from "lucide-react";
+import { Edit2, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Toast from "../../components/common/Toast";
-import { authService, employeeService } from "../../services";
+import { authService, employeeService, blogService } from "../../services";
 
 export default function BlogPage() {
   const [blogs, setBlogs] = useState([]);
@@ -21,6 +21,22 @@ export default function BlogPage() {
     isPublished: false,
   });
 
+  const getErrorMessage = (error) => {
+    try {
+      const msg = error.message || "";
+      if (msg.includes("HTTP error!")) {
+        const jsonStrMatch = msg.match(/message:\s*({.*})/);
+        if (jsonStrMatch && jsonStrMatch[1]) {
+          const parsed = JSON.parse(jsonStrMatch[1]);
+          return parsed.message || "An error occurred";
+        }
+      }
+    } catch (e) {
+      // ignore parsing error
+    }
+    return error.message || "An unexpected error occurred.";
+  };
+
   const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
@@ -33,11 +49,21 @@ export default function BlogPage() {
   const loadBlogs = async () => {
     try {
       setLoading(true);
-      const res = await api.getBlogs();
-      setBlogs(res.blogs || []);
+      const res = await blogService.getAllBlogs();
+      // Handle different possible response structures
+      const data = res.data || res.blogs || res;
+      let blogsList = Array.isArray(data) ? data : [];
+      
+      // Normalize data to handle both 'published' and 'isPublished'
+      blogsList = blogsList.map(blog => ({
+        ...blog,
+        isPublished: blog.published !== undefined ? blog.published : (blog.isPublished || false)
+      }));
+      
+      setBlogs(blogsList);
     } catch (error) {
       console.error("Error loading blogs:", error);
-      showToast("Failed to load blogs: " + error.message, "error");
+      showToast(getErrorMessage(error), "error");
     } finally {
       setLoading(false);
     }
@@ -68,6 +94,9 @@ export default function BlogPage() {
 
   const openEditModal = (blog) => {
     setEditingBlog(blog);
+    // Handle tags correctly if it's string from backend
+    const currentTags = Array.isArray(blog.tags) ? blog.tags.join(", ") : (blog.tags || "");
+    
     setForm({
       title: blog.title || "",
       slug: blog.slug || "",
@@ -75,8 +104,8 @@ export default function BlogPage() {
       content: blog.content || "",
       imageUrl: blog.imageUrl || "",
       category: blog.category || "",
-      tags: (blog.tags || []).join(", "),
-      isPublished: blog.isPublished || false,
+      tags: currentTags,
+      isPublished: blog.isPublished,
     });
     setIsModalOpen(true);
     setActiveMenuId(null);
@@ -85,6 +114,13 @@ export default function BlogPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Create a comma separated string for tags as per the POST request specification
+      const formattedTags = form.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+          .join(",");
+
       const payload = {
         title: form.title,
         slug: form.slug || undefined,
@@ -92,18 +128,16 @@ export default function BlogPage() {
         content: form.content,
         imageUrl: form.imageUrl,
         category: form.category,
-        tags: form.tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
-        isPublished: form.isPublished,
+        tags: formattedTags,
+        published: form.isPublished,
       };
 
       if (editingBlog) {
-        await api.updateBlog(editingBlog._id || editingBlog.slug, payload);
+        const blogId = editingBlog._id || editingBlog.id || editingBlog.slug;
+        await blogService.updateBlog(blogId, payload);
         showToast("Blog post updated successfully!", "success");
       } else {
-        await api.createBlog(payload);
+        await blogService.createBlog(payload);
         showToast("Blog post created successfully!", "success");
       }
 
@@ -112,18 +146,18 @@ export default function BlogPage() {
       setEditingBlog(null);
     } catch (error) {
       console.error("Error saving blog:", error);
-      showToast("Failed to save blog: " + error.message, "error");
+      showToast(getErrorMessage(error), "error");
     }
   };
 
   const handleDelete = async (idOrSlug) => {
     try {
-      await api.deleteBlog(idOrSlug);
+      await blogService.deleteBlog(idOrSlug);
       showToast("Blog post deleted successfully!", "success");
       await loadBlogs();
     } catch (error) {
       console.error("Error deleting blog:", error);
-      showToast("Failed to delete blog: " + error.message, "error");
+      showToast(getErrorMessage(error), "error");
     }
     setActiveMenuId(null);
   };
@@ -137,12 +171,12 @@ export default function BlogPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 lg:p-10">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-linear-to-br from-gray-50 via-blue-50/30 to-purple-50/30 p-6 lg:p-10">
+      <div className="max-w-8xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent mb-2">
+            <h1 className="text-4xl font-bold bg-linear-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent mb-2">
               Blog Posts
             </h1>
             <p className="text-gray-600 text-sm">
@@ -151,7 +185,7 @@ export default function BlogPage() {
           </div>
           <button
             onClick={openNewModal}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
           >
             <Plus size={20} /> New Blog Post
           </button>
@@ -159,9 +193,9 @@ export default function BlogPage() {
 
         {/* Table Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow duration-300">
-          <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-gray-50 to-transparent">
+          <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-linear-to-r from-gray-50 to-transparent">
             <h2 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-              <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
+              <div className="w-1 h-5 bg-linear-to-b from-blue-500 to-purple-600 rounded-full"></div>
               All Blog Posts
             </h2>
             <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full border border-blue-200">
@@ -187,7 +221,7 @@ export default function BlogPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
-                  <tr className="bg-gradient-to-r from-gray-50 to-transparent border-b border-gray-200 text-xs text-gray-600 uppercase tracking-wider font-semibold">
+                  <tr className="bg-linear-to-r from-gray-50 to-transparent border-b border-gray-200 text-xs text-gray-600 uppercase tracking-wider font-semibold">
                     <th className="p-4">Title</th>
                     <th className="p-4">Category</th>
                     <th className="p-4">Status</th>
@@ -218,8 +252,8 @@ export default function BlogPage() {
                         <span
                           className={`inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold ${
                             blog.isPublished
-                              ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200"
-                              : "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200"
+                              ? "bg-linear-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200"
+                              : "bg-linear-to-r from-amber-50 to-yellow-50 text-amber-700 border border-amber-200"
                           }`}
                         >
                           {blog.isPublished ? "Published" : "Draft"}
@@ -229,37 +263,21 @@ export default function BlogPage() {
                         {formatDate(blog.createdAt)}
                       </td>
                       <td className="p-4 text-right">
-                        <div className="relative inline-block text-left">
+                        <div className="flex justify-end gap-2 text-left">
                           <button
-                            onClick={() =>
-                              setActiveMenuId(
-                                activeMenuId === blog._id ? null : blog._id,
-                              )
-                            }
-                            className="p-2.5 rounded-xl hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-all duration-200"
+                            onClick={() => openEditModal(blog)}
+                            className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
+                            title="Edit"
                           >
-                            <MoreVertical size={18} />
+                            <Edit2 size={16} />
                           </button>
-                          {activeMenuId === blog._id && (
-                            <div className="origin-top-right absolute right-0 mt-1 w-40 rounded-md shadow-lg bg-white z-10">
-                              <div className="py-1 text-sm">
-                                <button
-                                  onClick={() => openEditModal(blog)}
-                                  className="w-full px-3 py-2 flex items-center gap-2 text-gray-700 hover:bg-gray-50"
-                                >
-                                  <Edit2 size={14} /> Edit
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handleDelete(blog._id || blog.slug)
-                                  }
-                                  className="w-full px-3 py-2 flex items-center gap-2 text-red-600 hover:bg-red-50"
-                                >
-                                  <Trash2 size={14} /> Delete
-                                </button>
-                              </div>
-                            </div>
-                          )}
+                          <button
+                            onClick={() => handleDelete(blog._id || blog.slug)}
+                            className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -274,7 +292,7 @@ export default function BlogPage() {
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden">
-              <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 via-purple-50 to-transparent">
+              <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-linear-to-r from-blue-50 via-purple-50 to-transparent">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">
                     {editingBlog ? "Edit Blog Post" : "New Blog Post"}

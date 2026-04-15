@@ -34,6 +34,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
+  const currentUser = authService.getUser();
+  const isAdmin = currentUser?.admin === true || currentUser?.role === "admin" || currentUser?.role === "Admin";
+
   const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
@@ -137,7 +140,7 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30">
+    <div className="min-h-screen bg-linear-to-br from-gray-50 via-blue-50/30 to-purple-50/30">
       <div className="p-6 lg:p-10">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
@@ -210,26 +213,30 @@ export default function Dashboard() {
                 trend="up"
                 trendValue="+3%"
               />
-              <StatCard
-                title="Total Revenue"
-                value={formatCurrency(stats.totalRevenue)}
-                icon={TrendingUp}
-                gradient="from-emerald-500 to-emerald-600"
-                iconBg="bg-emerald-100"
-                iconColor="text-emerald-600"
-                trend="up"
-                trendValue="+18%"
-              />
-              <StatCard
-                title="Total Expenses"
-                value={formatCurrency(stats.totalExpenseAmount)}
-                icon={TrendingDown}
-                gradient="from-rose-500 to-rose-600"
-                iconBg="bg-rose-100"
-                iconColor="text-rose-600"
-                trend="up"
-                trendValue="+5%"
-              />
+              {isAdmin && (
+                <StatCard
+                  title="Total Revenue"
+                  value={formatCurrency(stats.totalRevenue)}
+                  icon={TrendingUp}
+                  gradient="from-emerald-500 to-emerald-600"
+                  iconBg="bg-emerald-100"
+                  iconColor="text-emerald-600"
+                  trend="up"
+                  trendValue="+18%"
+                />
+              )}
+              {isAdmin && (
+                <StatCard
+                  title="Total Expenses"
+                  value={formatCurrency(stats.totalExpenseAmount)}
+                  icon={TrendingDown}
+                  gradient="from-rose-500 to-rose-600"
+                  iconBg="bg-rose-100"
+                  iconColor="text-rose-600"
+                  trend="up"
+                  trendValue="+5%"
+                />
+              )}
             </>
           ) : (
             <>
@@ -272,13 +279,13 @@ export default function Dashboard() {
         {/* Quick Actions */}
         <div className="mb-10">
           <h3 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
-            <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
+            <div className="w-1 h-6 bg-linear-to-b from-blue-500 to-purple-600 rounded-full"></div>
             Quick Actions
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <button
               onClick={() => navigate("/jobs")}
-              className="group bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 text-left border-2 border-gray-100 hover:border-blue-200 animate-color-wave-1"
+              className="group bg-white hover:bg-linear-to-br hover:from-blue-50 hover:to-indigo-50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 text-left border-2 border-gray-100 hover:border-blue-200 animate-color-wave-1"
             >
               <Briefcase
                 className="text-blue-600 mb-3 group-hover:scale-110 transition-transform"
@@ -292,7 +299,7 @@ export default function Dashboard() {
 
             <button
               onClick={() => navigate("/projects")}
-              className="group bg-white hover:bg-gradient-to-br hover:from-green-50 hover:to-emerald-50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 text-left border-2 border-gray-100 hover:border-green-200 animate-color-wave-2"
+              className="group bg-white hover:bg-linear-to-br hover:from-green-50 hover:to-emerald-50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 text-left border-2 border-gray-100 hover:border-green-200 animate-color-wave-2"
             >
               <FolderPlus
                 className="text-green-600 mb-3 group-hover:scale-110 transition-transform"
@@ -306,7 +313,7 @@ export default function Dashboard() {
 
             <button
               onClick={() => navigate("/blog")}
-              className="group bg-white hover:bg-gradient-to-br hover:from-purple-50 hover:to-pink-50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 text-left border-2 border-gray-100 hover:border-purple-200 animate-color-wave-3"
+              className="group bg-white hover:bg-linear-to-br hover:from-purple-50 hover:to-pink-50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 text-left border-2 border-gray-100 hover:border-purple-200 animate-color-wave-3"
             >
               <PenSquare
                 className="text-purple-600 mb-3 group-hover:scale-110 transition-transform"
@@ -320,7 +327,7 @@ export default function Dashboard() {
 
             <button
               onClick={() => navigate("/messages")}
-              className="group bg-white hover:bg-gradient-to-br hover:from-orange-50 hover:to-red-50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 text-left border-2 border-gray-100 hover:border-orange-200 animate-color-wave-4"
+              className="group bg-white hover:bg-linear-to-br hover:from-orange-50 hover:to-red-50 p-6 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 text-left border-2 border-gray-100 hover:border-orange-200 animate-color-wave-4"
             >
               <Mail
                 className="text-orange-600 mb-3 group-hover:scale-110 transition-transform"
@@ -339,7 +346,7 @@ export default function Dashboard() {
           <div className="bg-white p-7 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
             <div className="flex justify-between items-center mb-5">
               <h4 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-                <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
+                <div className="w-1 h-5 bg-linear-to-b from-blue-500 to-purple-600 rounded-full"></div>
                 Recent Applications
               </h4>
               <button
@@ -355,7 +362,7 @@ export default function Dashboard() {
           <div className="bg-white p-7 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
             <div className="flex justify-between items-center mb-5">
               <h4 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-                <div className="w-1 h-5 bg-gradient-to-b from-orange-500 to-red-600 rounded-full"></div>
+                <div className="w-1 h-5 bg-linear-to-b from-orange-500 to-red-600 rounded-full"></div>
                 Recent Contact Messages
               </h4>
               <button

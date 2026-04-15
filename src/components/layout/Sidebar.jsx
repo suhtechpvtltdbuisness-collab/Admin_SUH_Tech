@@ -73,6 +73,7 @@ export default function Sidebar({ className = "", onClose }) {
   const [expensesOpen, setExpensesOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [userProfile, setUserProfile] = useState({ firstName: '', lastName: '', role: '' });
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Helper functions //
   const isActive = (path) => location.pathname === path;
@@ -102,6 +103,7 @@ export default function Sidebar({ className = "", onClose }) {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           const user = JSON.parse(storedUser);
+          setIsAdmin(user.admin === true || user.role === "admin" || user.role === "Admin");
           setUserProfile({
             firstName: user.firstName || user.first_name || user.name?.split(' ')[0] || '',
             lastName: user.lastName || user.last_name || user.name?.split(' ').slice(1).join(' ') || '',
@@ -224,70 +226,72 @@ export default function Sidebar({ className = "", onClose }) {
         <Item icon={Receipt} label="Invoices" path="/expenses/invoices" active={isActive("/expenses/invoices")} onClose={onClose} onClick={() => { setExpensesOpen(false); setProjectsOpen(false); }} />
 
         {/* ================= EXPENSES DROPDOWN ================= */}
-        <div>
-          <Item
-            icon={DollarSign}
-            label="Expenses"
-            hasSubmenu
-            isOpen={expensesOpen}
-            active={isExpensesActive}
-            onClick={() => setExpensesOpen(!expensesOpen)}
-            onClose={onClose}
-          />
+        {isAdmin && (
+          <div>
+            <Item
+              icon={DollarSign}
+              label="Expenses"
+              hasSubmenu
+              isOpen={expensesOpen}
+              active={isExpensesActive}
+              onClick={() => setExpensesOpen(!expensesOpen)}
+              onClose={onClose}
+            />
 
-          {/* Dropdown content */}
-          <div
-            className={`overflow-hidden transition-all duration-300 ease-in-out ${expensesOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
-              }`}
-          >
-            <div className="ml-9 pl-2 space-y-1 mt-1 mb-2">
-              <Link
-                to="/expenses/salary"
-                onClick={() => {
-                  setExpensesOpen(false);
-                  if (onClose) onClose();
-                }}
-                className={`block px-3 py-2 rounded-lg text-sm transition
-                ${isActive("/expenses/salary")
-                    ? "bg-blue-50 text-blue-600 font-medium"
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                  }`}
-              >
-                Employee Salary
-              </Link>
+            {/* Dropdown content */}
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${expensesOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+                }`}
+            >
+              <div className="ml-9 pl-2 space-y-1 mt-1 mb-2">
+                <Link
+                  to="/expenses/salary"
+                  onClick={() => {
+                    setExpensesOpen(false);
+                    if (onClose) onClose();
+                  }}
+                  className={`block px-3 py-2 rounded-lg text-sm transition
+                  ${isActive("/expenses/salary")
+                      ? "bg-blue-50 text-blue-600 font-medium"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    }`}
+                >
+                  Employee Salary
+                </Link>
 
-              <Link
-                to="/expenses/sales"
-                onClick={() => {
-                  setExpensesOpen(false);
-                  if (onClose) onClose();
-                }}
-                className={`block px-3 py-2 rounded-lg text-sm transition
-                ${isActive("/expenses/sales")
-                    ? "bg-blue-50 text-blue-600 font-medium"
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                  }`}
-              >
-                Company Sales
-              </Link>
+                <Link
+                  to="/expenses/sales"
+                  onClick={() => {
+                    setExpensesOpen(false);
+                    if (onClose) onClose();
+                  }}
+                  className={`block px-3 py-2 rounded-lg text-sm transition
+                  ${isActive("/expenses/sales")
+                      ? "bg-blue-50 text-blue-600 font-medium"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    }`}
+                >
+                  Company Sales
+                </Link>
 
-              <Link
-                to="/expenses/company-expenses"
-                onClick={() => {
-                  setExpensesOpen(false);
-                  if (onClose) onClose();
-                }}
-                className={`block px-3 py-2 rounded-lg text-sm transition
-                ${isActive("/expenses/company-expenses")
-                    ? "bg-blue-50 text-blue-600 font-medium"
-                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                  }`}
-              >
-                Company Expenses
-              </Link>
+                <Link
+                  to="/expenses/company-expenses"
+                  onClick={() => {
+                    setExpensesOpen(false);
+                    if (onClose) onClose();
+                  }}
+                  className={`block px-3 py-2 rounded-lg text-sm transition
+                  ${isActive("/expenses/company-expenses")
+                      ? "bg-blue-50 text-blue-600 font-medium"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    }`}
+                >
+                  Company Expenses
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </nav>
 
       {/* FOOTER LINKS */}

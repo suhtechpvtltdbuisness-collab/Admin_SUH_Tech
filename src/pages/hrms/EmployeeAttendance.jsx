@@ -83,8 +83,21 @@ const EmployeeAttendance = () => {
   const loadEmployees = async () => {
     try {
       setLoading(true);
-      const employees = await employeeService.getAllEmployees();
-      setEmployees(employees || []);
+      const allEmployees = await employeeService.getAllEmployees();
+      
+      const currentUser = authService.getUser();
+      const isAdmin = currentUser?.admin === true || currentUser?.role === "admin" || currentUser?.role === "Admin";
+      
+      let visibleEmployees = allEmployees || [];
+      
+      if (!isAdmin) {
+        const currentUserId = currentUser?.id || currentUser?._id;
+        visibleEmployees = visibleEmployees.filter(
+          (emp) => emp.id === currentUserId || emp.employeeId === currentUserId || emp._id === currentUserId
+        );
+      }
+      
+      setEmployees(visibleEmployees);
     } catch (error) {
       console.error("Error loading employees:", error);
       showToast("Failed to load employees", "error");

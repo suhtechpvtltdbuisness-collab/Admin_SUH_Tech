@@ -127,11 +127,18 @@ const EmployeeAttendance = () => {
       // Format dates for API
       const clockInTime = now.toISOString();
 
+      // Determine status: if clock-in is after 10:15 AM, mark as half day
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const isAfter1015AM =
+        hours > 10 || (hours === 10 && minutes > 15);
+      const status = isAfter1015AM ? "half day" : "present";
+
       // Prepare attendance data for API - only send clockIn
       const attendanceData = {
         userId: employeeId,
         date: selectedDate,
-        status: "present",
+        status: status,
         clockIn: clockInTime,
         clockOut: clockInTime, // Keep same as clockIn for backend requirement
         marked_By: currentUser?.id || 1,

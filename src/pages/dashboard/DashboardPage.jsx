@@ -33,9 +33,18 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
+  const [currentUserData, setCurrentUserData] = useState(null);
 
   const currentUser = authService.getUser();
   const isAdmin = currentUser?.admin === true || currentUser?.role === "admin" || currentUser?.role === "Admin";
+
+  const isSales =
+    currentUserData?.department?.toLowerCase() === "sales" ||
+    currentUserData?.designation?.toLowerCase() === "sales" ||
+    currentUserData?.role?.toLowerCase() === "sales" ||
+    currentUser?.role?.toLowerCase() === "sales" ||
+    currentUser?.department?.toLowerCase() === "sales" ||
+    currentUser?.designation?.toLowerCase() === "sales";
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -46,15 +55,21 @@ export default function Dashboard() {
     const loadStats = async () => {
       try {
         const token = authService.getToken();
+        const currentUserId = currentUser?.id || currentUser?._id;
 
         // Fetch all data in parallel from existing working endpoints
-        const [empResponse, projectResponse, clientResponse, salaryResponse] =
+        const [empResponse, projectResponse, clientResponse, salaryResponse, userResponse] =
           await Promise.allSettled([
             apiService.get("/employee", token),
             projectService.getAll(),
             clientSaleService.getAll(),
             expenseService.getEmployeeSalaries(),
+            currentUserId ? employeeService.getEmployee(currentUserId) : Promise.resolve(null),
           ]);
+
+        if (userResponse.status === "fulfilled" && userResponse.value?.success) {
+          setCurrentUserData(userResponse.value.employee);
+        }
 
         // ── Employees ──────────────────────────────────────────────────────
         let totalEmployeesCount = 0;
@@ -343,37 +358,41 @@ export default function Dashboard() {
 
         {/* Bottom two columns */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white p-7 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
-            <div className="flex justify-between items-center mb-5">
-              <h4 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-                <div className="w-1 h-5 bg-linear-to-b from-blue-500 to-purple-600 rounded-full"></div>
-                Recent Applications
-              </h4>
-              <button
-                className="text-blue-600 hover:text-blue-700 text-sm font-semibold hover:underline transition-all"
-                onClick={() => navigate("/employees")}
-              >
-                View All →
-              </button>
+          {isAdmin && (
+            <div className="bg-white p-7 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+              <div className="flex justify-between items-center mb-5">
+                <h4 className="font-bold text-lg text-gray-900 flex items-center gap-2">
+                  <div className="w-1 h-5 bg-linear-to-b from-blue-500 to-purple-600 rounded-full"></div>
+                  Recent Applications
+                </h4>
+                <button
+                  className="text-blue-600 hover:text-blue-700 text-sm font-semibold hover:underline transition-all"
+                  onClick={() => navigate("/employees")}
+                >
+                  View All →
+                </button>
+              </div>
+              <RecentList />
             </div>
-            <RecentList />
-          </div>
+          )}
 
-          <div className="bg-white p-7 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
-            <div className="flex justify-between items-center mb-5">
-              <h4 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-                <div className="w-1 h-5 bg-linear-to-b from-orange-500 to-red-600 rounded-full"></div>
-                Recent Contact Messages
-              </h4>
-              <button
-                className="text-blue-600 hover:text-blue-700 text-sm font-semibold hover:underline transition-all"
-                onClick={() => navigate("/messages")}
-              >
-                View All →
-              </button>
+          {(isAdmin || isSales) && (
+            <div className="bg-white p-7 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+              <div className="flex justify-between items-center mb-5">
+                <h4 className="font-bold text-lg text-gray-900 flex items-center gap-2">
+                  <div className="w-1 h-5 bg-linear-to-b from-orange-500 to-red-600 rounded-full"></div>
+                  Recent Contact Messages
+                </h4>
+                <button
+                  className="text-blue-600 hover:text-blue-700 text-sm font-semibold hover:underline transition-all"
+                  onClick={() => navigate("/messages")}
+                >
+                  View All →
+                </button>
+              </div>
+              <MessageList />
             </div>
-            <MessageList />
-          </div>
+          )}
         </div>
 
         {/* Toast Notifications */}

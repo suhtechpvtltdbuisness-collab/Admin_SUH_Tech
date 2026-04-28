@@ -11,6 +11,7 @@ import {
   X,
   ChevronDown,
   Home,
+  MoreVertical,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Toast from "../../components/common/Toast";
@@ -33,6 +34,7 @@ const EmployeeAttendance = () => {
   const [toast, setToast] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [openStatusDropdown, setOpenStatusDropdown] = useState(null);
+  const [openActionDropdown, setOpenActionDropdown] = useState(null);
   const [openExportDropdown, setOpenExportDropdown] = useState(false);
   const [employeeNotes, setEmployeeNotes] = useState({});
 
@@ -61,6 +63,9 @@ const EmployeeAttendance = () => {
       if (openStatusDropdown && !event.target.closest(".status-dropdown")) {
         setOpenStatusDropdown(null);
       }
+      if (openActionDropdown && !event.target.closest(".action-dropdown")) {
+        setOpenActionDropdown(null);
+      }
       if (openExportDropdown && !event.target.closest(".export-dropdown")) {
         setOpenExportDropdown(false);
       }
@@ -68,7 +73,7 @@ const EmployeeAttendance = () => {
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [openStatusDropdown, openExportDropdown]);
+  }, [openStatusDropdown, openExportDropdown, openActionDropdown]);
 
   useEffect(() => {
     loadEmployees();
@@ -84,19 +89,25 @@ const EmployeeAttendance = () => {
     try {
       setLoading(true);
       const allEmployees = await employeeService.getAllEmployees();
-      
+
       const currentUser = authService.getUser();
-      const isAdmin = currentUser?.admin === true || currentUser?.role === "admin" || currentUser?.role === "Admin";
-      
+      const isAdmin =
+        currentUser?.admin === true ||
+        currentUser?.role === "admin" ||
+        currentUser?.role === "Admin";
+
       let visibleEmployees = allEmployees || [];
-      
+
       if (!isAdmin) {
         const currentUserId = currentUser?.id || currentUser?._id;
         visibleEmployees = visibleEmployees.filter(
-          (emp) => emp.id === currentUserId || emp.employeeId === currentUserId || emp._id === currentUserId
+          (emp) =>
+            emp.id === currentUserId ||
+            emp.employeeId === currentUserId ||
+            emp._id === currentUserId,
         );
       }
-      
+
       setEmployees(visibleEmployees);
     } catch (error) {
       console.error("Error loading employees:", error);
@@ -130,8 +141,7 @@ const EmployeeAttendance = () => {
       // Determine status: if clock-in is after 10:15 AM, mark as half day
       const hours = now.getHours();
       const minutes = now.getMinutes();
-      const isAfter1015AM =
-        hours > 10 || (hours === 10 && minutes > 15);
+      const isAfter1015AM = hours > 10 || (hours === 10 && minutes > 15);
       const status = isAfter1015AM ? "half day" : "present";
 
       // Prepare attendance data for API - only send clockIn
@@ -207,12 +217,25 @@ const EmployeeAttendance = () => {
       const currentUser = authService.getUser();
       const now = new Date();
       setOpenStatusDropdown(null);
+
+      // Check if already marked
+      const existingRecord = attendanceRecords.find(
+        (att) =>
+          att.userId === empId && att.date.split("T")[0] === selectedDate,
+      );
+
+      if (existingRecord) {
+        showToast("Attendance already marked", "warning");
+        return;
+      }
+
       const currentTime = now.toISOString();
 
       const attendanceData = {
         userId: empId,
         date: selectedDate,
-        status: newStatus.toLowerCase() === "wfh" ? "wfh" : newStatus.toLowerCase(),
+        status:
+          newStatus.toLowerCase() === "wfh" ? "wfh" : newStatus.toLowerCase(),
         clockIn: currentTime,
         clockOut: currentTime,
         marked_By: currentUser?.id || 1,
@@ -242,11 +265,19 @@ const EmployeeAttendance = () => {
     try {
       await employeeService.deleteEmployee(deleteConfirmId);
       await loadEmployees();
-
-      // Optional: Remove attendance records for this employee?
+      showToast("Employee deleted successfully", "success");
+      setDeleteConfirmId(null);
     } catch (error) {
       console.error("Error deleting employee:", error);
-      showToast("Failed to delete employee", "error");
+      const errorMsg = getErrorMessage(error) || "Failed to delete employee";
+
+      // If user is already deleted or not found, treat it as success
+      if (errorMsg.includes("User not found")) {
+        await loadEmployees();
+        showToast("Employee deleted successfully", "success");
+      } else {
+        showToast(errorMsg, "error");
+      }
       setDeleteConfirmId(null);
     }
   };
@@ -319,9 +350,27 @@ const EmployeeAttendance = () => {
       doc.setFont("helvetica", "bold");
       doc.text("Status:", 120, 85);
       doc.setTextColor(
-        att.status === "Present" ? 34 : att.status === "Absent" ? 220 : att.status === "WFH" ? 219 : 234,
-        att.status === "Present" ? 197 : att.status === "Absent" ? 38 : att.status === "WFH" ? 39 : 179,
-        att.status === "Present" ? 94 : att.status === "Absent" ? 38 : att.status === "WFH" ? 119 : 8,
+        att.status === "Present"
+          ? 34
+          : att.status === "Absent"
+            ? 220
+            : att.status === "WFH"
+              ? 219
+              : 234,
+        att.status === "Present"
+          ? 197
+          : att.status === "Absent"
+            ? 38
+            : att.status === "WFH"
+              ? 39
+              : 179,
+        att.status === "Present"
+          ? 94
+          : att.status === "Absent"
+            ? 38
+            : att.status === "WFH"
+              ? 119
+              : 8,
       );
       doc.text(att.status || "Absent", 150, 85);
 
@@ -422,7 +471,7 @@ const EmployeeAttendance = () => {
           "Check Out",
           "Working Hours",
           "Status",
-        ]
+        ],
       ];
 
       filteredEmployees.forEach((emp) => {
@@ -437,7 +486,7 @@ const EmployeeAttendance = () => {
 
         // Apply filterStatus to today's export as well
         if (filterStatus !== "All Status" && currentStatus !== filterStatus) {
-            return;
+          return;
         }
 
         const employeeName =
@@ -566,7 +615,11 @@ const EmployeeAttendance = () => {
     }
   };
 
-  const generateDateRangeData = (startDate, endDate, recordsToUse = attendanceRecords) => {
+  const generateDateRangeData = (
+    startDate,
+    endDate,
+    recordsToUse = attendanceRecords,
+  ) => {
     const data = [];
     const currentDate = new Date(startDate);
 
@@ -594,10 +647,11 @@ const EmployeeAttendance = () => {
 
           if (emp) {
             // Apply searchTerm filter
-            const fullName = emp.firstName && emp.lastName 
-              ? `${emp.firstName} ${emp.lastName}` 
-              : (emp.name || emp.fullName || emp.employeeName || "");
-              
+            const fullName =
+              emp.firstName && emp.lastName
+                ? `${emp.firstName} ${emp.lastName}`
+                : emp.name || emp.fullName || emp.employeeName || "";
+
             const matchesSearch =
               fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
               (emp.employeeId || emp.empId || "")
@@ -725,9 +779,10 @@ const EmployeeAttendance = () => {
     // Logic: If they are in the employee list, they are 'Absent' unless marked otherwise.
     const currentStatus = att?.status || "Absent";
 
-    const fullName = emp.firstName && emp.lastName 
-      ? `${emp.firstName} ${emp.lastName}` 
-      : (emp.name || emp.fullName || emp.employeeName || "");
+    const fullName =
+      emp.firstName && emp.lastName
+        ? `${emp.firstName} ${emp.lastName}`
+        : emp.name || emp.fullName || emp.employeeName || "";
 
     const matchesSearch =
       fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -757,10 +812,12 @@ const EmployeeAttendance = () => {
     else realStats.absent++;
   });
 
+  const isToday = selectedDate === new Date().toISOString().split("T")[0];
+
   return (
-    <div className="p-4 md:p-6">
+    <div className="p-4 md:p-4">
       {/* Header */}
-      <div className="mb-6 md:mb-8">
+      <div className="mb-4 md:mb-4">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
           Employee Attendance
         </h1>
@@ -959,7 +1016,7 @@ const EmployeeAttendance = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto min-h-[300px] sm:min-h-0 sm:pb-36">
             <table className="w-full text-left border-collapse min-w-[1200px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
@@ -1048,30 +1105,46 @@ const EmployeeAttendance = () => {
                       </td>
                       <td className="p-4 align-middle text-center">
                         <div className="flex items-center justify-center gap-2 text-sm text-gray-600 whitespace-nowrap">
-                          <Clock size={14} className="text-gray-400" />
-                          <span
-                            className={`font-medium ${
-                              att.checkIn && att.checkIn !== "-"
-                                ? "text-gray-900"
-                                : "text-gray-400"
-                            }`}
-                          >
-                            {att.checkIn || "-"}
-                          </span>
+                          {att.checkIn && att.checkIn !== "-" ? (
+                            <>
+                              <Clock size={14} className="text-gray-400" />
+                              <span className="font-medium text-gray-900">
+                                {att.checkIn}
+                              </span>
+                            </>
+                          ) : att.status === "Absent" || !isToday ? (
+                            <span className="text-gray-400 font-medium">-</span>
+                          ) : (
+                            <button
+                              onClick={() => handleCheckIn(emp.id)}
+                              className="px-3 py-1 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap bg-green-100 text-green-700 hover:bg-green-200"
+                            >
+                              Check In
+                            </button>
+                          )}
                         </div>
                       </td>
                       <td className="p-4 align-middle text-center">
                         <div className="flex items-center justify-center gap-2 text-sm text-gray-600 whitespace-nowrap">
-                          <Clock size={14} className="text-gray-400" />
-                          <span
-                            className={`font-medium ${
-                              att.checkOut && att.checkOut !== "-"
-                                ? "text-gray-900"
-                                : "text-gray-400"
-                            }`}
-                          >
-                            {att.checkOut || "-"}
-                          </span>
+                          {att.checkOut && att.checkOut !== "-" ? (
+                            <>
+                              <Clock size={14} className="text-gray-400" />
+                              <span className="font-medium text-gray-900">
+                                {att.checkOut}
+                              </span>
+                            </>
+                          ) : att.checkIn &&
+                            att.checkIn !== "-" &&
+                            !(att.status === "Absent" || !isToday) ? (
+                            <button
+                              onClick={() => handleCheckOut(emp.id)}
+                              className="px-3 py-1 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap bg-blue-100 text-blue-700 hover:bg-blue-200"
+                            >
+                              Check Out
+                            </button>
+                          ) : (
+                            <span className="text-gray-400 font-medium">-</span>
+                          )}
                         </div>
                       </td>
                       <td className="p-4 text-sm font-semibold text-gray-700 hidden lg:table-cell align-middle text-center">
@@ -1093,15 +1166,32 @@ const EmployeeAttendance = () => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
+                                if (!isToday) {
+                                  showToast(
+                                    "Cannot change status for past/future dates",
+                                    "error",
+                                  );
+                                  return;
+                                }
                                 setOpenStatusDropdown(
                                   openStatusDropdown === emp.id ? null : emp.id,
                                 );
+                                setOpenActionDropdown(null);
                               }}
-                              className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors border border-blue-100 text-sm font-medium"
-                              title="Change Status"
+                              disabled={!isToday}
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors border text-sm font-medium ${
+                                !isToday
+                                  ? "bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed"
+                                  : "bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-100"
+                              }`}
+                              title={
+                                !isToday
+                                  ? "Cannot change past status"
+                                  : "Change Status"
+                              }
                             >
                               <Check size={14} />
-                              <span className="hidden sm:inline">
+                              <span className="inline whitespace-nowrap">
                                 {att.status || "Present"}
                               </span>
                               <ChevronDown
@@ -1165,59 +1255,79 @@ const EmployeeAttendance = () => {
                               </div>
                             )}
                           </div>
-                          <button
-                            onClick={() => handleDelete(emp.id)}
-                            className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
-                            title="Delete"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleDownloadIndividualPDF(emp)}
-                            className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors border border-green-100"
-                            title="Download PDF"
-                          >
-                            <Download size={16} />
-                          </button>
-
-                          <input
-                            type="text"
-                            placeholder="Note..."
-                            className="w-24 md:w-32 px-2 py-1.5 text-xs text-gray-700 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all placeholder-gray-400"
-                            value={employeeNotes[`${selectedDate}_${emp.id}`] || ""}
-                            onChange={(e) => setEmployeeNotes((prev) => ({ ...prev, [`${selectedDate}_${emp.id}`]: e.target.value }))}
-                          />
-
-                          {/* Check In / Out Button Logic */}
-                          {!att.checkIn || att.checkIn === "-" ? (
+                          <div className="relative action-dropdown">
                             <button
-                              onClick={() => handleCheckIn(emp.id)}
-                              disabled={att.status === "Absent"}
-                              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
-                                att.status === "Absent"
-                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                  : "bg-green-100 text-green-700 hover:bg-green-200"
-                              }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenActionDropdown(
+                                  openActionDropdown === emp.id ? null : emp.id,
+                                );
+                                setOpenStatusDropdown(null);
+                              }}
+                              className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors border border-gray-100"
+                              title="More Actions"
                             >
-                              Check In
+                              <MoreVertical size={16} />
                             </button>
-                          ) : !att.checkOut || att.checkOut === "-" ? (
-                            <button
-                              onClick={() => handleCheckOut(emp.id)}
-                              disabled={att.status === "Absent"}
-                              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
-                                att.status === "Absent"
-                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                  : "bg-blue-100 text-blue-700 hover:bg-blue-200"
-                              }`}
-                            >
-                              Check Out
-                            </button>
-                          ) : (
-                            <span className="px-3 py-1.5 text-xs font-medium text-gray-400 bg-gray-100 rounded-lg whitespace-nowrap">
-                              Done
-                            </span>
-                          )}
+                            {openActionDropdown === emp.id && (
+                              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownloadIndividualPDF(emp);
+                                    setOpenActionDropdown(null);
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-green-50 flex items-center gap-3 text-gray-700 transition-colors"
+                                >
+                                  <div className="p-1.5 bg-green-100 text-green-600 rounded-md">
+                                    <Download size={14} />
+                                  </div>
+                                  Download PDF
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(emp.id);
+                                    setOpenActionDropdown(null);
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 flex items-center gap-3 text-red-600 font-medium transition-colors"
+                                >
+                                  <div className="p-1.5 bg-red-100 text-red-600 rounded-md">
+                                    <Trash2 size={14} />
+                                  </div>
+                                  Delete Record
+                                </button>
+                                <div className="px-4 py-3 mt-1 border-t border-gray-50 bg-gray-50/50 text-left">
+                                  <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-2 font-semibold">
+                                    Note
+                                  </p>
+                                  <textarea
+                                    rows={2}
+                                    placeholder="Type something..."
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="w-full px-2.5 py-1.5 text-xs text-gray-700 bg-white border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all placeholder-gray-400 shadow-sm resize-none overflow-hidden"
+                                    value={
+                                      employeeNotes[
+                                        `${selectedDate}_${emp.id}`
+                                      ] || ""
+                                    }
+                                    onInput={(e) => {
+                                      e.target.style.height = "auto";
+                                      e.target.style.height =
+                                        e.target.scrollHeight + "px";
+                                    }}
+                                    onChange={(e) =>
+                                      setEmployeeNotes((prev) => ({
+                                        ...prev,
+                                        [`${selectedDate}_${emp.id}`]:
+                                          e.target.value,
+                                      }))
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -1225,7 +1335,6 @@ const EmployeeAttendance = () => {
                 })}
               </tbody>
             </table>
-            <div className="pb-40"></div>
           </div>
         )}
 

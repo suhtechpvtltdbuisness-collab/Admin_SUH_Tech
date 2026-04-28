@@ -1,7 +1,7 @@
 import { Mail, MessageSquare, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import Toast from "../../components/common/Toast";
-import { authService, employeeService } from "../../services";
+import { authService, employeeService, messageService } from "../../services";
 
 export default function MessagesPage() {
   const [activeTab, setActiveTab] = useState("contacts");
@@ -22,8 +22,9 @@ export default function MessagesPage() {
     const loadContacts = async () => {
       try {
         setLoadingContacts(true);
-        const res = await api.getContacts();
-        setContacts(res.contacts || []);
+        const res = await messageService.getAllMessages();
+        const messagesArray = Array.isArray(res) ? res : (res.data || res.messages || []);
+        setContacts(messagesArray);
       } catch (error) {
         console.error("Error loading contacts:", error);
         showToast("Failed to load contact messages: " + error.message, "error");

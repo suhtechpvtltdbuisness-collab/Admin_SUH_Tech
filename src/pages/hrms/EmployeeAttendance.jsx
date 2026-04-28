@@ -1029,7 +1029,7 @@ const EmployeeAttendance = () => {
                   <th className="p-4 font-semibold text-gray-600 text-sm whitespace-nowrap text-center w-[12%]">
                     Employee ID
                   </th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm whitespace-nowrap hidden md:table-cell w-[12%]">
+                  <th className="p-4 font-semibold text-gray-600 text-sm whitespace-nowrap w-[12%]">
                     Department
                   </th>
                   <th className="p-4 font-semibold text-gray-600 text-sm whitespace-nowrap text-center w-[10%]">
@@ -1038,7 +1038,7 @@ const EmployeeAttendance = () => {
                   <th className="p-4 font-semibold text-gray-600 text-sm whitespace-nowrap text-center w-[10%]">
                     Check Out
                   </th>
-                  <th className="p-4 font-semibold text-gray-600 text-sm whitespace-nowrap hidden lg:table-cell text-center w-[8%]">
+                  <th className="p-4 font-semibold text-gray-600 text-sm whitespace-nowrap text-center w-[8%]">
                     Working Hours
                   </th>
                   <th className="p-4 font-semibold text-gray-600 text-sm whitespace-nowrap text-center w-[11%]">
@@ -1100,7 +1100,7 @@ const EmployeeAttendance = () => {
                       <td className="p-4 text-sm text-gray-600 font-medium align-middle text-center">
                         {emp.employeeId || emp.empId || "N/A"}
                       </td>
-                      <td className="p-4 text-sm text-gray-600 hidden md:table-cell align-middle truncate">
+                      <td className="p-4 text-sm text-gray-600 align-middle truncate">
                         {emp.department}
                       </td>
                       <td className="p-4 align-middle text-center">
@@ -1147,7 +1147,7 @@ const EmployeeAttendance = () => {
                           )}
                         </div>
                       </td>
-                      <td className="p-4 text-sm font-semibold text-gray-700 hidden lg:table-cell align-middle text-center">
+                      <td className="p-4 text-sm font-semibold text-gray-700 align-middle text-center">
                         {att.hours || "0h"}
                       </td>
                       <td className="p-4 align-middle text-center">

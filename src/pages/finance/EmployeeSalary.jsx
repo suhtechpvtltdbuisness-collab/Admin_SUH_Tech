@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import Toast from "../../components/common/Toast";
-import { authService, employeeService, expenseService } from "../../services";
+import { authService, employeeService, expenseService, attendanceService } from "../../services";
 
 // Import logo, icons, and stamp from public folder
 const suhTechLogo = "/suh-tech-logo.png";
@@ -440,7 +440,7 @@ const EmployeeSalary = () => {
     }
   };
 
-  const createPDFDoc = (emp) => {
+  const createPDFDoc = (emp, paidDays = 0, lopDays = 0) => {
     try {
       // Helper function to convert number to words
       const numberToWords = (num) => {
@@ -673,13 +673,13 @@ const EmployeeSalary = () => {
       doc.text("Paid Days", netPayBoxX + 8, netPayBoxY + 25);
       doc.text(":", netPayBoxX + 28, netPayBoxY + 25);
       doc.setTextColor(0, 0, 0);
-      doc.text("22", netPayBoxX + 31, netPayBoxY + 25);
+      doc.text(String(paidDays || 0), netPayBoxX + 31, netPayBoxY + 25);
 
       doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
       doc.text("LOP Days", netPayBoxX + 8, netPayBoxY + 30);
       doc.text(":", netPayBoxX + 28, netPayBoxY + 30);
       doc.setTextColor(0, 0, 0);
-      doc.text("2", netPayBoxX + 31, netPayBoxY + 30);
+      doc.text(String(lopDays || 0), netPayBoxX + 31, netPayBoxY + 30);
 
       // ===== EARNINGS AND DEDUCTIONS TABLES =====
       const tablesStartY = summaryY + 30;
@@ -884,8 +884,52 @@ const EmployeeSalary = () => {
     }
   };
 
-  const handlePreviewClick = (emp) => {
-    const doc = createPDFDoc(emp);
+  const handlePreviewClick = async (emp) => {
+    let paidDays = 0;
+    let lopDays = 0;
+    
+    try {
+      const targetId = emp.userId || emp.employeeId || emp._id;
+      if (targetId) {
+        const attendanceRecords = await attendanceService.getAttendanceByUserId(targetId);
+        if (Array.isArray(attendanceRecords) && attendanceRecords.length > 0) {
+          const payDate = emp.paymentDate ? new Date(emp.paymentDate) : new Date();
+          const payMonth = payDate.getMonth();
+          const payYear = payDate.getFullYear();
+          let presentCount = 0;
+          let absentCount = 0;
+          
+          attendanceRecords.forEach(record => {
+             const recordDateStr = record.date || record.createdAt;
+             if (!recordDateStr) return;
+             // Ensure valid date parsing
+             let recordDate;
+             try {
+                recordDate = new Date(recordDateStr);
+             } catch(e) { return; }
+             
+             if (recordDate.getMonth() === payMonth && recordDate.getFullYear() === payYear) {
+                const status = (record.status || "").toLowerCase();
+                if (status === "present" || status === "on leave" || status === "wfh") {
+                  presentCount += 1;
+                } else if (status === "half-day" || status === "half day") {
+                  presentCount += 0.5;
+                  absentCount += 0.5;
+                } else if (status === "absent") {
+                  absentCount += 1;
+                }
+             }
+          });
+          
+          paidDays = presentCount;
+          lopDays = absentCount;
+        }
+      }
+    } catch (error) {
+      console.error("Error calculating attendance for preview:", error);
+    }
+
+    const doc = createPDFDoc(emp, paidDays, lopDays);
     if (doc) {
       // Reverting to blob URL as data URI might be too large/unsupported by the browser
       const pdfBlob = doc.output("blob");

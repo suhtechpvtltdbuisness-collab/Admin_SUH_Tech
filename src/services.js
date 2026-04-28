@@ -481,6 +481,9 @@ export const attendanceService = {
       return response;
     } catch (error) {
       console.error("Error creating attendance via API:", error);
+      if (error.message && error.message.includes("HTTP error")) {
+        throw error;
+      }
       console.log("Saving attendance to localStorage instead");
 
       // Fallback: Save to localStorage
@@ -510,6 +513,9 @@ export const attendanceService = {
       return response;
     } catch (error) {
       console.error("Error updating attendance via API:", error);
+      if (error.message && error.message.includes("HTTP error")) {
+        throw error;
+      }
       console.log("Updating attendance in localStorage instead");
 
       // Fallback: Update in localStorage
@@ -540,6 +546,9 @@ export const attendanceService = {
       return response;
     } catch (error) {
       console.error("Error deleting attendance via API:", error);
+      if (error.message && error.message.includes("HTTP error")) {
+        throw error;
+      }
       console.log("Deleting attendance from localStorage instead");
 
       // Fallback: Delete from localStorage
@@ -1320,6 +1329,70 @@ export const holidayService = {
       return response;
     } catch (error) {
       console.error("holidayService.deleteHoliday:", error);
+      throw error;
+    }
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Message Service
+// API base: /messages
+// ─────────────────────────────────────────────────────────────────────────────
+export const messageService = {
+  // ── GET all messages ──────────────────────────────────────────────────
+  getAllMessages: async () => {
+    try {
+      const response = await apiService.get("/messages", authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("messageService.getAllMessages:", error);
+      throw error;
+    }
+  },
+
+  // ── GET single message by ID ──────────────────────────────────────────
+  getMessageById: async (id) => {
+    try {
+      const response = await apiService.get(`/messages/${id}`, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("messageService.getMessageById:", error);
+      throw error;
+    }
+  },
+
+  // ── POST – create new message ─────────────────────────────────────────
+  createMessage: async (data) => {
+    try {
+      console.log("[messageService] POST /messages →", data);
+      const response = await apiService.post("/messages", data, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("messageService.createMessage:", error);
+      throw error;
+    }
+  },
+
+  // ── PUT – update existing message ─────────────────────────────────────
+  updateMessage: async (id, data) => {
+    try {
+      console.log(`[messageService] PUT /messages/${id} →`, data);
+      const response = await apiService.put(`/messages/${id}`, data, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("messageService.updateMessage:", error);
+      throw error;
+    }
+  },
+
+  // ── DELETE – remove message ───────────────────────────────────────────
+  deleteMessage: async (id) => {
+    try {
+      console.log(`[messageService] DELETE /messages/${id}`);
+      const response = await apiService.delete(`/messages/${id}`, authService.getToken());
+      return response;
+    } catch (error) {
+      console.error("messageService.deleteMessage:", error);
       throw error;
     }
   },

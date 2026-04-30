@@ -688,15 +688,18 @@ const EmployeeAttendance = () => {
               return `${hours}h ${minutes}m`;
             };
 
+            const statusText = formatStatusText(record.status);
+            const isLeaveOrAbsent = statusText === "On Leave" || statusText === "Absent";
+
             data.push([
               formattedDate,
               employeeName,
               emp.employeeId || emp.empId || "",
               emp.department || "",
-              formatTime(record.clockIn),
-              formatTime(record.clockOut),
-              formatHours(record.totalHours),
-              formatStatusText(record.status),
+              isLeaveOrAbsent ? "-" : formatTime(record.clockIn),
+              isLeaveOrAbsent ? "-" : formatTime(record.clockOut),
+              isLeaveOrAbsent ? "0h 0m" : formatHours(record.totalHours),
+              statusText,
             ]);
           }
         });
@@ -764,12 +767,14 @@ const EmployeeAttendance = () => {
 
     // Check if clockOut is same as clockIn (meaning not checked out yet)
     const hasCheckedOut = record.clockOut && record.clockIn !== record.clockOut;
+    const formattedStatus = formatStatusText(record.status);
+    const isLeaveOrAbsent = formattedStatus === "On Leave" || formattedStatus === "Absent";
 
     return {
-      checkIn: formatTime(record.clockIn),
-      checkOut: hasCheckedOut ? formatTime(record.clockOut) : "-",
-      status: formatStatusText(record.status),
-      hours: formatHours(record.totalHours),
+      checkIn: isLeaveOrAbsent ? "-" : formatTime(record.clockIn),
+      checkOut: isLeaveOrAbsent ? "-" : (hasCheckedOut ? formatTime(record.clockOut) : "-"),
+      status: formattedStatus,
+      hours: isLeaveOrAbsent ? "0h 0m" : formatHours(record.totalHours),
     };
   };
 
@@ -1112,7 +1117,7 @@ const EmployeeAttendance = () => {
                                 {att.checkIn}
                               </span>
                             </>
-                          ) : att.status === "Absent" || !isToday ? (
+                          ) : att.status === "Absent" || att.status === "On Leave" || !isToday ? (
                             <span className="text-gray-400 font-medium">-</span>
                           ) : (
                             <button
@@ -1135,7 +1140,7 @@ const EmployeeAttendance = () => {
                             </>
                           ) : att.checkIn &&
                             att.checkIn !== "-" &&
-                            !(att.status === "Absent" || !isToday) ? (
+                            !(att.status === "Absent" || att.status === "On Leave" || !isToday) ? (
                             <button
                               onClick={() => handleCheckOut(emp.id)}
                               className="px-3 py-1 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap bg-blue-100 text-blue-700 hover:bg-blue-200"

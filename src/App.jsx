@@ -1,5 +1,11 @@
 import React, { Suspense, lazy } from "react";
-import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import {
+  Navigate,
+  Route,
+  BrowserRouter as Router,
+  Routes,
+} from "react-router-dom";
+import SiteBanner from "./components/layout/siteBanner/SiteBanner";
 
 const ComingSoon = ({ title }) => (
   <div className="p-10">
@@ -33,7 +39,9 @@ const EmployeeSalary = lazy(() => import("./pages/finance/EmployeeSalary"));
 const Invoices = lazy(() => import("./pages/finance/Invoices"));
 const BlogPage = lazy(() => import("./pages/content/BlogPage"));
 const Dashboard = lazy(() => import("./pages/dashboard/DashboardPage"));
-const EmployeeAttendance = lazy(() => import("./pages/hrms/EmployeeAttendance"));
+const EmployeeAttendance = lazy(
+  () => import("./pages/hrms/EmployeeAttendance"),
+);
 const JobsPage = lazy(() => import("./pages/jobs/JobsPage"));
 const MessagesPage = lazy(() => import("./pages/messages/MessagesPage"));
 const NewsletterPage = lazy(() => import("./pages/content/NewsletterPage"));
@@ -53,16 +61,27 @@ import "./App.css";
 export default function App() {
   return (
     <Router>
+      <SiteBanner />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* MAIN LAYOUT ROUTES (incoming file) */}
-          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<Dashboard />} />
             <Route path="home" element={<Home />} />
 
             <Route path="expenses/salary" element={<EmployeeSalary />} />
             <Route path="expenses/sales" element={<CompanySales />} />
-            <Route path="expenses/company-expenses" element={<CompanyExpenses />} />
+            <Route
+              path="expenses/company-expenses"
+              element={<CompanyExpenses />}
+            />
             <Route path="expenses/invoices" element={<Invoices />} />
 
             <Route path="jobs" element={<JobsPage />} />
@@ -76,7 +95,10 @@ export default function App() {
             {/* EMPLOYEE ROUTES - Now inside Layout */}
             <Route path="employees" element={<EmployeePage />} />
             <Route path="employee/:id" element={<EmployeeViewPage />} />
-            <Route path="employee-attendance" element={<EmployeeAttendance />} />
+            <Route
+              path="employee-attendance"
+              element={<EmployeeAttendance />}
+            />
 
             <Route path="profile" element={<MyProfile />} />
             <Route path="settings" element={<Settings />} />

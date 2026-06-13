@@ -5,7 +5,6 @@ import {
   BrowserRouter as Router,
   Routes,
 } from "react-router-dom";
-import SiteBanner from "./components/layout/siteBanner/SiteBanner";
 
 const ComingSoon = ({ title }) => (
   <div className="p-10">
@@ -61,7 +60,6 @@ import "./App.css";
 export default function App() {
   return (
     <Router>
-      <SiteBanner />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* MAIN LAYOUT ROUTES (incoming file) */}

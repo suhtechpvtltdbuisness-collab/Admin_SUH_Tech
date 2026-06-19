@@ -1,9 +1,11 @@
 // API Service for handling server calls
 class ApiService {
   constructor() {
-    this.baseURL =
-      import.meta.env.VITE_BACKEND_BASE_URL ||
-      "https://suh-tech-main-backend.vercel.app";
+    let url = import.meta.env.VITE_BACKEND_BASE_URL || "";
+    if (url && !url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("/")) {
+      url = `https://${url}`;
+    }
+    this.baseURL = url;
   }
 
   // Generic method for making API requests
